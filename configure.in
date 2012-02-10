@@ -1,0 +1,18 @@
+PROG_NAME="fs2go"
+PROG_VERSION="0"
+
+OUT_HEADER="src/config.h"
+OUT_MK="config.mk"
+
+CC_CANDIDATES="cc gcc icc"
+
+CFLAGS="-pg -DFUSE_USE_VERSION=26 -lrt"
+WARNINGS="all no-int-to-pointer-cast no-pointer-to-int-cast no-unused-but-set-variable"
+
+PKGCONF="fuse sqlite3"
+
+REQUIRE_HEADERS="stdio.h unistd.h sys/types.h dirent.h sqlite3.h fuse.h fuse_opt.h"
+CHECK_HEADERS="attr/xattr.h"
+
+REQUIRE_FUNCS=""
+CHECK_FUNCS="utimensat clock_gettime setxattr vfprintf fpathconf dirfd"

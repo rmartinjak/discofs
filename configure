@@ -1,0 +1,184 @@
+#!/bin/sh
+
+. ./configure.in
+
+
+while ! [ -z $1 ]
+do
+	case $1 in
+		-h|--help)
+			echo "available options:
+--prefix=<path> insallation prefix (default: /usr/local)"
+			exit 0
+			;;
+		--prefix=*)
+			prefix=$(echo $1 | cut -d '=' -f 2)
+			echo prefix=$prefix
+			shift
+			;;
+		*)
+			echo unknown option $1
+			exit 1
+			;;
+	esac
+done
+	
+
+cc="_none"
+if [ -z $prefix ]
+then
+	prefix="/usr/local"
+fi
+
+manprefix="$prefix/share/man"
+
+testfile="conf_test.c"
+testout="conf_test"
+ctestflags="-c -o $testout"
+
+#=============================================== 
+
+defname() {
+	echo HAVE_$(echo $1 | tr "a-z/." "A-Z__")
+}
+
+define() {
+	echo "#define $1 $2" >> $OUT_HEADER
+}
+
+def() {
+	define $(defname $1) $2
+}
+
+require() {
+	if [ $2 -eq 0 ]
+	then
+		echo "ERROR: $1 is required"
+		rm $testout 2> /dev/null
+		rm $testfile 2> /dev/null
+		exit 1
+	fi
+}
+
+test_header() {
+	echo -n "header $1...	"
+	for i in $includes; do
+		echo "#include <$i>" >> $testfile
+	done
+
+	echo "#include <$1>" >> $testfile
+
+	if $cc $CFLAGS $ctestflags $testfile 2> /dev/null
+	then
+		echo "yes"
+		includes="$includes $1"
+		$2 $1 1
+	else
+		echo "NO"
+		$2 $1 0
+	fi
+	rm $testfile
+}
+
+test_func() {
+	echo -n "function $1()...	"
+	for i in $includes; do
+		echo "#include <$i>" >> $testfile
+	done
+
+	cat >> $testfile << EOF
+char $1 ();
+int main(void) {
+	return $1 ();
+}
+EOF
+	if $cc $CFLAGS $ctestflags $testfile 2> /dev/null
+	then
+		echo "NO"
+		$2 $1 0
+	else
+		echo "yes"
+		$2 $1 1
+	fi
+	rm $testfile
+}
+
+# process arguments
+
+# make dirs, clear files
+mkdir $(dirname $OUT_HEADER) 2> /dev/null
+mkdir $(dirname $OUT_MK) 2> /dev/null
+echo -n > $OUT_HEADER || exit 1
+echo -n > $OUT_MK || exit 1
+
+# search for compiler
+for c in $CC_CANDIDATES
+do
+	if which $c 2> /dev/null
+		then
+			echo "compiler: $c"
+			cc=$c
+			break
+	fi
+done
+
+if [ $cc = "_none" ]
+then
+	echo "no compiler found"
+	exit 1
+fi
+
+if which pkg-config 2> /dev/null
+then
+	CFLAGS="$CFLAGS $(pkg-config $PKGCONF --cflags --libs)"
+else
+	echo "pkg-config not found"
+	exit 1
+fi
+
+for w in $WARNINGS
+do
+	CFLAGS="$CFLAGS -W$w"
+done
+
+# build makefile config
+cat >> $OUT_MK << EOF
+CC = $cc
+CFLAGS = $CFLAGS
+PREFIX = $prefix
+MANPREFIX = $manprefix
+VERSION = $PROG_VERSION
+EOF
+
+
+if [ -n "$PROG_NAME" ]; then
+	define PROG_NAME \"$PROG_NAME\"
+fi
+if [ -n "$PROG_VERSION" ]; then
+	define PROG_VERSION \"$PROG_VERSION\"
+fi
+
+hg_rev=$(hg id -n 2> /dev/null):$(hg id -i 2> /dev/null) && define HG_REV \"$hg_rev\"
+
+# test headers and functions
+
+for h in $REQUIRE_HEADERS; do
+	test_header $h require
+done
+
+for h in $CHECK_HEADERS; do
+	test_header $h def
+done
+
+for f in $REQUIRE_FUNCS; do
+	test_func $f require
+done
+
+for f in $CHECK_FUNCS; do
+	test_func $f def
+done
+
+rm $testout 2> /dev/null
+rm $testfile 2> /dev/null
+
+exit 0

@@ -1,0 +1,98 @@
+.TH FS2GO 1 "Nov 2011" "fs2go\ VERSION"
+
+.SH NAME
+fs2go \- takeaway file system
+
+
+.SH SYNOPSYS
+.SS Mounting
+.TP
+.BR "fs2go" " [options] " "remote_mountpoint" " " "mountpoint"
+.SS Unmounting
+.B fusermount -u mountpoint
+
+
+.SH DESCRIPTION
+bla bla bla
+.P
+another paragraph lol
+
+
+.SH OPTIONS
+
+.SS "general options:"
+.TP
+.B -h\t\-\-help
+print help
+
+.TP
+.B -v\t\-\-version
+print version
+
+.TP
+.B -d\t\-\-debug
+enable debugging output, don't fork to background
+
+.TP
+.B -f\t\-\-foreground
+don't fork to background
+
+
+.SS "fs2go options:"
+
+.TP
+.BI "-r\t\-\-remote-host " host
+Hostname or IP adress of remote host. The host will be PINGed as a simple test if the remote filesystem is available. If this option is omitted, it will always be assumed that the ping test succeeded.
+
+.TP
+.BI \-c \ mode \fR,\ \fB\-\-conflict \ mode
+Conflict resolution (see
+.B CONFLICTS
+below) mode. The
+.I mode
+argument can be either
+.BR newer ", " mine " or " theirs
+resulting in the following behaviour:
+.RS
+.RS
+.BR newer ": Compare modification times of cached and remote file, keep the newer one"
+.br
+.BR mine ": Always keep cached file"
+.br
+.BR theirs ": Always keep remote file"
+.RE
+The default value is
+.BR newer .
+.RE
+
+.TP
+.BI \-\-bprefix \ prefix\fR,\  \-\-bsuffix \ suffix
+If at least one of these is specified, files or directories that would be removed during conflict handling (see 
+.B CONFLICTS
+below) are being backed up by renaming them to 
+.RI < prefix >\fBfilename\fR< suffix >.
+
+.TP
+.B "\-\-clear"
+Clear database and cache before mounting
+
+.TP
+.BI \-\-loglevel \ level
+Set logging level. The
+.I level
+argument can be either
+.BR none ,\  error ,\  info ,\  verbose ,\  fsop \ or\  debug ,
+each one including its predecessors (i.e. using 
+.B verbose
+will also print
+.BR info \ and\  error
+messages).
+.br
+The default value is
+.BR none .
+
+.TP
+.BI \-\-logfile \ file
+File to append log messages to. If not specified, 
+.I stderr
+will be used.

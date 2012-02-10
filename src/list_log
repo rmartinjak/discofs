@@ -1,0 +1,4 @@
+#!/bin/bash
+for lvl in INFO ERROR VERBOSE FSOP DEBUG
+	do echo "$lvl: $(grep "$lvl(\"" * | wc -l)"
+done
