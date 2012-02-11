@@ -16,12 +16,16 @@ static off_t t_off;
 static char *t_path, *t_read = NULL, *t_write = NULL, *t_write_part = NULL;
 static int t_active = 0, t_op = 0;
 
-#define FREE(p) free(p); p = NULL;
+static void transfer_free(void);
+
+
 static void transfer_free(void) {
+#define FREE(p) free(p); p = NULL;
 	FREE(t_path);
 	FREE(t_read);
 	FREE(t_write);
 	FREE(t_write_part);
+#undef FREE
 }
 
 /* partially transfer file. if from and to are given, open files first */
