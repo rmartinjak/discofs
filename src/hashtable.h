@@ -1,6 +1,8 @@
 #ifndef HASHTABLE_H
 #define HASHTABLE_H
 
+#include <sys/types.h>
+
 #define HT_OK 0
 #define HT_ERROR -1
 #define HT_EXIST 1
@@ -20,8 +22,8 @@ typedef int(*ht_cmpfunc_t)(const void*, const void*, const void*);
 typedef struct hashtable {
 	ht_hashfunc_t hash;
 	ht_cmpfunc_t cmp;
-	unsigned int n_items;
-	unsigned int n_buckets;
+	size_t n_items;
+	size_t n_buckets;
 	struct htbucket *buckets;
 } hashtable;
 
@@ -43,13 +45,11 @@ typedef struct htiter {
 
 /* HASHTABLE FUNCTIONS */
 
-int ht_init_(hashtable **ht,
+int ht_init(hashtable **ht,
 			ht_hashfunc_t hash;
 			ht_cmpfunc_t cmp;
 			);
-#define ht_init(ht, hash, cmp) ht_init_(ht, (ht_hashfunc_t)hash, (ht_cmpfunc_t)cmp)
-void ht_free_(hashtable *ht, void (*free_key)(void*), void (*free_data)(void*));
-#define ht_free(ht, free_key, free_data) ht_free_(ht, (void (*)(void*))free_key, (void (*)(void*))free_data);
+void ht_free(hashtable *ht, void (*free_key)(void*), void (*free_data)(void*));
 
 int ht_resize(hashtable *ht, int n);
 
@@ -67,7 +67,6 @@ void htbucket_pop(htbucket *b, void **key, void **data);
 void htbucket_clear(htbucket *b, void (*free_key)(void*), void (*free_data)(void*));
 
 htiter *ht_iter(hashtable *ht);
-int htiter_next_(htiter *it, void **key, void **data);
-#define htiter_next(it, key, data) htiter_next_(it, (void**)key, (void**)data)
+int htiter_next(htiter *it, void **key, void **data);
 
 #endif

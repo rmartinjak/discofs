@@ -21,17 +21,19 @@ extern struct options fs2go_options;
 queue sync_queue = QUEUE_INIT;
 pthread_mutex_t m_sync_queue = PTHREAD_MUTEX_INITIALIZER;
 
-static hashtable *sync_ht = NULL;
-static pthread_mutex_t m_sync_ht = PTHREAD_MUTEX_INITIALIZER;
+hashtable *sync_ht = NULL;
+pthread_mutex_t m_sync_ht = PTHREAD_MUTEX_INITIALIZER;
+
+static void sync_free2(void *p);
 
 void sync_free(struct sync *s) {
 	if (s)
 		free(s->path);
 }
 
-void sync_free2(struct sync *s) {
-	sync_free(s);
-	free(s);
+static void sync_free2(void *p) {
+	sync_free((struct sync*) p);
+	free(p);
 }
 
 int set_sync(const char *path) {
@@ -170,7 +172,7 @@ void sync_ht_free(void) {
 
 	it = ht_iter(sync_ht);
 
-	while (htiter_next(it, &p, &ht)) {
+	while (htiter_next(it, (void**)&p, (void**)&ht)) {
 		ht_free(ht, NULL, sync_free2);
 		free(ht);
 		free(p);
@@ -283,7 +285,7 @@ int sync_rename_dir(const char *from, const char *to) {
 
 	/* find all directory hashtables where path is below "path" */
 	pthread_mutex_lock(&m_sync_ht);
-	while (htiter_next(it, &p, NULL)) {
+	while (htiter_next(it, (void**)&p, NULL)) {
 		if (strncmp(p, from, from_len)) {
 			if ((oldpath = strdup(p)) == NULL) {
 				pthread_mutex_unlock(&m_sync_ht);

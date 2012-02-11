@@ -27,7 +27,7 @@ static htbucket *ht_alloc_buckets(int n) {
 	return ret;
 }
 
-int ht_init_(hashtable **ht, ht_hashfunc_t hash, ht_cmpfunc_t cmp) {
+int ht_init(hashtable **ht, ht_hashfunc_t hash, ht_cmpfunc_t cmp) {
 	*ht = malloc(sizeof(hashtable));
 
 	if (*ht == NULL) {
@@ -52,7 +52,7 @@ int ht_init_(hashtable **ht, ht_hashfunc_t hash, ht_cmpfunc_t cmp) {
 	}
 }
 
-void ht_free_(hashtable *ht, void (*free_key)(void*), void (*free_data)(void*)) {
+void ht_free(hashtable *ht, void (*free_key)(void*), void (*free_data)(void*)) {
 	int n = ht->n_buckets;
 
 	while (n--) {
@@ -299,7 +299,7 @@ htiter *ht_iter(hashtable *ht) {
 	return it;
 }
 
-int htiter_next_(htiter *it, void **key, void **data) {
+int htiter_next(htiter *it, void **key, void **data) {
 	if (it->cur && it->cur->next) {
 		it->cur = it->cur->next;
 	}

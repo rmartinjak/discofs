@@ -26,7 +26,6 @@ struct sync {
 };
 
 void sync_free(struct sync *s);
-void sync_free2(struct sync *s);
 
 int set_sync(const char *path);
 int get_sync_stat(const char *path, struct stat *buf);
