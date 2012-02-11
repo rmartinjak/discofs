@@ -22,7 +22,6 @@ do
 			;;
 	esac
 done
-	
 
 cc="_none"
 if [ -z $prefix ]
