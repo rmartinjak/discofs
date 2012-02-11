@@ -1,0 +1,19 @@
+fs2go is a FUSE filesystem which automatically mirrors a network filesystem
+(i.e. nfs/cifs or whatever you like) to a local cache, making the files
+available even if you're not connected to the corresponding host/network.
+
+The main goal is to automatically synchronize a local version of the network
+filesystem without the need of user interaction.
+
+Changes made while "offline" are applied to the remote filesystem once the 
+connection to the host/network is available.
+
+Changes made on the remote side are detected by comparing each file's
+MTIME/CTIME with the stored timestamp of the last synchronization.
+
+For more details and usage see the manual.
+
+(The name "fs2go" is a parody on a German pseudo-english term for "takeaway coffee".)
+
+Contact: 
+Robin Martinjak <rob@rmartinjak.de>
