@@ -5,11 +5,19 @@ fs2go \- takeaway file system
 
 
 .SH SYNOPSYS
+.TP
+.BR fs2go \ [ \-hv ]
+
 .SS Mounting
 .TP
-.BR "fs2go" " [options] " "remote_mountpoint" " " "mountpoint"
+.B fs2go
+.RB [ \-fd ]
+.RB [ \-o
+.IR option [ \fB,\fPoption ]...]
+.IR remotefs " " mountpoint
 .SS Unmounting
-.B fusermount -u mountpoint
+.B fusermount -u
+.I mountpoint
 
 
 .SH DESCRIPTION
@@ -20,7 +28,7 @@ another paragraph lol
 
 .SH OPTIONS
 
-.SS "general options:"
+.SS "General options:"
 .TP
 .B -h\t\-\-help
 print help
@@ -30,25 +38,55 @@ print help
 print version
 
 .TP
-.B -d\t\-\-debug
-enable debugging output, don't fork to background
-
-.TP
 .B -f\t\-\-foreground
 don't fork to background
+
+.TP
+.B -d\t\-\-debug
+enable debugging output, don't fork to background
 
 
 .SS "fs2go options:"
 
 .TP
-.BI "-r\t\-\-remote-host " host
-Hostname or IP adress of remote host. The host will be PINGed as a simple test if the remote filesystem is available. If this option is omitted, it will always be assumed that the ping test succeeded.
+.BI uid= uid
+Change the process user to
+.I uid
+(name or numeric id) before mounting. Also changes group to
+.I uid\fR's
+primary group (unless
+.I gid
+is specified).
 
 .TP
-.BI \-c \ mode \fR,\ \fB\-\-conflict \ mode
-Conflict resolution (see
+.BI gid= gid
+Change the process group to
+.I gid
+(name or numeric id) before mounting.
+
+.TP
+.BI host= host
+Hostname or IP adress of remote host. Whether pinging this host succeeds is a state criterion (see
+.B STATE
+below).
+
+.TP
+.BI pid= file
+Path to a file containing a PID to check. Whether this PID is running is a state criterion (see
+.B STATE
+below).
+
+.TP
+.BI scan= secs
+Wait
+.I secs
+seconds each interval before scanning remote fs for changed files (default is 10)
+
+.TP
+.BI conflict= mode
+Conflict resolution mode (see
 .B CONFLICTS
-below) mode. The
+below). The
 .I mode
 argument can be either
 .BR newer ", " mine " or " theirs
@@ -66,23 +104,23 @@ The default value is
 .RE
 
 .TP
-.BI \-\-bprefix \ prefix\fR,\  \-\-bsuffix \ suffix
-If at least one of these is specified, files or directories that would be removed during conflict handling (see 
+.BI bprefix= prefix \fR,\ \fPbsuffix= suffix
+If at least one of these is specified, files or directories that would be removed during conflict handling (see
 .B CONFLICTS
-below) are being backed up by renaming them to 
+below) are being backed up by renaming them to
 .RI < prefix >\fBfilename\fR< suffix >.
 
 .TP
-.B "\-\-clear"
+.B clear
 Clear database and cache before mounting
 
 .TP
-.BI \-\-loglevel \ level
+.BI loglevel= level
 Set logging level. The
 .I level
 argument can be either
 .BR none ,\  error ,\  info ,\  verbose ,\  fsop \ or\  debug ,
-each one including its predecessors (i.e. using 
+each one including its predecessors (i.e. using
 .B verbose
 will also print
 .BR info \ and\  error
@@ -92,7 +130,44 @@ The default value is
 .BR none .
 
 .TP
-.BI \-\-logfile \ file
-File to append log messages to. If not specified, 
+.BI logfile= file
+File to append log messages to. If not specified,
 .I stderr
 will be used.
+
+.TP
+.BI no-mode
+Don't synchronize file access permssions (chmod) between cache and remote
+
+.TP
+.BI no-owner
+Don't synchronize file user ownership
+
+.TP
+.BI no-group
+Don't synchronize file group ownership
+
+.TP
+.BI no-xattr
+Don't synchronize extended attributes (if supported at all)
+
+.TP
+.BI nfs
+like
+.IR no-owner , no-group
+
+.TP
+.BI sshfs
+like
+.IR no-owner , no-group , no-xattr
+
+.SS "Advanced options:"
+.TP
+.BI db= file
+File to use for sqlite db
+
+.TP
+.BI cache= dir
+Cache directory
+
+.SS STATE

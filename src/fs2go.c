@@ -65,42 +65,40 @@ void set_state(int s, int *oldstate) {
 }
 
 static void print_usage() {
-	char *s = "usage: " PROG_NAME " remote_fs mountpoint [options]\n"
+	char *s = "usage: " PROG_NAME " [ -hvdf ] [ -o option[,option]...] remote_fs mountpoint\n"
 	"\n"
 	"general options:\n"
 	/*"  -o opt,[opt...]	mount options\n"*/
-	" -h --help			display help\n"
-	" -v --version			display version\n"
+	" -h --help			display help and exit\n"
+	" -v --version			display version and exit\n"
 	" -d --debug			enable debugging output, don't fork to background\n"
 	" -f --foreground		don't fork to background\n"
 	"\n"
 	PROG_NAME " options:\n"
-	" -r --remote-host <host>	hostname or IP address to PING for remote fs availability\n"
-	" -p --pid <filename>		file containing PID to test for remote fs avialability\n"
-	"    --scan <seconds>		interval to wait before scanning remote fs for changes. default is " STR(DEF_SCAN_INTERVAL) "\n"
-	" -c --conflict			conflict resolution mode. possible values:\n"
+	" host=<host>	hostname or IP address to PING for remote fs availability\n"
+	" pid=<filename>		file containing PID to test for remote fs avialability\n"
+	" scan=<seconds>		interval to wait before scanning remote fs for changes. default is " STR(DEF_SCAN_INTERVAL) "\n"
+	" conflict=<mode>			conflict resolution mode. possible values:\n"
 	"				newer, mine, theirs. default is 'newer'\n"
-	"    --bprefix\n"
-	"    --bsuffix			backup prefix/suffix (see the manual for more information)\n"
-	"    --clear			delete database and cache\n"
-	"    --loglevel <level>		logging level, possible values: none, error, info, verbose, fsop, debug\n"
+	" bprefix=<prefix>\n"
+	" bsuffix=<suffix>			backup prefix/suffix (see the manual for more information)\n"
+	" clear			delete database and cache before mounting\n"
+	" loglevel=<level>		logging level, possible values: none, error, info, verbose, fsop, debug\n"
 	"				each including its predecessors. default is 'none'\n"
-	"    --logfile <file>		obvious, isn't it? default ist stderr\n"
+	" logfile=<file>		obvious, isn't it? default ist stderr\n"
 	"\n"
 	"filesystem specific options:\n"
-	"    --no-mode			don't sync access permissions\n"
-	"    --no-owner			don't sync user-ownership\n"
-	"    --no-group			don't sync group-ownership\n"
+	"    no-mode			don't sync access permissions\n"
+	"    no-owner			don't sync user ownership\n"
+	"    no-group			don't sync group ownership\n"
 	#if HAVE_SETXATTR
-	"    --no-xattr			don't sync extended attributes (set with getfattr)\n"
-	"    --sshfs			same as \"--no-owner --no-group --no-xattr\"\n"
+	"    no-xattr			don't sync extended attributes (set with getfattr)\n"
+	"    sshfs			same as \"--no-owner --no-group --no-xattr\"\n"
 	#else
-	"    --sshfs			same as \"--no-owner --no-group\"\n"
+	"    sshfs			same as \"--no-owner --no-group\"\n"
 	#endif
-	"    --nfs			same as \"--no-owner --no-group\"\n"
+	"    nfs			same as \"--no-owner --no-group\"\n"
 	"";
-
-	/*"  -b --backup-dir <dir>" */
 
 	fprintf(stderr, s);
 }
@@ -154,56 +152,34 @@ static void log_options(int loglevel, struct options opt) {
 /** macro to define options */
 #define OPT_KEY(t, p, v) { t, offsetof(struct options, p), v }
 static struct fuse_opt fs2go_opts[] = {
-	FUSE_OPT_KEY("--uid %s", FS2GO_OPT_UID),
 	FUSE_OPT_KEY("uid=%s", FS2GO_OPT_UID),
-	FUSE_OPT_KEY("--gid %s", FS2GO_OPT_GID),
 	FUSE_OPT_KEY("gid=%s", FS2GO_OPT_GID),
 
-	OPT_KEY("--db %s", db_file, 0),
 	OPT_KEY("db=%s", db_file, 0),
-	OPT_KEY("--cache %s", cache_root, 0),
 	OPT_KEY("cache=%s", cache_root, 0),
 
-	OPT_KEY("-r %s", host, 0),
-	OPT_KEY("--remote-host %s", host, 0),
-	OPT_KEY("remote-host=%s", host, 0),
-	OPT_KEY("-p %s", pid_file, 0),
-	OPT_KEY("--pid %s", pid_file, 0),
+	OPT_KEY("host=%s", host, 0),
 	OPT_KEY("pid=%s", pid_file, 0),
 
-	OPT_KEY("--scan %u", scan_interval, 0),
 	OPT_KEY("scan=%u", scan_interval, 0),
 
-	FUSE_OPT_KEY("-c %s", FS2GO_OPT_CONFLICT),
-	FUSE_OPT_KEY("--conflict %s", FS2GO_OPT_CONFLICT),
 	FUSE_OPT_KEY("conflict=%s", FS2GO_OPT_CONFLICT),
 
-	OPT_KEY("--bprefix %s", backup_prefix, 0),
 	OPT_KEY("bprefix=%s", backup_prefix, 0),
-	OPT_KEY("--bsuffix %s", backup_suffix, 0),
 	OPT_KEY("bsuffix=%s", backup_suffix, 0),
 
-	OPT_KEY("--clear", clear, 1),
 	OPT_KEY("clear", clear, 1),
 
-	FUSE_OPT_KEY("--loglevel %s", FS2GO_OPT_LOGLEVEL),
 	FUSE_OPT_KEY("loglevel=%s", FS2GO_OPT_LOGLEVEL),
-	OPT_KEY("--logfile %s", logfile, 0),
 	OPT_KEY("logfile=%s", logfile, 0),
 
-	FUSE_OPT_KEY("--no-mode", FS2GO_OPT_NO_MODE),
 	FUSE_OPT_KEY("no-mode", FS2GO_OPT_NO_MODE),
-	FUSE_OPT_KEY("--no-owner", FS2GO_OPT_NO_OWNER),
 	FUSE_OPT_KEY("no-owner", FS2GO_OPT_NO_OWNER),
-	FUSE_OPT_KEY("--no-group", FS2GO_OPT_NO_GROUP),
 	FUSE_OPT_KEY("no-group", FS2GO_OPT_NO_GROUP),
 	#if HAVE_SETXATTR
-	FUSE_OPT_KEY("--no-xattr", FS2GO_OPT_NO_XATTR),
 	FUSE_OPT_KEY("no-xattr", FS2GO_OPT_NO_XATTR),
 	#endif
-	FUSE_OPT_KEY("--sshfs", FS2GO_OPT_SSHFS),
 	FUSE_OPT_KEY("sshfs", FS2GO_OPT_SSHFS),
-	FUSE_OPT_KEY("--nfs", FS2GO_OPT_NFS),
 	FUSE_OPT_KEY("nfs", FS2GO_OPT_NFS),
 
 	FUSE_OPT_KEY("-v", FS2GO_OPT_VERSION),
@@ -294,7 +270,7 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
 			return 0;
 
 		case FS2GO_OPT_UID:
-			val = arg + strlen((*arg == '-') ? "--uid" : "uid=");
+			val = arg + strlen("uid=");
 			fs2go_options.uid = (uid_t)strtol(val, &endptr, 10);
 			pw = (*endptr != '\0') ? getpwnam(val) : getpwuid(fs2go_options.uid);
 			if (!pw)
@@ -305,7 +281,7 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
 			return 0;
 
 		case FS2GO_OPT_GID:
-			val = arg + strlen((*arg == '-') ? "--gid" : "gid=");
+			val = arg + strlen("gid=");
 			fs2go_options.gid = (gid_t)strtol(val, &endptr, 10);
 			if (*endptr != '\0') {
 				if (!(gr = getgrnam(val)))
@@ -314,7 +290,7 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
 			}
 			return 0;
 
-		/* --no-mode, --no-owner etc. */
+		/* no-mode, no-owner etc. */
 		#define OPT_COPYADDR(n) case FS2GO_OPT_ ## n: \
 			fs2go_options.copyattr |= COPYATTR_ ## n; \
 			return 0
@@ -326,12 +302,9 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
 		OPT_COPYADDR(SSHFS);
 		#undef OPT_COPYADDR
 
-		/* --loglevel */
+		/* loglevel */
 		case FS2GO_OPT_LOGLEVEL:
-			if (*arg == '-')
-				val = arg + strlen("--loglevel");
-			else
-				val = arg + strlen("loglevel=");
+			val = arg + strlen("loglevel=");
 			if (!strcmp(val, "error"))
 				fs2go_options.loglevel = LOG_ERROR;
 			else if (!strcmp(val, "info"))
@@ -348,16 +321,9 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
 			}
 			return 0;
 
-		/* --conflict */
+		/* conflict */
 		case FS2GO_OPT_CONFLICT:
-			if (*arg == '-') {
-				if (arg[1] == '-')
-					val = arg + strlen("--conflict");
-				else
-					val = arg + strlen("-c");
-			}
-			else
-				val = arg + strlen("conflict=");
+			val = arg + strlen("conflict=");
 
 			if (!strcmp(val, "newer") || !strcmp(val, "n"))
 				fs2go_options.conflict = CONFLICT_NEWER;
@@ -520,7 +486,7 @@ int main(int argc, char **argv) {
 	}
 	CACHE_ROOT_LEN = strlen(CACHE_ROOT);
 
-	/* delete cache if --clear specified */
+	/* delete cache if "clear" specified */
 	if (fs2go_options.clear) {
 		struct stat st;
 		VERBOSE("deleting cache\n");
