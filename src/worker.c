@@ -109,13 +109,17 @@ void scan_remote(queue *q) {
 	}
 
 	dirp = opendir(srch_r);
-	dbufsize = dirent_buf_size(dirp);
-	dbuf = malloc(dbufsize);
+	if (dirp) {
+		dbufsize = dirent_buf_size(dirp);
+		dbuf = malloc(dbufsize);
+	}
+	else
+		dbuf = NULL;
+
 	if (!dbuf) {
 		free(srch_r);
 		free(srch);
 		free(srch_c);
-		ERROR("malloc in scan_remote failed\n");
 		return;
 	}
 
@@ -162,13 +166,17 @@ void scan_remote(queue *q) {
 
 	/* READ CACHE DIR to check for remotely deleted files */
 	dirp = opendir(srch_c);
-	dbufsize = dirent_buf_size(dirp);
-	dbuf = malloc(dbufsize);
+	if (dirp) {
+		dbufsize = dirent_buf_size(dirp);
+		dbuf = malloc(dbufsize);
+	}
+	else
+		dbuf = NULL;
+
 	if (!dbuf) {
 		free(srch_r);
 		free(srch);
 		free(srch_c);
-		ERROR("malloc in scan_remote failed\n");
 		return;
 	}
 
