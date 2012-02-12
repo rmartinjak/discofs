@@ -230,6 +230,9 @@ static int do_job_rename(struct job *j, int do_remote) {
 		from = cache_path(j->path, strlen(j->path));
 		to = cache_path(j->sparam1, strlen(j->sparam1));
 		db_delete_path(j->sparam1);
+
+		job_store_queue();
+
 		if (is_dir(j->sparam1)) {
 			sync_delete_dir(j->sparam1);
 			sync_rename_dir(j->path, j->sparam1);
