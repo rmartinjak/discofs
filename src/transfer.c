@@ -251,7 +251,7 @@ void transfer_abort() {
 
 	t_active = 0;
 	remove_lock(t_path, LOCK_TRANSFER);
-	
+
 	unlink(t_write_part);
 	transfer_free();
 

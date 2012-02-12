@@ -275,7 +275,7 @@ int sync_rename_dir(const char *from, const char *to) {
 	htiter *it;
 	char *p, *oldpath, *newpath;
 	size_t from_len, to_len;
-	
+
 	from_len = strlen(from);
 	to_len = strlen(to);
 
@@ -298,7 +298,7 @@ int sync_rename_dir(const char *from, const char *to) {
 	}
 
 	while ( /* items in queue ? */
-			(oldpath = q_dequeue(&q)) 
+			(oldpath = q_dequeue(&q))
 			 /* retrieve and remove directory hashtable from "master" ht */
 			&& (ht = ht_remove(sync_ht, oldpath, NULL, NULL, NULL))
 			/* create new path */

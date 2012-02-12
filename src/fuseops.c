@@ -331,8 +331,8 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
 	char *pc, *pr;
 
 	if ((fh = malloc(FH_SIZE)) == NULL)
-		return -EIO;	
-	
+		return -EIO;
+
 	FH_FLAGS(fh) = 0;
 
 	if (ONLINE && !has_lock(path, LOCK_OPEN)) {

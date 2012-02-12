@@ -54,7 +54,7 @@ int conflict_handle(const struct job *j, int *keep_which) {
 
 	if (keep_which)
 		*keep_which = keep;
-	
+
 	delete_or_backup(path, keep);
 
 	if (keep == CONFLICT_KEEP_REMOTE) {
@@ -81,7 +81,7 @@ int conflict_handle(const struct job *j, int *keep_which) {
 			free(newpath);
 		}
 		/* JOB_PUSH */
-		else 
+		else
 			schedule_pull(path);
 		free(p);
 	}
@@ -114,7 +114,7 @@ int delete_or_backup(const char *path, int keep) {
 		if (!res) {
 			confp = conflict_path(path);
 			if (keep == CONFLICT_KEEP_REMOTE)
-				schedule_pull(confp);	
+				schedule_pull(confp);
 			else
 				schedule_push(confp);
 			free(confp);
