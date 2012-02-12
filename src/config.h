@@ -1,3 +1,8 @@
+/* fs2go - takeaway filesystem
+ * Copyright (c) 2012 Robin Martinjak
+ * see LICENSE for full license (BSD 2-Clause)
+ */
+
 #define PROG_NAME "fs2go"
 #define PROG_VERSION "0"
 #define HG_REV "46+:32c081724bd3+"
