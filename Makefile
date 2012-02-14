@@ -23,7 +23,7 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.c
 
 fs2go : $(OBJDIR) $(OBJ)
 	@echo CC -o $@
-	@$(CC) $(CFLAGS) -o fs2go $(OBJ)
+	@$(CC) $(CFLAGS) $(LDFLAGS) -o fs2go $(OBJ)
 
 clean :
 	@echo cleaning

@@ -129,7 +129,8 @@ fi
 
 if which pkg-config 2> /dev/null
 then
-	CFLAGS="$CFLAGS $(pkg-config $PKGCONF --cflags --libs)"
+	CFLAGS+=" $(pkg-config $PKGCONF --cflags)"
+	LDFLAGS+=" $(pkg-config $PKGCONF --libs)"
 else
 	echo "pkg-config not found"
 	exit 1
@@ -144,6 +145,7 @@ done
 cat >> $OUT_MK << EOF
 CC = $cc
 CFLAGS = $CFLAGS
+LDFLAGS = $LDFLAGS
 PREFIX = $prefix
 MANPREFIX = $manprefix
 VERSION = $PROG_VERSION

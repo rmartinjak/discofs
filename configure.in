@@ -6,7 +6,9 @@ OUT_MK="config.mk"
 
 CC_CANDIDATES="cc gcc icc"
 
-CFLAGS="-pg -DFUSE_USE_VERSION=26 -lrt"
+CFLAGS="-pg -DFUSE_USE_VERSION=26"
+LDFLAGS="-lrt"
+
 WARNINGS="all no-int-to-pointer-cast no-pointer-to-int-cast no-unused-but-set-variable"
 
 PKGCONF="fuse sqlite3"
