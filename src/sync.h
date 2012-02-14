@@ -37,7 +37,7 @@ int get_sync_stat(const char *path, struct stat *buf);
 #define get_sync(p) get_sync_stat(p, NULL)
 
 void sync_ht_free(void);
-struct sync* sync_ht_insert(const char *path, sync_xtime_t mtime, sync_xtime_t ctime);
+struct sync* sync_ht_set(const char *path, sync_xtime_t mtime, sync_xtime_t ctime);
 int sync_ht_get(const char *path, struct sync *s);
 
 int sync_load();

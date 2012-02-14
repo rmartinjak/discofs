@@ -445,7 +445,7 @@ int db_load_sync(void) {
 		ctime = COL_TIME_T();
 		#endif
 
-		if (sync_ht_insert(path, mtime, ctime) == NULL) {
+		if (sync_ht_set(path, mtime, ctime) == NULL) {
 			ERRMSG("db_load_syncs in cb()");
 			free(path);
 			res = DB_ERROR;
