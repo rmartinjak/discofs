@@ -160,8 +160,7 @@ static struct fuse_opt fs2go_opts[] = {
 	FUSE_OPT_KEY("uid=%s", FS2GO_OPT_UID),
 	FUSE_OPT_KEY("gid=%s", FS2GO_OPT_GID),
 
-	OPT_KEY("db=%s", db_file, 0),
-	OPT_KEY("cache=%s", cache_root, 0),
+	OPT_KEY("data=%s", data_root, 0),
 
 	OPT_KEY("host=%s", host, 0),
 	OPT_KEY("pid=%s", pid_file, 0),
@@ -484,7 +483,7 @@ int main(int argc, char **argv) {
 
 	/* set cache dir (if not specified) */
 	if (!CACHE_ROOT) {
-		CACHE_ROOT = get_cache_root(REMOTE_ROOT);
+		CACHE_ROOT = get_cache_root(REMOTE_ROOT, fs2go_options.data_root);
 	}
 	else if (!is_dir(CACHE_ROOT)) {
 		FATAL("specified cache dir \"%s\" is not a directory\n", CACHE_ROOT);
@@ -503,8 +502,7 @@ int main(int argc, char **argv) {
 		FATAL("failed to create cache directory %s\n", CACHE_ROOT);
 
 	/* create (if needed) directory where the database will be stored */
-	if (!fs2go_options.db_file)
-		fs2go_options.db_file = get_db_fn(REMOTE_ROOT);
+	fs2go_options.db_file = get_db_fn(REMOTE_ROOT, fs2go_options.data_root);
 
 	if (!is_reg(fs2go_options.db_file)) {
 		char *dbdir;

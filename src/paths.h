@@ -7,7 +7,7 @@
 #define FS2GO_PATHS_H
 #include "config.h"
 
-char *get_cache_root(const char *remote);
-char *get_db_fn(const char *remote);
+char *get_cache_root(const char *remote, const char *data_root);
+char *get_db_fn(const char *remote, const char *data_root);
 
 #endif

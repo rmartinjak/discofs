@@ -15,60 +15,78 @@
 #include <unistd.h>
 #include <pwd.h>
 
-static char *get_data_root(const char *remote, const char *env, const char *rep) {
+static char *get_home_dir(void);
+static char *get_data_root(const char *remote);
+static char *get_data_path(const char *append, const char *remote, const char *data_root);
+
+static char *get_home_dir(void) {
 	char *ret;
 	uid_t uid;
 	struct passwd *pwd;
 
-	char *tmp;
-	CALLOC(tmp, 2048, sizeof(char));
-
-	char *str = getenv(env);
-	if (!str || strcmp(str, "") == 0) {
+	ret = getenv("HOME");
+	if (!ret || *ret != '/') {
 		uid = getuid();
 		pwd = getpwuid(uid);
-		strcat(tmp, pwd->pw_dir);
-		strcat(tmp, "/");
-		strcat(tmp, rep);
+		ret = pwd->pw_dir;
 	}
-	else
-		strcpy(tmp, str);
 
-	CALLOC(ret, strlen(tmp) + 1, sizeof(char));
-	strcpy(ret, tmp);
-	free(tmp);
 	return ret;
 }
 
-char *get_cache_root(const char *remote) {
+static char *get_data_root(const char *remote) {
 	char *ret;
 	char *tmp;
-	CALLOC(tmp, 2048, sizeof(char));
+	char *home;
+	char *root;
+	char *hash;
 
-	sprintf(tmp, "%s/%s/%lu",
-			get_data_root(remote, "XDG_CACHE_HOME", ".cache"),
-			"fs2go",
-			djb2(remote, -1)
-		);
-	CALLOC(ret, strlen(tmp) + 1, sizeof(char));
-	strcpy(ret, tmp);
+	CALLOC(tmp, 2048, sizeof(char));
+	CALLOC(hash, 20, sizeof(char));
+	sprintf(hash, "%lu", djb2(remote, -1));
+
+	/* use $XDG_DATA_HOME */
+	root = getenv("XDG_DATA_HOME");
+	if (!root || *root != '/') {
+		/* else use ~/.local/share */
+		home = get_home_dir();
+		root = join_path(home, strlen(home), ".local/share", strlen(".local/share"));
+		strcat(tmp, root);
+		free(root);
+	}
+	else {
+		strcat(tmp, root);
+	}
+
+	strcat(tmp, "/fs2go/");
+	strcat(tmp, hash);
+
+	ret = strdup(tmp);
 	free(tmp);
+
 	return ret;
 }
 
-char *get_db_fn(const char *remote) {
-	char *ret;
-	char *tmp;
-	CALLOC(tmp, 2048, sizeof(char));
-
-	sprintf(tmp, "%s/%s/%lu.sqlite",
-			get_data_root(remote, "XDG_DATA_HOME", ".local/share"),
-			"fs2go",
-			djb2(remote, -1)
-		);
-	CALLOC(ret, strlen(tmp) + 1, sizeof(char));
-	strcpy(ret, tmp);
-	free(tmp);
+static char *get_data_path(const char *append, const char *remote, const char *data_root) {
+	char *ret, *tmp;
+	if (data_root) {
+		ret = join_path(data_root, strlen(data_root), append, strlen(append));
+	}
+	else {
+		if (!remote)
+			return NULL;
+		tmp = get_data_root(remote);
+		ret = join_path(tmp, strlen(tmp), append, strlen(append));
+		free(tmp);
+	}
 	return ret;
+}
+
+char *get_cache_root(const char *remote, const char *data_root) {
+	return get_data_path("cache", remote, data_root);
+}
+
+char *get_db_fn(const char *remote, const char *data_root) {
+	return get_data_path("db.sqlite", remote, data_root);
 }
 #endif

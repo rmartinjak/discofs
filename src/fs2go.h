@@ -65,11 +65,12 @@ struct options {
 	char *fs2go_mp;
 	char *remote_root;
 	size_t remote_root_len;
+	char *data_root;
 	char *cache_root;
 	size_t cache_root_len;
+	char *db_file;
 	uid_t uid;
 	gid_t gid;
-	char *db_file;
 	char *host;
 	char *pid_file;
 	char *backup_prefix;
@@ -84,10 +85,11 @@ struct options {
 
 #define OPTIONS_INIT { .fs2go_mp = NULL,\
 			.remote_root = NULL,\
+			.data_root = NULL,\
 			.cache_root = NULL,\
+			.db_file = NULL,\
 			.uid = 0,\
 			.gid = 0,\
-			.db_file = NULL,\
 			.host = NULL,\
 			.pid_file = NULL,\
 			.backup_prefix = NULL,\
