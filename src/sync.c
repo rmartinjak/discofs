@@ -178,8 +178,7 @@ void sync_ht_free(void) {
 	it = ht_iter(sync_ht);
 
 	while (htiter_next(it, (void**)&p, (void**)&ht)) {
-		ht_free(ht, NULL, sync_free2);
-		free(ht);
+		ht_free_f(ht, NULL, sync_free2);
 		free(p);
 	}
 	free(it);
@@ -197,7 +196,7 @@ struct sync *sync_ht_set(const char *path, sync_xtime_t mtime, sync_xtime_t ctim
 	n = strrchr(path, '/') - path;
 
 	/* yo dawg i heard you like hashtables */
-	if ((ht = ht_get2(sync_ht, path, &n, &n)) == NULL) {
+	if ((ht = ht_get_a(sync_ht, path, &n, &n)) == NULL) {
 
 		/* hash table for dir part of path not found -> create it */
 		if (ht_init(&ht, sync_hash, sync_cmp) == HT_ERROR)
@@ -257,7 +256,7 @@ int sync_ht_get(const char *path, struct sync *s) {
 	n = strrchr(path, '/') - path;
 
 	/* find ht according to dirname */
-	if ((ht = ht_get2(sync_ht, path, &n, &n)) == NULL) {
+	if ((ht = ht_get_a(sync_ht, path, &n, &n)) == NULL) {
 		return -1;
 	}
 
@@ -305,7 +304,7 @@ int sync_rename_dir(const char *from, const char *to) {
 	while ( /* items in queue ? */
 			(oldpath = q_dequeue(&q))
 			 /* retrieve and remove directory hashtable from "master" ht */
-			&& (ht = ht_remove(sync_ht, oldpath, NULL))
+			&& (ht = ht_remove(sync_ht, oldpath))
 			/* create new path */
 			&& (newpath = join_path(to, to_len, oldpath+from_len, strlen(oldpath+from_len)))) {
 		free(oldpath);
@@ -327,7 +326,7 @@ int sync_delete_dir(const char *path) {
 
 	pthread_mutex_lock(&m_sync_ht);
 
-	ht = ht_remove(sync_ht, path, free);
+	ht = ht_remove_f(sync_ht, path, free);
 
 	pthread_mutex_unlock(&m_sync_ht);
 
@@ -337,7 +336,7 @@ int sync_delete_dir(const char *path) {
 	if (!ht_empty(ht))
 		ERROR("deleting non-empty dir hashtable\n");
 
-	ht_free(ht, NULL, NULL);
+	ht_free_f(ht, NULL, sync_free2);
 	free(ht);
 	return 0;
 }
@@ -350,11 +349,11 @@ int sync_delete_file(const char *path) {
 	n = strrchr(path, '/') - path;
 
 	/* find ht according to dirname */
-	if ((ht = ht_get2(sync_ht, path, &n, &n)) == NULL) {
+	if ((ht = ht_get_a(sync_ht, path, &n, &n)) == NULL) {
 		return -1;
 	}
 
-	s = ht_remove(ht, path + n +1, NULL);
+	s = ht_remove(ht, path + n +1);
 	if (!s)
 		return -1;
 	sync_free2(s);
@@ -369,12 +368,12 @@ int sync_rename_file(const char *path, const char *newpath) {
 	n = strrchr(path, '/') - path;
 
 	/* find ht according to dirname */
-	if ((ht = ht_get2(sync_ht, path, &n, &n)) == NULL) {
+	if ((ht = ht_get_a(sync_ht, path, &n, &n)) == NULL) {
 		return -1;
 	}
 
 	/* get sync entry for filename */
-	s = ht_remove(ht, path + n +1, NULL);
+	s = ht_remove(ht, path + n +1);
 	if (!s)
 		return -1;
 
