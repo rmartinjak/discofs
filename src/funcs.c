@@ -19,6 +19,7 @@
 #include <time.h>
 #include <pthread.h>
 #include <dirent.h>
+#include <mntent.h>
 #include <limits.h>
 #include <ctype.h>
 #include <sys/stat.h>
@@ -161,43 +162,20 @@ int is_running(const char *pidfile) {
 
 /* check if fs is mounted (/proc/mounts on linux) */
 int is_mounted(const char *mpoint) {
-	FILE *file = fopen(MTAB, "r");
-	if (!file)
+	FILE *f;
+	struct mntent *mt;
+
+	f = setmntent(MTAB, "r");
+	if (!f)
 		return 0;
 
-	char *tmp;
-	char c;
-	char *p;
-	int tok = 1;
-
-	tmp = calloc(256, sizeof(char));
-	if (!tmp)
-		FATAL("failed to allocate memory\n");
-
-	/* compare mpoint to the 2nd item in each line of the file MTAB */
-	while ((c = (char)fgetc(file)) != EOF) {
-		if (c == '\n')
-			tok = 1;
-		if (tok == 2) {
-			if (isspace(c)) {
-				*p = '\0';
-				if (strcmp(mpoint, tmp) == 0) {
-					fclose(file);
-					free(tmp);
-					return 1;
-				}
-			}
-			else
-				*p++ = c;
-		}
-		if (c == ' ') {
-			if (++tok == 2)
-				p = tmp;
+	while ((mt = getmntent(f)) != NULL) {
+		if (!strcmp(mpoint, mt->mnt_dir)) {
+			endmntent(f);
+			return 1;
 		}
 	}
-	fclose(file);
-	free(tmp);
-	DEBUG("%s is not mounted\n", mpoint);
+	endmntent(f);
 	return 0;
 }
 
