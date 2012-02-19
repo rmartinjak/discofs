@@ -211,9 +211,9 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
 			if (!fs2go_options.remote_root) {
 				/* transform to absolute path */
 				if (*arg != '/') {
-					if ((p = malloc(PATH_MAX * sizeof(char))) == NULL)
+					if ((p = malloc(PATH_MAX+1)) == NULL)
 						FATAL("memory allocation failed\n");
-					getcwd(p, PATH_MAX);
+					getcwd(p, PATH_MAX+1);
 					strcat(p, "/");
 					strcat(p, arg);
 				}
@@ -230,14 +230,14 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
 					fprintf(stderr, "remote mount point \"%s\" is not a directory\n", p);
 					exit(EXIT_FAILURE);
 				}
-				if ((p2 = malloc((strlen("-ofsname=") + strlen(p) + 1) * sizeof(char)))) {
+				if ((p2 = malloc((strlen("-ofsname=") + strlen(p) + 1)))) {
 					strcpy(p2, "-ofsname=");
 					strcat(p2, p);
 					fuse_opt_add_arg(outargs, p2);
 				}
 
 				REMOTE_ROOT_LEN = strlen(p);
-				if ((REMOTE_ROOT = malloc((REMOTE_ROOT_LEN+1)*sizeof(char))) == NULL)
+				if ((REMOTE_ROOT = malloc((REMOTE_ROOT_LEN+1))) == NULL)
 					FATAL("memory allocation failed\n");
 				memcpy(REMOTE_ROOT, p, REMOTE_ROOT_LEN+1);
 				free(p);

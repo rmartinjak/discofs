@@ -41,8 +41,13 @@ static char *get_data_root(const char *remote) {
 	char *root;
 	char *hash;
 
-	CALLOC(tmp, 2048, sizeof(char));
-	CALLOC(hash, 20, sizeof(char));
+	tmp = malloc(2048);
+	hash = malloc(30);
+
+	if (!tmp || !hash) {
+		FATAL("memory allocation failed\n");
+	}
+
 	sprintf(hash, "%lu", djb2(remote, -1));
 
 	/* use $XDG_DATA_HOME */

@@ -56,7 +56,7 @@ unsigned long djb2(const char *str, size_t n) {
 char *join_path(const char *p1, size_t len1, const char *p2, size_t len2) {
 	char *ret, *p;
 
-	ret = calloc(len1 + len2 + 2, sizeof(char));
+	ret = malloc(len1 + len2 + 2);
 	if (!ret)
 		return NULL;
 
@@ -299,15 +299,12 @@ int copy_symlink(const char *from, const char *to) {
 	ssize_t bufsz;
 	char *buf;
 
-	DEBUG("enter copy symlink\n");
-
 	if (lstat(from, &st) == -1)
 		return -1;
 
 	bufsz = (size_t)st.st_size;
 
-	DEBUG("here\n");
-	buf = calloc(bufsz + 1, sizeof(char));
+	buf = malloc(bufsz + 1);
 	if (!buf)
 		return -1;
 
@@ -436,7 +433,11 @@ int copy_xattrs(const char *from, const char *to) {
 	if (bufsz == -1)
 		return -1;
 
-	CALLOC(attrlist, bufsz, sizeof(char));
+	attrlist = malloc(bufsz);
+
+	if (attrlist == NULL)
+		return -1;
+
 
 	if (llistxattr(from, attrlist, bufsz) == -1) {
 		free(attrlist);
@@ -516,7 +517,7 @@ char *affix_filename(const char *path, const char *prefix, const char *suffix) {
 	char *p;
 	char *tmp;
 
-	p = calloc(strlen(path) + strlen(prefix) + strlen(suffix) + 1, sizeof(char));
+	p = malloc(strlen(path) + strlen(prefix) + strlen(suffix) + 1);
 	if (!p)
 		return NULL;
 
