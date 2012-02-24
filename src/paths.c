@@ -42,6 +42,7 @@ static char *get_data_root(const char *remote) {
 	char *hash;
 
 	tmp = malloc(2048);
+	*tmp = '\0';
 	hash = malloc(30);
 
 	if (!tmp || !hash) {
