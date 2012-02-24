@@ -35,7 +35,7 @@ static void transfer_free(void) {
 
 /* partially transfer file. if from and to are given, open files first */
 int transfer(const char *from, const char *to) {
-	#define CLOSE(fd) { if (close(fd)) PERROR("error closing fd"); }
+#define CLOSE(fd) { if (close(fd)) PERROR("error closing fd"); }
 	int fdread, fdwrite;
 	ssize_t readbytes;
 	char buf[TRANSFER_SIZE];
@@ -68,7 +68,7 @@ int transfer(const char *from, const char *to) {
 	pthread_mutex_lock(&m_transfer);
 	/* open files */
 	if ((fdread = open(t_read, O_RDONLY)) == -1
-		|| lseek(fdread, t_off, SEEK_SET) == -1) {
+			|| lseek(fdread, t_off, SEEK_SET) == -1) {
 		log_error(t_read);
 		pthread_mutex_unlock(&m_transfer);
 		transfer_abort();
@@ -76,7 +76,7 @@ int transfer(const char *from, const char *to) {
 	}
 
 	if ((fdwrite = open(t_write_part, w_flags, 0666)) == -1
-		|| lseek(fdwrite, t_off, SEEK_SET) == -1) {
+			|| lseek(fdwrite, t_off, SEEK_SET) == -1) {
 		log_error(t_write_part);
 		pthread_mutex_unlock(&m_transfer);
 		transfer_abort();
@@ -128,7 +128,7 @@ int transfer(const char *from, const char *to) {
 
 	pthread_mutex_unlock(&m_transfer);
 	return TRANSFER_OK;
-	#undef CLOSE
+#undef CLOSE
 }
 
 int transfer_begin(const struct job *j) {

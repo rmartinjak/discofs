@@ -303,7 +303,7 @@ int sync_rename_dir(const char *from, const char *to) {
 
 	while ( /* items in queue ? */
 			(oldpath = q_dequeue(&q))
-			 /* retrieve and remove directory hashtable from "master" ht */
+			/* retrieve and remove directory hashtable from "master" ht */
 			&& (ht = ht_remove(sync_ht, oldpath))
 			/* create new path */
 			&& (newpath = join_path(to, to_len, oldpath+from_len, strlen(oldpath+from_len)))) {

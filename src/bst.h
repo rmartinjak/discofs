@@ -19,14 +19,14 @@ typedef unsigned long bstdata_t;
 #endif
 
 struct bstnode {
-	bstdata_t data;
-	struct bstnode *parent;
-	struct bstnode *left;
-	struct bstnode *right;
+    bstdata_t data;
+    struct bstnode *parent;
+    struct bstnode *left;
+    struct bstnode *right;
 };
 
 struct bst {
-	struct bstnode *root;
+    struct bstnode *root;
 };
 
 #define bst_empty(t) ((t)->root == NULL)

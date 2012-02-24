@@ -28,22 +28,22 @@
 
 #define TABLE_JOB "job"
 #define SCHEMA_JOB "prio INTEGER," \
-			"op INTEGER," \
-			"attempts INTEGER," \
-			"time_s INTEGER," \
-			"time_ns INTEGER," \
-			"path TEXT," \
-			"param1 INTEGER," \
-			"param2 INTEGER," \
-			"sparam1 TEXT," \
-			"sparam2 TEXT"
+    "op INTEGER," \
+    "attempts INTEGER," \
+    "time_s INTEGER," \
+    "time_ns INTEGER," \
+    "path TEXT," \
+    "param1 INTEGER," \
+    "param2 INTEGER," \
+    "sparam1 TEXT," \
+    "sparam2 TEXT"
 
 #define TABLE_SYNC "sync"
 #define SCHEMA_SYNC "path TEXT UNIQUE NOT NULL," \
-			"mtime_s INTEGER," \
-			"mtime_ns INTEGER," \
-			"ctime_s INTEGER," \
-			"ctime_ns INTEGER"
+    "mtime_s INTEGER," \
+    "mtime_ns INTEGER," \
+    "ctime_s INTEGER," \
+    "ctime_ns INTEGER"
 void db_open(void);
 void db_close(void);
 

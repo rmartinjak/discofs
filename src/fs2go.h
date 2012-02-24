@@ -84,22 +84,22 @@ struct options {
 };
 
 #define OPTIONS_INIT { .fs2go_mp = NULL,\
-			.remote_root = NULL,\
-			.data_root = NULL,\
-			.cache_root = NULL,\
-			.db_file = NULL,\
-			.uid = 0,\
-			.gid = 0,\
-			.host = NULL,\
-			.pid_file = NULL,\
-			.backup_prefix = NULL,\
-			.backup_suffix = NULL,\
-			.clear = 0,\
-			.conflict = DEF_CONFLICT,\
-			.copyattr = DEF_COPYATTR,\
-			.scan_interval = DEF_SCAN_INTERVAL, \
-			.loglevel = DEF_LOGLEVEL,\
-			.logfile = DEF_LOGFILE }
+	.remote_root = NULL,\
+	.data_root = NULL,\
+	.cache_root = NULL,\
+	.db_file = NULL,\
+	.uid = 0,\
+	.gid = 0,\
+	.host = NULL,\
+	.pid_file = NULL,\
+	.backup_prefix = NULL,\
+	.backup_suffix = NULL,\
+	.clear = 0,\
+	.conflict = DEF_CONFLICT,\
+	.copyattr = DEF_COPYATTR,\
+	.scan_interval = DEF_SCAN_INTERVAL, \
+	.loglevel = DEF_LOGLEVEL,\
+	.logfile = DEF_LOGFILE }
 
 enum fs2go_opt_keys {
 	FS2GO_OPT_HELP,

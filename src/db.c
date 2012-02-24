@@ -73,19 +73,19 @@ int db_init(const char *fn, int clear) {
 
 	db_open();
 
-	#define NEW_TABLE(t, sql) if (sqlite3_exec(db, "CREATE TABLE " t " ( " sql " );", NULL, NULL, NULL)) { \
-					FATAL("couldn't create table " t "\n"); } \
+#define NEW_TABLE(t, sql) if (sqlite3_exec(db, "CREATE TABLE " t " ( " sql " );", NULL, NULL, NULL)) { \
+	FATAL("couldn't create table " t "\n"); } \
 
-	#define CREATE_TABLE(t, sql) if (sqlite3_exec(db, "SELECT * FROM " t " LIMIT 1;", NULL, NULL, NULL)) { \
-					NEW_TABLE(t, sql); } \
-				if (clear) \
-					sqlite3_exec(db, "DELETE FROM " t ";", NULL, NULL, NULL)
+#define CREATE_TABLE(t, sql) if (sqlite3_exec(db, "SELECT * FROM " t " LIMIT 1;", NULL, NULL, NULL)) { \
+	NEW_TABLE(t, sql); } \
+	if (clear) \
+	sqlite3_exec(db, "DELETE FROM " t ";", NULL, NULL, NULL)
 	/* create tables */
 	CREATE_TABLE(TABLE_CFG, SCHEMA_CFG);
 	CREATE_TABLE(TABLE_JOB, SCHEMA_JOB);
 	CREATE_TABLE(TABLE_SYNC, SCHEMA_SYNC);
-	#undef NEW_TABLE
-	#undef CREATE_TABLE
+#undef NEW_TABLE
+#undef CREATE_TABLE
 
 	DEBUG("db initialization finished\n");
 	db_close();
@@ -111,7 +111,7 @@ int db_cfg_delete(const char *option) {
 	VARS;
 	db_open();
 	PREPARE("DELETE FROM " TABLE_CFG " WHERE option=?;"); \
-	BIND_TEXT(option);
+		BIND_TEXT(option);
 
 	if (STEP() != SQLITE_DONE) {
 		ERRMSG("deleting config option");
@@ -206,13 +206,13 @@ int db_cfg_get_str(const char *option, char **buf) {
 /* ====== JOB ====== */
 int db_store_job(const struct job *j) {
 	VARS;
-	#if HAVE_CLOCK_GETTIME
+#if HAVE_CLOCK_GETTIME
 	struct timespec now;
 	clock_gettime(CLOCK_REALTIME, &now);
-	#else
+#else
 	time_t now;
 	now = time(NULL);
-	#endif
+#endif
 
 	if (!j->path) {
 		errno = EINVAL;
@@ -230,19 +230,19 @@ int db_store_job(const struct job *j) {
 
 	db_open();
 
-	#define COLNAMES_JOB "prio, op, attempts, time_s, time_ns, path, param1, param2, sparam1, sparam2"
+#define COLNAMES_JOB "prio, op, attempts, time_s, time_ns, path, param1, param2, sparam1, sparam2"
 	PREPARE("INSERT INTO " TABLE_JOB " (" COLNAMES_JOB ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
 
 	BIND_INT(j->prio);
 	BIND_INT(j->op);
 	BIND_INT(j->attempts);
-	#if HAVE_CLOCK_GETTIME
+#if HAVE_CLOCK_GETTIME
 	BIND_TIME_T(now.tv_sec);
 	BIND_LONG(now.tv_nsec);
-	#else
+#else
 	BIND_TIME_T(now);
 	BIND_LONG(0);
-	#endif
+#endif
 	BIND_TEXT(j->path);
 	BIND_JOBP(j->param1);
 	BIND_JOBP(j->param2);
@@ -290,7 +290,7 @@ int db_has_job(const char *path, int opmask) {
 	else {
 		PREPARE("SELECT rowid FROM " TABLE_JOB " WHERE path=? AND (op & ?) != 0;");
 		BIND_TEXT(path)
-		BIND_INT(opmask);
+			BIND_INT(opmask);
 	}
 
 	res = (STEP() == SQLITE_ROW);
@@ -302,36 +302,36 @@ int db_has_job(const char *path, int opmask) {
 }
 
 #define COLS_JOB(j) { j->rowid = COL_ROWID(); \
-		j->prio = COL_INT(); \
-		j->op = COL_INT(); \
-		j->attempts = COL_INT(); \
-		j->path = COL_TEXT(); \
-		j->param1 = COL_JOBP(); \
-		j->param2 = COL_JOBP(); \
-		j->sparam1 = COL_TEXT(); \
-		j->sparam2 = COL_TEXT(); \
-	}
+	j->prio = COL_INT(); \
+	j->op = COL_INT(); \
+	j->attempts = COL_INT(); \
+	j->path = COL_TEXT(); \
+	j->param1 = COL_JOBP(); \
+	j->param2 = COL_JOBP(); \
+	j->sparam1 = COL_TEXT(); \
+	j->sparam2 = COL_TEXT(); \
+}
 #define SELECT_JOB "SELECT rowid, prio, op, attempts, path, param1, param2, sparam1, sparam2 FROM " TABLE_JOB " "
 int db_get_jobs(queue *qu) {
 	VARS;
 	struct job *j;
-	#if HAVE_CLOCK_GETTIME
+#if HAVE_CLOCK_GETTIME
 	struct timespec now;
 	clock_gettime(CLOCK_REALTIME, &now);
-	#else
+#else
 	time_t now;
 	now = time(NULL);
-	#endif
+#endif
 
 	db_open();
-	#if HAVE_UTIMENSAT && HAVE_CLOCK_GETTIME
+#if HAVE_UTIMENSAT && HAVE_CLOCK_GETTIME
 	PREPARE(SELECT_JOB "WHERE time_s<? OR (time_s=? AND time_ns <?) ORDER BY prio DESC, time_s ASC, time_ns ASC;");
 	BIND_TIME_T(now.tv_sec);
 	BIND_LONG(now.tv_nsec);
-	#else
+#else
 	PREPARE(SELECT_JOB "ORDER BY prio DESC, time_s ASC WHERE time_s<?;");
 	BIND_TIME_T(now);
-	#endif
+#endif
 
 	while (STEP() == SQLITE_ROW) {
 		j = malloc(sizeof(struct job));
@@ -424,26 +424,26 @@ int db_load_sync(void) {
 
 	db_open();
 
-	#if HAVE_UTIMENSAT && HAVE_CLOCK_GETTIME
+#if HAVE_UTIMENSAT && HAVE_CLOCK_GETTIME
 	PREPARE("SELECT path, mtime_s, mtime_ns, ctime_s, ctime_ns FROM " TABLE_SYNC ";");
-	#else
+#else
 	PREPARE("SELECT path, mtime_s, ctime_s FROM " TABLE_SYNC ";");
-	#endif
+#endif
 
 	while ((sql_res = STEP()) == SQLITE_ROW) {
 		colpos = 0;
 		path = COL_TEXT();
 
-		#if HAVE_UTIMENSAT && HAVE_CLOCK_GETTIME
+#if HAVE_UTIMENSAT && HAVE_CLOCK_GETTIME
 		mtime.tv_sec = COL_TIME_T();
 		mtime.tv_nsec = COL_LONG();
 
 		ctime.tv_sec = COL_TIME_T();
 		ctime.tv_nsec = COL_LONG();
-		#else
+#else
 		mtime = COL_TIME_T();
 		ctime = COL_TIME_T();
-		#endif
+#endif
 
 		if (sync_ht_set(path, mtime, ctime) == NULL) {
 			ERRMSG("db_load_syncs in cb()");
@@ -471,26 +471,26 @@ int db_get_sync(const char *path, struct sync *s) {
 
 	db_open();
 
-	#if HAVE_UTIMENSAT && HAVE_CLOCK_GETTIME
+#if HAVE_UTIMENSAT && HAVE_CLOCK_GETTIME
 	PREPARE("SELECT mtime_s, mtime_ns, ctime_s, ctime_ns FROM " TABLE_SYNC " WHERE path=?;");
-	#else
+#else
 	PREPARE("SELECT mtime_s, ctime_s FROM " TABLE_SYNC " WHERE path=?;");
-	#endif
+#endif
 
 	BIND_TEXT(path);
 
 	sql_res = STEP();
 	if (sql_res == SQLITE_ROW) {
-		#if HAVE_UTIMENSAT && HAVE_CLOCK_GETTIME
+#if HAVE_UTIMENSAT && HAVE_CLOCK_GETTIME
 		s->mtime.tv_sec = COL_TIME_T();
 		s->mtime.tv_nsec = COL_LONG();
 
 		s->ctime.tv_sec = COL_TIME_T();
 		s->ctime.tv_nsec = COL_LONG();
-		#else
+#else
 		s->mtime = COL_TIME_T();
 		s->ctime = COL_TIME_T();
-		#endif
+#endif
 	}
 	else if (sql_res == SQLITE_DONE) {
 		DEBUG("db_get_sync(%s): no row returned\n", path);
@@ -510,19 +510,19 @@ int db_store_sync(const struct sync *s) {
 	VARS;
 
 	db_open();
-	#if HAVE_UTIMENSAT && HAVE_CLOCK_GETTIME
+#if HAVE_UTIMENSAT && HAVE_CLOCK_GETTIME
 	PREPARE("INSERT OR REPLACE INTO " TABLE_SYNC " (path, mtime_s, mtime_ns, ctime_s, ctime_ns) VALUES (?, ?, ?, ?, ?)");
 	BIND_TEXT(s->path);
 	BIND_TIME_T(s->mtime.tv_sec);
 	BIND_LONG(s->mtime.tv_nsec);
 	BIND_TIME_T(s->ctime.tv_sec);
 	BIND_LONG(s->ctime.tv_nsec);
-	#else
+#else
 	PREPARE("INSERT OR REPLACE INTO " TABLE_SYNC " (path, mtime_s, ctime_s) VALUES (?, ?, ?)");
 	BIND_TEXT(s->path);
 	BIND_TIME_T(s->mtime);
 	BIND_TIME_T(s->ctime);
-	#endif
+#endif
 
 	if (STEP() != SQLITE_DONE) {
 		ERRMSG("error setting sync");
@@ -536,14 +536,14 @@ int db_store_sync(const struct sync *s) {
 
 int db_delete_path(const char *path) {
 	VARS;
-	#define DELETE(table) if (res == DB_OK) { \
-		PREPARE("DELETE FROM " table " WHERE path=?;");\
-		BIND_TEXT(path); \
-		if (STEP() != SQLITE_DONE) { \
-			ERRMSG("delete_path in table " table); \
-			res = DB_ERROR; \
-		}; \
-		FINALIZE(); }
+#define DELETE(table) if (res == DB_OK) { \
+	PREPARE("DELETE FROM " table " WHERE path=?;");\
+	BIND_TEXT(path); \
+	if (STEP() != SQLITE_DONE) { \
+		ERRMSG("delete_path in table " table); \
+		res = DB_ERROR; \
+	}; \
+	FINALIZE(); }
 
 	db_open();
 
@@ -552,20 +552,20 @@ int db_delete_path(const char *path) {
 
 	db_close();
 	return res;
-	#undef DELETE
+#undef DELETE
 }
 
 int db_rename_file(const char *from, const char *to) {
 	VARS;
 
-	#define RENAME(table) if (res == DB_OK) { \
-		PREPARE("UPDATE " table " SET path=? WHERE path=?;"); \
-		BIND_TEXT(to); BIND_TEXT(from); \
-		if (STEP() != SQLITE_DONE) { \
-			ERRMSG("rename in table " table); \
-			res = DB_ERROR; \
-		}; \
-		FINALIZE(); }
+#define RENAME(table) if (res == DB_OK) { \
+	PREPARE("UPDATE " table " SET path=? WHERE path=?;"); \
+	BIND_TEXT(to); BIND_TEXT(from); \
+	if (STEP() != SQLITE_DONE) { \
+		ERRMSG("rename in table " table); \
+		res = DB_ERROR; \
+	}; \
+	FINALIZE(); }
 
 	db_open();
 
@@ -574,7 +574,7 @@ int db_rename_file(const char *from, const char *to) {
 
 	db_close();
 	return res;
-	#undef RENAME
+#undef RENAME
 }
 
 static int db_rename_dir_(const char *table, const char *pat, const char *from, size_t from_len, const char *to, size_t to_len) {
@@ -631,26 +631,26 @@ int db_rename_dir(const char *from, const char *to) {
 	memcpy(pat, from, from_len);
 	memcpy(pat+from_len, "%\0", 2);
 
-	#define RENAME(t) if (res == DB_OK) { \
-		res = db_rename_dir_(t, pat, from, from_len, to, to_len); \
-		}
+#define RENAME(t) if (res == DB_OK) { \
+	res = db_rename_dir_(t, pat, from, from_len, to, to_len); \
+}
 	RENAME(TABLE_SYNC);
 	RENAME(TABLE_JOB);
-	#undef RENAME
+#undef RENAME
 	free(pat);
 	return res;
-}
+	}
 
 int deb_delete_path(const char *path) {
 	VARS;
-	#define DELETE(t) if (res == DB_OK) { \
-		PREPARE("DELETE FROM " t " WHERE path=?;"); \
-		BIND_TEXT(path); \
-		if (STEP() != SQLITE_DONE) { \
-			ERRMSG("delete_path in table " t); \
-			res = DB_ERROR; \
-		}; \
-		FINALIZE(); }
+#define DELETE(t) if (res == DB_OK) { \
+	PREPARE("DELETE FROM " t " WHERE path=?;"); \
+	BIND_TEXT(path); \
+	if (STEP() != SQLITE_DONE) { \
+		ERRMSG("delete_path in table " t); \
+		res = DB_ERROR; \
+	}; \
+	FINALIZE(); }
 
 	db_open();
 	DELETE(TABLE_SYNC);

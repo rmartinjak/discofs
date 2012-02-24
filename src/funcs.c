@@ -375,12 +375,12 @@ int copy_attrs(const char *from, const char *to) {
 			log_error("copy_attrs: setting group failed");
 	}
 
-	#if HAVE_SETXATTR
+#if HAVE_SETXATTR
 	if ((fs_features & FEAT_XATTR) && !(fs2go_options.copyattr & COPYATTR_NO_XATTR)) {
 		if (copy_xattrs(from, to) == -1)
 			log_error("copy_attrs: copy_xattrs failed");
 	}
-	#endif
+#endif
 
 	return 0;
 }
@@ -438,7 +438,7 @@ int copy_xattrs(const char *from, const char *to) {
 
 		CALLOC(val, valsz, sizeof(void));
 		if (lgetxattr(from, p, val, valsz) == -1
-		|| lsetxattr(to, p, val, valsz, 0) == -1) {
+				|| lsetxattr(to, p, val, valsz, 0) == -1) {
 			free(val);
 			free(attrlist);
 			return -1;
@@ -676,24 +676,24 @@ int rmdir_rec(const char *path) {
 /* from http://womble.decadent.org.uk/readdir_r-advisory.html */
 size_t dirent_buf_size(DIR * dirp)
 {
-    long name_max;
-    size_t name_end;
+	long name_max;
+	size_t name_end;
 #   if HAVE_FPATHCONF && HAVE_DIRFD && defined(_PC_NAME_MAX)
-        name_max = fpathconf(dirfd(dirp), _PC_NAME_MAX);
-        if (name_max == -1)
+	name_max = fpathconf(dirfd(dirp), _PC_NAME_MAX);
+	if (name_max == -1)
 #           if defined(NAME_MAX)
-                name_max = (NAME_MAX > 255) ? NAME_MAX : 255;
+		name_max = (NAME_MAX > 255) ? NAME_MAX : 255;
 #           else
-                return (size_t)(-1);
+	return (size_t)(-1);
 #           endif
 #   else
 #       if defined(NAME_MAX)
-            name_max = (NAME_MAX > 255) ? NAME_MAX : 255;
+	name_max = (NAME_MAX > 255) ? NAME_MAX : 255;
 #       else
 #           error "buffer size for readdir_r cannot be determined"
 #       endif
 #   endif
-    name_end = (size_t)offsetof(struct dirent, d_name) + name_max + 1;
-    return (name_end > sizeof(struct dirent)
-            ? name_end : sizeof(struct dirent));
+	name_end = (size_t)offsetof(struct dirent, d_name) + name_max + 1;
+	return (name_end > sizeof(struct dirent)
+			? name_end : sizeof(struct dirent));
 }

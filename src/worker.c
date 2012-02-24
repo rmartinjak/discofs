@@ -71,12 +71,12 @@ void worker_unblock() {
 
 int worker_has_block() {
 	/*
-	int res;
-	pthread_mutex_lock(&m_worker_block);
-	res = (worker_block_n != 0);
-	pthread_mutex_unlock(&m_worker_block);
-	return res;
-	*/
+	   int res;
+	   pthread_mutex_lock(&m_worker_block);
+	   res = (worker_block_n != 0);
+	   pthread_mutex_unlock(&m_worker_block);
+	   return res;
+	 */
 	return (worker_block_n != 0);
 }
 
@@ -157,7 +157,7 @@ void scan_remote(queue *q) {
 				case SYNC_CHG:
 					schedule_pullattr(p);
 					break;
-				}
+			}
 			free(p);
 		}
 	}
@@ -218,8 +218,8 @@ void *worker_statecheck(void *arg) {
 
 		/* check and set state */
 		if (is_running(fs2go_options.pid_file)
-		&& is_reachable(fs2go_options.host)
-		&& is_mounted(fs2go_options.remote_root)) {
+				&& is_reachable(fs2go_options.host)
+				&& is_mounted(fs2go_options.remote_root)) {
 
 			set_state(STATE_ONLINE, &oldstate);
 
@@ -235,10 +235,10 @@ void *worker_statecheck(void *arg) {
 }
 
 void *worker_main(void *arg) {
-	#define ABORT_CURRENT() { current = 0; \
-				remove_lock(j_current.path, LOCK_TRANSFER); \
-				free_job(&j_current); \
-				transfer_abort(); }
+#define ABORT_CURRENT() { current = 0; \
+	remove_lock(j_current.path, LOCK_TRANSFER); \
+	free_job(&j_current); \
+	transfer_abort(); }
 	int state, transfer_result;
 
 	queue jobs = QUEUE_INIT;
@@ -254,11 +254,11 @@ void *worker_main(void *arg) {
 	size_t p_len;
 
 	/* "main" loop.
-	- if online:
-	  - job in db and file not locked: perform job
-	  - else scan remote fs for changed files
-	- sleep
-	*/
+	   - if online:
+	   - job in db and file not locked: perform job
+	   - else scan remote fs for changed files
+	   - sleep
+	 */
 	while ((state = get_state()) != STATE_EXITING) {
 
 		/* flush job scheduling queue to db */
@@ -307,9 +307,9 @@ void *worker_main(void *arg) {
 			/* no jobs in db */
 			if (q_empty(&jobs)) {
 				/* continue looking for jobs in top item on "search" queue,
-				if the queue is empty, sleep a while
-				(scan_remote will start in remote fs's root if the queue is empty)
-				*/
+				   if the queue is empty, sleep a while
+				   (scan_remote will start in remote fs's root if the queue is empty)
+				 */
 				if (q_empty(&search))
 					worker_sleep(fs2go_options.scan_interval);
 
@@ -409,5 +409,5 @@ void *worker_main(void *arg) {
 		ABORT_CURRENT();
 	}
 	return NULL;
-	#undef ABORT_CURRENT
+#undef ABORT_CURRENT
 }

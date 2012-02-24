@@ -9,13 +9,13 @@
 #define QUEUE_INIT { NULL, NULL }
 
 struct qitem {
-	void *data;
-	struct qitem *next;
+    void *data;
+    struct qitem *next;
 };
 
 typedef struct queue {
-	struct qitem *head;
-	struct qitem *tail;
+    struct qitem *head;
+    struct qitem *tail;
 } queue;
 
 int q_enqueue(queue *q, void *d);

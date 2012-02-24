@@ -345,11 +345,11 @@ int do_job(struct job *j, int do_remote) {
 			res = lchown(path, (uid_t)j->param1, (gid_t)j->param2);
 			break;
 
-		#ifdef HAVE_SETXATTR
+#ifdef HAVE_SETXATTR
 		case JOB_SETXATTR:
 			res = lsetxattr(path, j->sparam1, j->sparam2, (size_t)j->param1, (int)j->param2);
 			break;
-		#endif
+#endif
 		default:
 			errno = EINVAL;
 			return -1;

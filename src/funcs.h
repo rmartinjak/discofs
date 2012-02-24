@@ -33,7 +33,7 @@
 #define CALLOC(p, n, s) p = calloc(n, s); if (!p) FATAL("memory allocation failed\n")
 
 #define STRDUP(dest, src) { if (!(dest = strdup(src))) \
-				FATAL("memory allocation failed\n") }
+    FATAL("memory allocation failed\n") }
 
 unsigned long djb2(const char *str, size_t n);
 
@@ -43,17 +43,17 @@ char *join_path(const char *p1, size_t len1, const char *p2, size_t len2);
 #define get_path(p, len) (ONLINE) ? remote_path(p, len) : cache_path(p, len)
 
 #if HAVE_UTIMENSAT && HAVE_CLOCK_GETTIME
-	int timecmp(struct timespec t1, struct timespec t2);
-	int set_mtime(const char *path, struct timespec mt);
-	#define ST_MTIME(st) st.st_mtim
-	#define ST_CTIME(st) st.st_ctim
-	#define GETTIME(t) clock_gettime(CLOCK_REALTIME, &(t))
+int timecmp(struct timespec t1, struct timespec t2);
+int set_mtime(const char *path, struct timespec mt);
+#define ST_MTIME(st) st.st_mtim
+#define ST_CTIME(st) st.st_ctim
+#define GETTIME(t) clock_gettime(CLOCK_REALTIME, &(t))
 #else
-	int timecmp(time_t t1, time_t t2);
-	int set_mtime(const char *path, time_t mt);
-	#define ST_MTIME(st) st.st_mtime
-	#define ST_CTIME(st) st.st_ctime
-	#define GETTIME(t) t = time(NULL)
+int timecmp(time_t t1, time_t t2);
+int set_mtime(const char *path, time_t mt);
+#define ST_MTIME(st) st.st_mtime
+#define ST_CTIME(st) st.st_ctime
+#define GETTIME(t) t = time(NULL)
 #endif
 
 int is_running(const char *pidfile);

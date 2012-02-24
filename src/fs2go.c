@@ -71,39 +71,39 @@ void set_state(int s, int *oldstate) {
 
 static void print_usage() {
 	char *s = "usage: " PROG_NAME " [ -hvdf ] [ -o option[,option]...] remote_fs mountpoint\n"
-	"\n"
-	"general options:\n"
-	/*"  -o opt,[opt...]	mount options\n"*/
-	" -h --help			display help and exit\n"
-	" -v --version			display version and exit\n"
-	" -d --debug			enable debugging output, don't fork to background\n"
-	" -f --foreground		don't fork to background\n"
-	"\n"
-	PROG_NAME " options:\n"
-	" host=<host>	hostname or IP address to PING for remote fs availability\n"
-	" pid=<filename>		file containing PID to test for remote fs avialability\n"
-	" scan=<seconds>		interval to wait before scanning remote fs for changes. default is " STR(DEF_SCAN_INTERVAL) "\n"
-	" conflict=<mode>			conflict resolution mode. possible values:\n"
-	"				newer, mine, theirs. default is 'newer'\n"
-	" bprefix=<prefix>\n"
-	" bsuffix=<suffix>			backup prefix/suffix (see the manual for more information)\n"
-	" clear			delete database and cache before mounting\n"
-	" loglevel=<level>		logging level, possible values: none, error, info, verbose, fsop, debug\n"
-	"				each including its predecessors. default is 'none'\n"
-	" logfile=<file>		obvious, isn't it? default ist stderr\n"
-	"\n"
-	"filesystem specific options:\n"
-	"    no-mode			don't sync access permissions\n"
-	"    no-owner			don't sync user ownership\n"
-	"    no-group			don't sync group ownership\n"
-	#if HAVE_SETXATTR
-	"    no-xattr			don't sync extended attributes (set with getfattr)\n"
-	"    sshfs			same as \"--no-owner --no-group --no-xattr\"\n"
-	#else
-	"    sshfs			same as \"--no-owner --no-group\"\n"
-	#endif
-	"    nfs			same as \"--no-owner --no-group\"\n"
-	"";
+		"\n"
+		"general options:\n"
+		/*"  -o opt,[opt...]	mount options\n"*/
+		" -h --help			display help and exit\n"
+		" -v --version			display version and exit\n"
+		" -d --debug			enable debugging output, don't fork to background\n"
+		" -f --foreground		don't fork to background\n"
+		"\n"
+		PROG_NAME " options:\n"
+		" host=<host>	hostname or IP address to PING for remote fs availability\n"
+		" pid=<filename>		file containing PID to test for remote fs avialability\n"
+		" scan=<seconds>		interval to wait before scanning remote fs for changes. default is " STR(DEF_SCAN_INTERVAL) "\n"
+		" conflict=<mode>			conflict resolution mode. possible values:\n"
+		"				newer, mine, theirs. default is 'newer'\n"
+		" bprefix=<prefix>\n"
+		" bsuffix=<suffix>			backup prefix/suffix (see the manual for more information)\n"
+		" clear			delete database and cache before mounting\n"
+		" loglevel=<level>		logging level, possible values: none, error, info, verbose, fsop, debug\n"
+		"				each including its predecessors. default is 'none'\n"
+		" logfile=<file>		obvious, isn't it? default ist stderr\n"
+		"\n"
+		"filesystem specific options:\n"
+		"    no-mode			don't sync access permissions\n"
+		"    no-owner			don't sync user ownership\n"
+		"    no-group			don't sync group ownership\n"
+#if HAVE_SETXATTR
+		"    no-xattr			don't sync extended attributes (set with getfattr)\n"
+		"    sshfs			same as \"--no-owner --no-group --no-xattr\"\n"
+#else
+		"    sshfs			same as \"--no-owner --no-group\"\n"
+#endif
+		"    nfs			same as \"--no-owner --no-group\"\n"
+		"";
 
 	fprintf(stderr, s);
 }
@@ -114,7 +114,7 @@ static void print_version() {
 
 static void log_options(int loglevel, struct options opt) {
 	const char *tmp;
-	#define YESNO(x) (x) ? "yes" : "no"
+#define YESNO(x) (x) ? "yes" : "no"
 	log_print(loglevel, "fs2go options:\n");
 	log_print(loglevel, "mount point: %s\n", opt.fs2go_mp);
 	log_print(loglevel, "remote fs: %s\n", opt.remote_root);
@@ -143,15 +143,15 @@ static void log_options(int loglevel, struct options opt) {
 	log_print(loglevel, "no-mode: %s\n", YESNO((opt.copyattr & COPYATTR_NO_MODE)));
 	log_print(loglevel, "no-owner: %s\n", YESNO((opt.copyattr & COPYATTR_NO_OWNER)));
 	log_print(loglevel, "no-group: %s\n", YESNO((opt.copyattr & COPYATTR_NO_GROUP)));
-	#if HAVE_SETXATTR
+#if HAVE_SETXATTR
 	log_print(loglevel, "no-xattr: %s\n", YESNO((opt.copyattr & COPYATTR_NO_XATTR)));
-	#endif
+#endif
 
 	log_print(loglevel, "remote fs features:\n");
 	log_print(loglevel, "nanosecond timestamps: %s\n", YESNO((fs_features & FEAT_NS)));
-	#if HAVE_SETXATTR
+#if HAVE_SETXATTR
 	log_print(loglevel, "extended attributes: %s\n", YESNO((fs_features & FEAT_XATTR)));
-	#endif
+#endif
 }
 
 /** macro to define options */
@@ -180,9 +180,9 @@ static struct fuse_opt fs2go_opts[] = {
 	FUSE_OPT_KEY("no-mode", FS2GO_OPT_NO_MODE),
 	FUSE_OPT_KEY("no-owner", FS2GO_OPT_NO_OWNER),
 	FUSE_OPT_KEY("no-group", FS2GO_OPT_NO_GROUP),
-	#if HAVE_SETXATTR
+#if HAVE_SETXATTR
 	FUSE_OPT_KEY("no-xattr", FS2GO_OPT_NO_XATTR),
-	#endif
+#endif
 	FUSE_OPT_KEY("sshfs", FS2GO_OPT_SSHFS),
 	FUSE_OPT_KEY("nfs", FS2GO_OPT_NFS),
 
@@ -252,7 +252,7 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
 			}
 			return 1;
 
-		/* --version and --help */
+			/* --version and --help */
 		case FS2GO_OPT_VERSION:
 			print_version();
 			exit(EXIT_SUCCESS);
@@ -262,7 +262,7 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
 			print_usage();
 			exit(EXIT_SUCCESS);
 
-		/* --debug and --foreground */
+			/* --debug and --foreground */
 		case FS2GO_OPT_DEBUG:
 			fprintf(stderr, "INFO: -d overwrites --loglevel and --logfile\n");
 			fs2go_debug = 1;
@@ -278,7 +278,7 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
 			fs2go_options.uid = (uid_t)strtol(val, &endptr, 10);
 			pw = (*endptr != '\0') ? getpwnam(val) : getpwuid(fs2go_options.uid);
 			if (!pw)
-					FATAL("could not find user \"%s\"\n", val);
+				FATAL("could not find user \"%s\"\n", val);
 			fs2go_options.uid = pw->pw_uid;
 			if (!fs2go_options.gid)
 				fs2go_options.gid = pw->pw_gid;
@@ -294,19 +294,19 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
 			}
 			return 0;
 
-		/* no-mode, no-owner etc. */
-		#define OPT_COPYADDR(n) case FS2GO_OPT_ ## n: \
+			/* no-mode, no-owner etc. */
+#define OPT_COPYADDR(n) case FS2GO_OPT_ ## n: \
 			fs2go_options.copyattr |= COPYATTR_ ## n; \
 			return 0
-		OPT_COPYADDR(NO_MODE);
-		OPT_COPYADDR(NO_OWNER);
-		OPT_COPYADDR(NO_GROUP);
-		OPT_COPYADDR(NO_XATTR);
-		OPT_COPYADDR(NFS);
-		OPT_COPYADDR(SSHFS);
-		#undef OPT_COPYADDR
+			OPT_COPYADDR(NO_MODE);
+			OPT_COPYADDR(NO_OWNER);
+			OPT_COPYADDR(NO_GROUP);
+			OPT_COPYADDR(NO_XATTR);
+			OPT_COPYADDR(NFS);
+			OPT_COPYADDR(SSHFS);
+#undef OPT_COPYADDR
 
-		/* loglevel */
+			/* loglevel */
 		case FS2GO_OPT_LOGLEVEL:
 			val = arg + strlen("loglevel=");
 			if (!strcmp(val, "error"))
@@ -325,7 +325,7 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
 			}
 			return 0;
 
-		/* conflict */
+			/* conflict */
 		case FS2GO_OPT_CONFLICT:
 			val = arg + strlen("conflict=");
 
@@ -357,7 +357,7 @@ static int test_fs_features(fs_feat_t *f) {
 	}
 
 	/* test if timestamps support nanosecond presicion */
-	#if HAVE_UTIMENSAT && HAVE_CLOCK_GETTIME
+#if HAVE_UTIMENSAT && HAVE_CLOCK_GETTIME
 	struct timespec mtime;
 	struct stat st;
 
@@ -371,18 +371,18 @@ static int test_fs_features(fs_feat_t *f) {
 
 	if (st.st_mtim.tv_nsec == mtime.tv_nsec)
 		*f |= FEAT_NS;
-	#endif
+#endif
 
 	/* test if extended attributes are supported */
-	#if HAVE_SETXATTR
+#if HAVE_SETXATTR
 	if (lsetxattr(p, "user.fs2go_test", "1", 1, 0) == 0 || errno != ENOTSUP)
 		*f |= FEAT_XATTR;
-	#endif
+#endif
 
 	/* test if hard links are supported
-	we currently don't support them ourselves :7
-		*f |= FEAT_HARDLINKS;
-	*/
+	   we currently don't support them ourselves :7
+	 *f |= FEAT_HARDLINKS;
+	 */
 
 	unlink(p);
 	free(p);
@@ -433,11 +433,11 @@ static struct fuse_operations fs2go_oper = {
 	OPER(chmod),
 	OPER(utimens),
 	OPER(statfs),
-	#if HAVE_SETXATTR
+#if HAVE_SETXATTR
 	OPER(setxattr),
 	OPER(getxattr),
 	OPER(listxattr),
-	#endif
+#endif
 };
 
 int main(int argc, char **argv) {

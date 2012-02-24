@@ -40,15 +40,15 @@ typedef long long rowid_t;
 typedef long long jobp_t;
 
 struct job {
-	rowid_t rowid;
-	int prio;
-	int op;
-	int attempts;
-	char *path;
-	jobp_t param1;
-	jobp_t param2;
-	char *sparam1;
-	char *sparam2;
+    rowid_t rowid;
+    int prio;
+    int op;
+    int attempts;
+    char *path;
+    jobp_t param1;
+    jobp_t param2;
+    char *sparam1;
+    char *sparam2;
 };
 
 #define JOB_INIT(p) { memset(p, 0, sizeof(struct job)); (p)->path = NULL; (p)->sparam1 = NULL; (p)->sparam2 = NULL; }

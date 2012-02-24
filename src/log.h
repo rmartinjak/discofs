@@ -32,12 +32,12 @@ void log_print(int level, const char *fmt, ...);
 #define DEBUG(...) log_print(LOG_DEBUG, WHERE __VA_ARGS__)
 #define DEBUGTIME(msg) { struct timespec debug_tp; clock_gettime(CLOCK_REALTIME, &debug_tp); DEBUG(msg ": %ld, %ld\n", debug_tp.tv_sec, debug_tp.tv_nsec); }
 #define TIMEDCALL(call) { \
-			struct timespec before, after; long long td; \
-			clock_gettime(CLOCK_REALTIME, &before); \
-			call; \
-			clock_gettime(CLOCK_REALTIME, &after); \
-			td = (after.tv_sec - before.tv_sec) * 1000000000 + after.tv_nsec - before.tv_nsec; \
-			DEBUG(STR(call) ": %lld\n", td); \
-			}
+	struct timespec before, after; long long td; \
+	clock_gettime(CLOCK_REALTIME, &before); \
+	call; \
+	clock_gettime(CLOCK_REALTIME, &after); \
+	td = (after.tv_sec - before.tv_sec) * 1000000000 + after.tv_nsec - before.tv_nsec; \
+	DEBUG(STR(call) ": %lld\n", td); \
+}
 
 #endif

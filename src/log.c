@@ -23,7 +23,6 @@ static char *log_lvlstr[] = { "", "ERROR", "INFO", "VERBOSE", "FSOP", "DEBUG" };
 static char *log_filename = NULL;
 
 
-
 void log_init(int level, const char *file) {
 	log_maxlvl = level;
 

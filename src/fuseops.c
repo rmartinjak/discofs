@@ -32,8 +32,8 @@
 static pthread_t t_worker, t_state;
 
 /** called when fs is initialized.
-starts worker and state checking thread
-*/
+  starts worker and state checking thread
+ */
 void *op_init(struct fuse_conn_info *conn) {
 	VERBOSE("restoring sync data\n");
 	TIMEDCALL(sync_load());
@@ -364,7 +364,7 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
 			pthread_mutex_unlock(&m_instant_pull);
 
 			/* maybe the last instant_pull pulled exactly the file we
-			want to open. if not, instant_pull it now */
+			   want to open. if not, instant_pull it now */
 			sync = get_sync(path);
 			if (sync == SYNC_NEW || sync == SYNC_MOD)
 				instant_pull(path);
