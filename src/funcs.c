@@ -495,7 +495,12 @@ char *affix_filename(const char *path, const char *prefix, const char *suffix) {
 	char *p;
 	char *tmp;
 
-	p = malloc(strlen(path) + strlen(prefix) + strlen(suffix) + 1);
+	size_t pref_len, suff_len;
+
+	pref_len = (prefix) ? strlen(prefix) : 0;
+	suff_len = (suffix) ? strlen(suffix) : 0;
+
+	p = malloc(strlen(path) + pref_len + suff_len + 1);
 	if (!p)
 		return NULL;
 
