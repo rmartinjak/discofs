@@ -18,7 +18,7 @@ static pthread_mutex_t m_log_print = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t m_log_error = PTHREAD_MUTEX_INITIALIZER;
 
 static int log_maxlvl = LOG_NONE;
-static char *log_lvlstr[] = { "", "ERROR", "INFO", "VERBOSE", "FSOP", "DEBUG" };
+static char *log_lvlstr[] = { "", "ERROR", "INFO", "VERBOSE", "DEBUG", "FSOP" };
 
 static char *log_filename = NULL;
 

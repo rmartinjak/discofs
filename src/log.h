@@ -14,8 +14,8 @@ enum log_levels
     LOG_ERROR,
     LOG_INFO,
     LOG_VERBOSE,
-    LOG_FSOP,
-    LOG_DEBUG
+    LOG_DEBUG,
+    LOG_FSOP
 };
 
 void log_init(int level, const char *path);
