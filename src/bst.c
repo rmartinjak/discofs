@@ -8,7 +8,8 @@
 #include <stdlib.h>
 #include <errno.h>
 
-static struct bstnode *bst_findpath(struct bstnode *n, bstdata_t data) {
+static struct bstnode *bst_findpath(struct bstnode *n, bstdata_t data)
+{
     int cmp = CMP(data, n->data);
     if (cmp == 0)
         return n;
@@ -18,7 +19,8 @@ static struct bstnode *bst_findpath(struct bstnode *n, bstdata_t data) {
         return (!n->right) ? n : bst_findpath(n->right, data);
 }
 
-int bst_insert_(struct bst *t, bstdata_t data, int allow_dups) {
+int bst_insert_(struct bst *t, bstdata_t data, int allow_dups)
+{
     struct bstnode *n;
     struct bstnode *ins;
     int cmp;
@@ -66,7 +68,8 @@ int bst_insert_(struct bst *t, bstdata_t data, int allow_dups) {
 }
 
 static int bst_del_from_left = 1;
-static struct bstnode *bst_delete_at(struct bstnode *n) {
+static struct bstnode *bst_delete_at(struct bstnode *n)
+{
     struct bstnode *p;
 
     /* no children */
@@ -119,7 +122,8 @@ static struct bstnode *bst_delete_at(struct bstnode *n) {
     return p;
 }
 
-int bst_delete_(struct bst *t, bstdata_t data, int delete_dups) {
+int bst_delete_(struct bst *t, bstdata_t data, int delete_dups)
+{
     struct bstnode *del;
     struct bstnode *par;
 
@@ -152,7 +156,8 @@ int bst_delete_(struct bst *t, bstdata_t data, int delete_dups) {
     return 0;
 }
 
-int bst_contains(struct bst *t, bstdata_t data) {
+int bst_contains(struct bst *t, bstdata_t data)
+{
     struct bstnode *n;
 
     if (!t || !t->root)
@@ -163,7 +168,8 @@ int bst_contains(struct bst *t, bstdata_t data) {
     return (CMP(data, n->data) == 0);
 }
 
-static void bst_clear_at(struct bstnode *n) {
+static void bst_clear_at(struct bstnode *n)
+{
     if (n->left)
         bst_clear_at(n->left);
     if (n->right)
@@ -171,7 +177,8 @@ static void bst_clear_at(struct bstnode *n) {
     free(n);
 }
 
-void bst_clear(struct bst *t) {
+void bst_clear(struct bst *t)
+{
     if (!t || !t->root)
         return;
 

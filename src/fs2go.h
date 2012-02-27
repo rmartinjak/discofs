@@ -37,9 +37,9 @@ typedef int fs_feat_t;
 #define FEAT_HARDLINKS 4
 
 enum opt_conflict {
-	CONFLICT_NEWER,
-	CONFLICT_THEIRS,
-	CONFLICT_MINE
+    CONFLICT_NEWER,
+    CONFLICT_THEIRS,
+    CONFLICT_MINE
 };
 
 #define COPYATTR_NO_MODE 1
@@ -62,61 +62,63 @@ enum opt_conflict {
 #define DEF_LOGFILE NULL
 
 struct options {
-	char *fs2go_mp;
-	char *remote_root;
-	size_t remote_root_len;
-	char *data_root;
-	char *cache_root;
-	size_t cache_root_len;
-	char *db_file;
-	uid_t uid;
-	gid_t gid;
-	char *host;
-	char *pid_file;
-	char *backup_prefix;
-	char *backup_suffix;
-	int clear;
-	int conflict;
-	int copyattr;
-	unsigned int scan_interval;
-	int loglevel;
-	char *logfile;
+    char *fs2go_mp;
+    char *remote_root;
+    size_t remote_root_len;
+    char *data_root;
+    char *cache_root;
+    size_t cache_root_len;
+    char *db_file;
+    uid_t uid;
+    gid_t gid;
+    char *host;
+    char *pid_file;
+    char *backup_prefix;
+    char *backup_suffix;
+    int clear;
+    int conflict;
+    int copyattr;
+    unsigned int scan_interval;
+    int loglevel;
+    char *logfile;
 };
 
-#define OPTIONS_INIT { .fs2go_mp = NULL,\
-	.remote_root = NULL,\
-	.data_root = NULL,\
-	.cache_root = NULL,\
-	.db_file = NULL,\
-	.uid = 0,\
-	.gid = 0,\
-	.host = NULL,\
-	.pid_file = NULL,\
-	.backup_prefix = NULL,\
-	.backup_suffix = NULL,\
-	.clear = 0,\
-	.conflict = DEF_CONFLICT,\
-	.copyattr = DEF_COPYATTR,\
-	.scan_interval = DEF_SCAN_INTERVAL, \
-	.loglevel = DEF_LOGLEVEL,\
-	.logfile = DEF_LOGFILE }
+#define OPTIONS_INIT \
+{   .fs2go_mp = NULL,\
+    .remote_root = NULL,\
+    .data_root = NULL,\
+    .cache_root = NULL,\
+    .db_file = NULL,\
+    .uid = 0,\
+    .gid = 0,\
+    .host = NULL,\
+    .pid_file = NULL,\
+    .backup_prefix = NULL,\
+    .backup_suffix = NULL,\
+    .clear = 0,\
+    .conflict = DEF_CONFLICT,\
+    .copyattr = DEF_COPYATTR,\
+    .scan_interval = DEF_SCAN_INTERVAL, \
+    .loglevel = DEF_LOGLEVEL,\
+    .logfile = DEF_LOGFILE }
 
-enum fs2go_opt_keys {
-	FS2GO_OPT_HELP,
-	FS2GO_OPT_VERSION,
-	FS2GO_OPT_UID,
-	FS2GO_OPT_GID,
-	FS2GO_OPT_PID,
-	FS2GO_OPT_CONFLICT,
-	FS2GO_OPT_LOGLEVEL,
-	FS2GO_OPT_DEBUG,
-	FS2GO_OPT_FOREGROUND,
-	FS2GO_OPT_NO_MODE,
-	FS2GO_OPT_NO_OWNER,
-	FS2GO_OPT_NO_GROUP,
-	FS2GO_OPT_NO_XATTR,
-	FS2GO_OPT_SSHFS,
-	FS2GO_OPT_NFS,
+enum fs2go_opt_keys
+{
+    FS2GO_OPT_HELP,
+    FS2GO_OPT_VERSION,
+    FS2GO_OPT_UID,
+    FS2GO_OPT_GID,
+    FS2GO_OPT_PID,
+    FS2GO_OPT_CONFLICT,
+    FS2GO_OPT_LOGLEVEL,
+    FS2GO_OPT_DEBUG,
+    FS2GO_OPT_FOREGROUND,
+    FS2GO_OPT_NO_MODE,
+    FS2GO_OPT_NO_OWNER,
+    FS2GO_OPT_NO_GROUP,
+    FS2GO_OPT_NO_XATTR,
+    FS2GO_OPT_SSHFS,
+    FS2GO_OPT_NFS,
 };
 
 int get_state();

@@ -20,18 +20,18 @@ extern char *rroot;
 #define PRIO_HIGH 3
 
 #define JOB_ANY -1
-#define JOB_PULL	(1 << 0)
-#define JOB_PULLATTR	(1 << 1)
-#define JOB_PUSH	(1 << 2)
-#define JOB_PUSHATTR	(1 << 3)
-#define JOB_RENAME	(1 << 4)
-#define JOB_UNLINK	(1 << 5)
-#define JOB_SYMLINK	(1 << 6)
-#define JOB_MKDIR	(1 << 7)
-#define JOB_RMDIR	(1 << 8)
-#define JOB_CHMOD	(1 << 9)
-#define JOB_CHOWN	(1 << 10)
-#define JOB_SETXATTR	(1 << 11)
+#define JOB_PULL        (1 << 0)
+#define JOB_PULLATTR    (1 << 1)
+#define JOB_PUSH        (1 << 2)
+#define JOB_PUSHATTR    (1 << 3)
+#define JOB_RENAME      (1 << 4)
+#define JOB_UNLINK      (1 << 5)
+#define JOB_SYMLINK     (1 << 6)
+#define JOB_MKDIR       (1 << 7)
+#define JOB_RMDIR       (1 << 8)
+#define JOB_CHMOD       (1 << 9)
+#define JOB_CHOWN       (1 << 10)
+#define JOB_SETXATTR    (1 << 11)
 
 #define JOB_MAX_ATTEMPTS 5
 #define JOB_DEFER_TIME 10

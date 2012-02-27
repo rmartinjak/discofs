@@ -25,9 +25,9 @@ typedef time_t sync_xtime_t;
 #endif
 
 struct sync {
-	char *path;
-	sync_xtime_t mtime;
-	sync_xtime_t ctime;
+    char *path;
+    sync_xtime_t mtime;
+    sync_xtime_t ctime;
 };
 
 void sync_free(struct sync *s);
