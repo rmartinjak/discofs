@@ -119,9 +119,9 @@ int delete_or_backup(const char *path, int keep) {
 		if (!res) {
 			confp = conflict_path(path);
 			if (keep == CONFLICT_KEEP_REMOTE)
-				schedule_pull(confp);
-			else
 				schedule_push(confp);
+			else
+				schedule_pull(confp);
 			free(confp);
 		}
 	}
