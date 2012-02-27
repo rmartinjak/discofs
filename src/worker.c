@@ -190,10 +190,14 @@ void scan_remote(queue *q)
 
         if (!bst_contains(&found_tree, djb2(ent->d_name, -1))) {
             p = join_path(srch, srch_len, ent->d_name, strlen(ent->d_name));
+            if (!p)
+                break;
+
             if (!has_lock(p, LOCK_OPEN) && !has_job(p, JOB_PUSH)) {
                 VERBOSE("removing missing file %s/%s from cache\n", (strcmp(srch, "/")) ? srch : "", ent->d_name);
                 delete_or_backup(p, CONFLICT_KEEP_REMOTE);
             }
+            free(p);
         }
     }
 
