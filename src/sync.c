@@ -191,7 +191,7 @@ void sync_ht_free(void)
         free(p);
     }
     free(it);
-    free(sync_ht);
+    ht_free(sync_ht);
     pthread_mutex_unlock(&m_sync_ht);
 }
 
@@ -213,7 +213,11 @@ struct sync *sync_ht_set(const char *path, sync_xtime_t mtime, sync_xtime_t ctim
         if (ht_init(&ht, sync_hash, sync_cmp) == HT_ERROR)
             return NULL;
 
-        if (!(dir=malloc(n+1))) { errno = ENOMEM; return NULL; }
+        dir = malloc(n+1);
+        if (!dir) {
+            errno = ENOMEM; return NULL;
+        }
+
         dir[n] = '\0';
         memcpy(dir, path, n);
 
@@ -307,6 +311,7 @@ int sync_rename_dir(const char *from, const char *to)
             if ((oldpath = strdup(p)) == NULL) {
                 pthread_mutex_unlock(&m_sync_ht);
                 q_clear(&q, 1);
+                free(it);
                 errno = ENOMEM;
                 return -1;
             }
@@ -324,6 +329,7 @@ int sync_rename_dir(const char *from, const char *to)
         ht_insert(sync_ht, newpath, ht);
     }
 
+    free(it);
     pthread_mutex_unlock(&m_sync_ht);
 
     if (!q_empty(&q)) {

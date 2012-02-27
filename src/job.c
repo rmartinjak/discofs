@@ -109,7 +109,7 @@ int job(int op, const char *path, jobp_t p1, jobp_t p2, const char *sp1, const c
                 case JOB_RENAME:
                     /* change transfer destination */
                     worker_block();
-                    transfer_rename(j->sparam1);
+                    transfer_rename(j->sparam1, 1);
                     remove_lock(j->path, LOCK_TRANSFER);
                     set_lock(j->sparam1, LOCK_TRANSFER);
                     /* execute job and ignore return value */
@@ -120,7 +120,6 @@ int job(int op, const char *path, jobp_t p1, jobp_t p2, const char *sp1, const c
                     return 0;
 
                 case JOB_UNLINK:
-                    DEBUG("LOL ABORTZ\n");
                     /* abort transfer */
                     transfer_abort();
                     remove_lock(j->path, LOCK_TRANSFER);
@@ -244,16 +243,20 @@ static int do_job_rename(struct job *j, int do_remote)
     if (!do_remote) {
         from = cache_path(j->path, strlen(j->path));
         to = cache_path(j->sparam1, strlen(j->sparam1));
+
         db_delete_path(j->sparam1);
 
+        /* store jobs from queue so db_rename_* won't miss them */
         job_store_queue();
 
-        if (is_dir(j->sparam1)) {
+        if (is_dir(from)) {
+            DEBUG("renaming directory %s -> %s\n", from, to);
             sync_delete_dir(j->sparam1);
             sync_rename_dir(j->path, j->sparam1);
             db_rename_dir(j->path, j->sparam1);
         }
         else {
+            DEBUG("renaming file %s -> %s\n", from, to);
             sync_delete_file(j->sparam1);
             sync_rename_file(j->path, j->sparam1);
             db_rename_file(j->path, j->sparam1);
@@ -266,11 +269,12 @@ static int do_job_rename(struct job *j, int do_remote)
     else {
         from = remote_path(j->path, strlen(j->path));
         to = remote_path(j->sparam1, strlen(j->sparam1));
+
         if (has_lock(j->sparam1, LOCK_TRANSFER)) {
-            transfer_abort(j->sparam1);
+            transfer_abort();
         }
         else if (has_lock(j->path, LOCK_TRANSFER)) {
-            transfer_rename(j->sparam1);
+            transfer_rename(j->sparam1, 1);
         }
         else if ((sync = get_sync(j->sparam1)) == SYNC_NEW || sync == SYNC_MOD) {
             conflict_handle(j, &keep);
@@ -288,7 +292,15 @@ static int do_job_rename(struct job *j, int do_remote)
         }
     }
 
-    res = rename(from, to);
+    if (do_remote && is_dir(from)) {
+        res = rename(from, to);
+        transfer_rename_dir(j->path, j->sparam1);
+    }
+    else {
+        res = rename(from, to);
+    }
+
+
     free(from);
     free(to);
     return res;

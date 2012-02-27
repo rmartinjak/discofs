@@ -26,7 +26,7 @@
 
 #define VARS int res=DB_OK, bindpos=1, colpos=0; sqlite3_stmt *stmt
 
-#define PREPARE(q) EXITNOK(sqlite3_prepare_v2(db, q, DB_ERROR, &stmt, NULL))
+#define PREPARE(q) EXITNOK(sqlite3_prepare_v2(db, q, -1, &stmt, NULL))
 #define STEP() sqlite3_step(stmt)
 #define RESET() { sqlite3_reset(stmt); bindpos=1; colpos=0; }
 #define FINALIZE() { sqlite3_finalize(stmt); bindpos=1; colpos=0; }
@@ -52,6 +52,9 @@
 sqlite3 *db;
 char *db_fn;
 static pthread_mutex_t m_db = PTHREAD_MUTEX_INITIALIZER;
+
+static int db_rename_dir_(const char *sql_select, const char *sql_update,
+        const char *pat, const char *from, size_t from_len, const char *to, size_t to_len);
 
 /* ====== GENERAL DB STUFF ====== */
 void db_open(void)
@@ -328,6 +331,7 @@ int db_has_job(const char *path, int opmask)
 
 #define COLS_JOB(j) \
 { \
+    colpos = 0; \
     j->rowid = COL_ROWID(); \
     j->prio = COL_INT(); \
     j->op = COL_INT(); \
@@ -342,6 +346,7 @@ int db_has_job(const char *path, int opmask)
 int db_get_jobs(queue *qu)
 {
     VARS;
+    int sql_res;
     struct job *j;
 #if HAVE_CLOCK_GETTIME
     struct timespec now;
@@ -361,7 +366,8 @@ int db_get_jobs(queue *qu)
     BIND_TIME_T(now);
 #endif
 
-    while (STEP() == SQLITE_ROW) {
+    while ((sql_res = STEP()) == SQLITE_ROW) {
+        colpos = 0;
         j = malloc(sizeof(struct job));
         JOB_INIT(j);
         if (!j) {
@@ -369,10 +375,14 @@ int db_get_jobs(queue *qu)
             break;
         }
         COLS_JOB(j);
-        if (q_enqueue(qu, j) == DB_ERROR) {
+        if (q_enqueue(qu, j) == -1) {
             res = DB_ERROR;
             break;
         }
+    }
+    if (sql_res != SQLITE_DONE) {
+        ERRMSG("db_rename_dir");
+        res = DB_ERROR;
     }
 
     FINALIZE();
@@ -615,33 +625,39 @@ int db_rename_file(const char *from, const char *to)
 #undef RENAME
 }
 
-static int db_rename_dir_(const char *table, const char *pat, const char *from, size_t from_len, const char *to, size_t to_len)
+static int db_rename_dir_(const char *sql_select, const char *sql_update,
+        const char *pat, const char *from, size_t from_len, const char *to, size_t to_len)
 {
     VARS;
+    int sql_res;
     queue q = QUEUE_INIT;
     char *oldpath, *newpath;
 
     db_open();
 
-    PREPARE("SELECT path FROM ? WHERE path LIKE ?;");
-    BIND_TEXT(table);
+    PREPARE(sql_select)
     BIND_TEXT(pat);
-    while (STEP() == SQLITE_ROW)
+    while ((sql_res = STEP()) == SQLITE_ROW) {
+        colpos = 0;
         q_enqueue(&q, COL_TEXT());
+    }
+    if (sql_res != SQLITE_DONE) {
+        ERRMSG("db_rename_dir");
+        res = DB_ERROR;
+    }
     FINALIZE();
 
-    PREPARE("UPDATE ? SET path=? WHERE path=?;");
+    PREPARE(sql_update);
     while (res == DB_OK && (oldpath = q_dequeue(&q))) {
         newpath = join_path(to, to_len, oldpath+from_len, strlen(oldpath)-from_len);
         if (!newpath) {
             errno = ENOMEM;
             return DB_ERROR;
         }
-        BIND_TEXT(table);
         BIND_TEXT(newpath);
         BIND_TEXT(oldpath);
         if (STEP() != SQLITE_DONE) {
-            ERRMSG("db_rename_dir_");
+            ERRMSG("db_rename_dir");
             res = DB_ERROR;
             q_clear(&q, 1);
         }
@@ -672,10 +688,12 @@ int db_rename_dir(const char *from, const char *to)
     memcpy(pat+from_len, "%\0", 2);
 
 #define RENAME(t) if (res == DB_OK) { \
-    res = db_rename_dir_(t, pat, from, from_len, to, to_len); \
+    res = db_rename_dir_("SELECT path FROM " t " WHERE path LIKE ?;", \
+            "UPDATE " t " set path=? WHERE path=?;", \
+            pat, from, from_len, to, to_len); \
 }
-    RENAME(TABLE_SYNC);
     RENAME(TABLE_JOB);
+    RENAME(TABLE_SYNC);
 #undef RENAME
     free(pat);
     return res;

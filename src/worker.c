@@ -280,13 +280,6 @@ void *worker_main(void *arg)
 
             /* if a transfer job is in progress, try to resume it */
             if (current) {
-                if (!db_has_job(j_current.path, j_current.op)) {
-                    DEBUG("job %lld cancelled\n", current);
-
-                    ABORT_CURRENT();
-                    continue;
-                }
-
                 transfer_result = transfer(NULL, NULL);
 
                 switch (transfer_result) {

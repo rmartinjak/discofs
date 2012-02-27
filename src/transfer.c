@@ -55,6 +55,9 @@ int transfer(const char *from, const char *to)
         t_off = 0;
         w_flags = O_WRONLY | O_CREAT | O_TRUNC;
     }
+    else if (!t_active) {
+        return TRANSFER_FAIL;
+    }
     else {
         VERBOSE("resuming transfer: '%s' -> '%s' at %ld\n", t_read, t_write, t_off);
         w_flags = O_WRONLY | O_APPEND;
@@ -204,7 +207,30 @@ int transfer_begin(const struct job *j)
     return TRANSFER_FAIL;
 }
 
-void transfer_rename(const char *to)
+void transfer_rename_dir(const char *from, const char *to) {
+    size_t from_len;
+    char *p, *t_path_new;
+
+    if (!t_active)
+        return;
+
+    from_len = strlen(from);
+
+    /* current transfer path doesn't begin with "from" -> nothing to do */
+    if (strncmp(from, t_path, from_len))
+        return;
+
+    p = t_path;
+    p += from_len;
+
+    t_path_new = join_path(to, strlen(to), p, strlen(p));
+
+    transfer_rename(t_path_new, 0);
+
+    free(t_path_new);
+}
+
+void transfer_rename(const char *to, int rename_partfile)
 {
     char *part_old;
     size_t to_len;
@@ -212,8 +238,9 @@ void transfer_rename(const char *to)
     if (!t_active)
         return;
 
-    to_len = strlen(to);
+    DEBUG("transfer_rename to %s\n", to);
 
+    to_len = strlen(to);
 
     worker_block();
     pthread_mutex_lock(&m_transfer);
@@ -238,12 +265,14 @@ void transfer_rename(const char *to)
     part_old = t_write_part;
     t_write_part = partfilename(t_write);
 
-    if (rename(part_old, t_write_part)) {
-        PERROR("renaming partfile");
-        ERROR("%s ->, %s\n", part_old, t_write_part);
-        pthread_mutex_unlock(&m_transfer);
-        transfer_abort();
-        pthread_mutex_lock(&m_transfer);
+    if (rename_partfile) {
+        if (rename(part_old, t_write_part)) {
+            PERROR("renaming partfile");
+            ERROR("%s ->, %s\n", part_old, t_write_part);
+            pthread_mutex_unlock(&m_transfer);
+            transfer_abort();
+            pthread_mutex_lock(&m_transfer);
+        }
     }
     free(part_old);
 
@@ -251,7 +280,7 @@ void transfer_rename(const char *to)
     worker_unblock();
 }
 
-void transfer_abort()
+void transfer_abort(void)
 {
     if (!t_active)
         return;
