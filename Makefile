@@ -6,24 +6,18 @@ OBJDIR=obj
 _OBJ = fs2go.o funcs.o paths.o sync.o job.o conflict.o worker.o transfer.o db.o log.o lock.o fuseops.o queue.o bst.o hashtable.o
 OBJ = $(addprefix $(OBJDIR)/,$(_OBJ))
 
-CFLAGS += -I$(SRCDIR)/hashtable
-
 default : fs2go
 
 $(OBJDIR) :
 	@mkdir $(OBJDIR)
 
-$(OBJDIR)/hashtable.o : $(SRCDIR)/hashtable/hashtable.c
-	@echo CC -c $<
-	@$(CC) $(CFLAGS) -c -o $@ $<
-
 $(OBJDIR)/%.o : $(SRCDIR)/%.c
 	@echo CC -c $<
-	@$(CC) $(CFLAGS) -c -o $@ $<
+	@$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
 
 fs2go : $(OBJDIR) $(OBJ)
 	@echo CC -o $@
-	@$(CC) $(LDFLAGS) -o fs2go $(OBJ)
+	@$(CC) -o fs2go $(OBJ) $(LDFLAGS) $(LIBS)
 
 clean :
 	@echo cleaning

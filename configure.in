@@ -4,10 +4,12 @@ PROG_VERSION="0"
 OUT_HEADER="src/config.h"
 OUT_MK="config.mk"
 
-CC_CANDIDATES="cc gcc icc"
+CC_CANDIDATES="cc gcc"
 
-CFLAGS="-pg -DFUSE_USE_VERSION=26"
-LDFLAGS="-lrt"
+CPPFLAGS="-DFUSE_USE_VERSION=26"
+CFLAGS="-g"
+LDFLAGS=""
+LIBS="-lrt"
 
 WARNINGS="all no-int-to-pointer-cast no-pointer-to-int-cast no-unused-but-set-variable"
 

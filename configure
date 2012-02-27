@@ -130,7 +130,7 @@ fi
 if which pkg-config 2> /dev/null
 then
 	CFLAGS+=" $(pkg-config $PKGCONF --cflags)"
-	LDFLAGS+=" $(pkg-config $PKGCONF --libs)"
+	LIBS+=" $(pkg-config $PKGCONF --libs)"
 else
 	echo "pkg-config not found"
 	exit 1
@@ -144,7 +144,9 @@ done
 # build makefile config
 cat >> $OUT_MK << EOF
 CC = $cc
+CPPFLAGS = $CPPFLAGS
 CFLAGS = $CFLAGS
+LIBS = $LIBS
 LDFLAGS = $LDFLAGS
 PREFIX = $prefix
 MANPREFIX = $manprefix
