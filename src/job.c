@@ -378,12 +378,16 @@ int do_job(struct job *j, int do_remote)
             return -1;
     }
 
-    if (do_remote && !has_job(j->path, JOB_ANY)) {
+    /* ignore ENOENT error when performing remote job.
+       (mode and ownership will be set after transfer is finished */
+    if (do_remote && res && errno == ENOENT)
+        res = 0;
+
+    if (do_remote && !res && !has_job(j->path, JOB_ANY)) {
         set_sync(j->path);
     }
 
     free(path);
-
     return res;
 }
 
