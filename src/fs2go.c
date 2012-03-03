@@ -83,6 +83,7 @@ static void print_usage()
         " -f --foreground       don't fork to background\n"
         "\n"
         PROG_NAME " options:\n"
+        " data=<dir>            directory for database and cache\n"
         " host=<host>           hostname or IP address to PING for remote fs availability\n"
         " pid=<filename>        file containing PID to test for remote fs avialability\n"
         " scan=<seconds>        interval to wait before scanning remote fs for changes. default is " STR(DEF_SCAN_INTERVAL) "\n"
