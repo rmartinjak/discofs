@@ -361,16 +361,34 @@ int do_job(struct job *j, int do_remote)
             break;
 
         case JOB_CHMOD:
-            res = chmod(path, (mode_t)j->param1);
+            if (!do_remote || !(fs2go_options.copyattr & COPYATTR_NO_MODE))
+                res = chmod(path, (mode_t)j->param1);
+            else
+                res = 0;
             break;
 
         case JOB_CHOWN:
-            res = lchown(path, (uid_t)j->param1, (gid_t)j->param2);
+            if (!do_remote) {
+                res = lchown(path, (uid_t)j->param1, (gid_t)j->param2);
+            }
+            else {
+                uid_t uid = j->param1;
+                gid_t gid = j->param2;
+                if (fs2go_options.copyattr & COPYATTR_NO_OWNER)
+                    uid = -1;
+                if (fs2go_options.copyattr & COPYATTR_NO_GROUP)
+                    gid = -1;
+
+                res = lchown(path, uid, gid);
+            }
             break;
 
 #ifdef HAVE_SETXATTR
         case JOB_SETXATTR:
-            res = lsetxattr(path, j->sparam1, j->sparam2, (size_t)j->param1, (int)j->param2);
+            if (!do_remote || !(fs2go_options.copyattr & COPYATTR_NO_XATTR))
+                res = lsetxattr(path, j->sparam1, j->sparam2, (size_t)j->param1, (int)j->param2);
+            else
+                res = 0;
             break;
 #endif
         default:
