@@ -473,15 +473,17 @@ int main(int argc, char **argv)
     }
 
     /* switch uid / gid */
-    if (fs2go_options.uid) {
-        if (setuid(fs2go_options.uid)) {
-            perror("setting uid");
+    if (fs2go_options.gid) {
+        VERBOSE("setting gid to %d\n", fs2go_options.gid);
+        if (setgid(fs2go_options.gid)) {
+            perror("setting gid");
             return EXIT_FAILURE;
         }
     }
-    if (fs2go_options.gid) {
-        if (setgid(fs2go_options.gid)) {
-            perror("setting gid");
+    if (fs2go_options.uid) {
+        VERBOSE("setting uid to %d\n", fs2go_options.uid);
+        if (setuid(fs2go_options.uid)) {
+            perror("setting uid");
             return EXIT_FAILURE;
         }
     }
