@@ -264,7 +264,6 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
             print_version();
             exit(EXIT_SUCCESS);
 
-        case FUSE_OPT_KEY_OPT:
         case FS2GO_OPT_HELP:
             print_usage();
             exit(EXIT_SUCCESS);
