@@ -17,7 +17,7 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.c
 
 fs2go : $(OBJDIR) $(OBJ)
 	@echo CC -o $@
-	@$(CC) -o fs2go $(OBJ) $(LDFLAGS) $(LIBS)
+	@$(CC) -o fs2go $(OBJ) $(CFLAGS) $(LDFLAGS) $(LIBS)
 
 clean :
 	@echo cleaning
