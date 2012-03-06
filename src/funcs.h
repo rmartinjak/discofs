@@ -38,6 +38,7 @@
 unsigned long djb2(const char *str, size_t n);
 
 char *join_path(const char *p1, size_t len1, const char *p2, size_t len2);
+#define join_path2(p1, p2) join_path(p1, strlen(p1), p2, strlen(p2))
 #define remote_path(p, len) join_path(REMOTE_ROOT, REMOTE_ROOT_LEN, p, len)
 #define cache_path(p, len) join_path(CACHE_ROOT, CACHE_ROOT_LEN, p, len)
 #define get_path(p, len) (ONLINE) ? remote_path(p, len) : cache_path(p, len)

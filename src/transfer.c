@@ -223,7 +223,7 @@ void transfer_rename_dir(const char *from, const char *to) {
     p = t_path;
     p += from_len;
 
-    t_path_new = join_path(to, strlen(to), p, strlen(p));
+    t_path_new = join_path2(to, p);
 
     transfer_rename(t_path_new, 0);
 

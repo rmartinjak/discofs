@@ -672,7 +672,7 @@ int rmdir_rec(const char *path)
         if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0)
             continue;
 
-        subpath = join_path(path, strlen(path), ent->d_name, strlen(ent->d_name));
+        subpath = join_path2(path, ent->d_name);
         if (lstat(subpath, &st) == -1) {
             closedir(dirp);
             free(subpath);
