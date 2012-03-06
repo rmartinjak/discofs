@@ -16,6 +16,8 @@
 #include <fcntl.h>
 #include <pthread.h>
 
+extern struct options fs2go_options;
+
 static pthread_mutex_t m_transfer = PTHREAD_MUTEX_INITIALIZER;
 static off_t t_off;
 static char *t_path, *t_read = NULL, *t_write = NULL, *t_write_part = NULL;
