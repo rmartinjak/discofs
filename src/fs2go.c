@@ -40,9 +40,6 @@
 #include <attr/xattr.h>
 #endif
 
-/* whether debugging ("-d") is enabled */
-static int fs2go_debug = 0;
-
 /* the current state. can be STATE_ONLINE, STATE_OFFLINE or STATE_EXITING */
 static int fs2go_state = STATE_OFFLINE;
 
@@ -52,8 +49,13 @@ static pthread_mutex_t m_fs2go_state = PTHREAD_MUTEX_INITIALIZER;
 /* mount options (specified i.e. with "-o name,name=value..." */
 struct options fs2go_options = OPTIONS_INIT;
 
-/* features the remote fs supports */
-fs_feat_t fs_features = 0;
+
+/* static prototypes */
+static void print_usage();
+static void print_version();
+static void log_options(int loglevel, struct options opt);
+static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args *outargs);
+static int test_fs_features(int *f);
 
 
 /* returns the current state */
@@ -150,6 +152,7 @@ static void log_options(int loglevel, struct options opt)
     log_print(loglevel, "mount point: %s\n", opt.fs2go_mp);
     log_print(loglevel, "remote fs: %s\n", opt.remote_root);
     log_print(loglevel, "cache root: %s\n", opt.cache_root);
+    log_print(loglevel, "debug: %s\n", YESNO(opt.clear));
     log_print(loglevel, "remote host: %s\n", opt.host);
     log_print(loglevel, "uid: %d\n", opt.uid);
     log_print(loglevel, "gid: %d\n", opt.gid);
@@ -179,9 +182,9 @@ static void log_options(int loglevel, struct options opt)
 #endif
 
     log_print(loglevel, "remote fs features:\n");
-    log_print(loglevel, "nanosecond timestamps: %s\n", YESNO((fs_features & FEAT_NS)));
+    log_print(loglevel, "nanosecond timestamps: %s\n", YESNO((fs2go_options.fs_features & FEAT_NS)));
 #if HAVE_SETXATTR
-    log_print(loglevel, "extended attributes: %s\n", YESNO((fs_features & FEAT_XATTR)));
+    log_print(loglevel, "extended attributes: %s\n", YESNO((fs2go_options.fs_features & FEAT_XATTR)));
 #endif
 }
 
@@ -346,7 +349,7 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
         /* --debug and --foreground */
         /*==========================*/
         case FS2GO_OPT_DEBUG:
-            fs2go_debug = 1;
+            fs2go_options.debug = 1;
             /* forward argument to fuse */
             fuse_opt_add_arg(outargs, "-d");
             return 0;
@@ -472,7 +475,7 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
     return 1;
 }
 
-static int test_fs_features(fs_feat_t *f)
+static int test_fs_features(int *f)
 {
 #define TESTFILE1 ".__fs2go_test_1__"
     char *p;
@@ -668,7 +671,7 @@ int main(int argc, char **argv)
     /*--------------------*/
 
     /* if -d is specified, override logging settings */
-    if (fs2go_debug)
+    if (fs2go_options.debug)
         log_init(LOG_DEBUG, NULL);
     else
         log_init(fs2go_options.loglevel, fs2go_options.logfile);
@@ -725,22 +728,22 @@ int main(int argc, char **argv)
     db_init(db_file, fs2go_options.clear);
 
     /* try to load filesystem features from DB */
-    if (db_cfg_get_int(CFG_FS_FEATURES, &fs_features)) {
+    if (db_cfg_get_int(CFG_FS_FEATURES, &fs2go_options.fs_features)) {
         
         /* if loading failed, try to determine them */
         if (is_mounted(REMOTE_ROOT) && is_reachable(fs2go_options.host)) {
-            if (test_fs_features(&fs_features)) {
+            if (test_fs_features(&fs2go_options.fs_features)) {
                 ERROR("failed to test remote fs features\n");
-                fs_features = 0;
+                fs2go_options.fs_features = 0;
             }
             /* test succeeded, store value for next time */
             else
-                db_cfg_set_int(CFG_FS_FEATURES, fs_features);
+                db_cfg_set_int(CFG_FS_FEATURES, fs2go_options.fs_features);
         }
         /* nag and assume that no features available (but don't save that) */
         else {
             ERROR("could not determine remote fs features");
-            fs_features = 0;
+            fs2go_options.fs_features = 0;
         }
     }
 

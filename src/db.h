@@ -15,6 +15,9 @@
 
 #include <sqlite3.h>
 
+/* "rowid" of a sqlite row */
+typedef long long rowid_t;
+
 #define DB_OK 0
 #define DB_ERROR -1
 #define DB_NOTFOUND 404
@@ -24,7 +27,6 @@
 
 #define CFG_VERSION "version"
 #define CFG_FS_FEATURES "fs_features"
-
 
 #define TABLE_JOB "job"
 #define SCHEMA_JOB "prio INTEGER," \
@@ -44,6 +46,8 @@
     "mtime_ns INTEGER," \
     "ctime_s INTEGER," \
     "ctime_ns INTEGER"
+
+
 void db_open(void);
 void db_close(void);
 

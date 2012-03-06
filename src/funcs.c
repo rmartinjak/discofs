@@ -35,7 +35,6 @@
 #endif
 
 extern struct options fs2go_options;
-extern fs_feat_t fs_features;
 
 /* djb2, a simple string hashing function */
 unsigned long djb2(const char *str, size_t n)
@@ -87,7 +86,7 @@ char *join_path(const char *p1, size_t len1, const char *p2, size_t len2)
 int timecmp(struct timespec t1, struct timespec t2)
 {
     if (t1.tv_sec == t2.tv_sec) {
-        if (!(fs_features & FEAT_NS) || t1.tv_nsec == t2.tv_nsec)
+        if (!(fs2go_options.fs_features & FEAT_NS) || t1.tv_nsec == t2.tv_nsec)
             return 0;
         else if (t1.tv_nsec > t2.tv_nsec)
             return 1;
@@ -390,7 +389,7 @@ int copy_attrs(const char *from, const char *to)
     }
 
 #if HAVE_SETXATTR
-    if ((fs_features & FEAT_XATTR) && !(fs2go_options.copyattr & COPYATTR_NO_XATTR)) {
+    if ((fs2go_options.fs_features & FEAT_XATTR) && !(fs2go_options.copyattr & COPYATTR_NO_XATTR)) {
         if (copy_xattrs(from, to) == -1)
             log_error("copy_attrs: copy_xattrs failed");
     }

@@ -567,7 +567,7 @@ int op_statfs(const char *path, struct statvfs *buf)
 int op_setxattr(const char *path, const char *name, const char *value, size_t size, int flags)
 {
 
-    if (!(fs_features & FEAT_XATTR))
+    if (!(fs2go_options.fs_features & FEAT_XATTR))
         return -ENOTSUP;
 
     return job(JOB_SETXATTR, path, (jobp_t)size, (jobp_t)flags, name, value);
@@ -578,7 +578,7 @@ int op_getxattr(const char *path, const char *name, char *value, size_t size)
     int res;
     char *p;
 
-    if (!(fs_features & FEAT_XATTR))
+    if (!(fs2go_options.fs_features & FEAT_XATTR))
         return -ENOTSUP;
 
     p = get_path(path, strlen(path));
@@ -596,7 +596,7 @@ int op_listxattr(const char *path, char *list, size_t size)
     int res;
     char *p;
 
-    if (!(fs_features & FEAT_XATTR))
+    if (!(fs2go_options.fs_features & FEAT_XATTR))
         return -ENOTSUP;
 
     p = get_path(path, strlen(path));

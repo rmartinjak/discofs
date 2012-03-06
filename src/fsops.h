@@ -12,9 +12,6 @@
 #include <pthread.h>
 #include <sys/types.h>
 
-extern pthread_mutex_t m_instant_pull;
-extern int fs_features;
-
 #define FH_SIZE (sizeof(int) * 2)
 #define FH_FD(fh) ((int*)fh)[0]
 #define FH_FLAGS(fh) ((int*)fh)[1]
