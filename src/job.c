@@ -22,6 +22,10 @@
 #include <pthread.h>
 #include <attr/xattr.h>
 
+extern struct options fs2go_options;
+extern char *croot;
+extern char *rroot;
+
 static int q_find_job(const void *path, const void *job, void *opmask);
 static int do_job_rename(struct job *j, int do_remote);
 

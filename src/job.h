@@ -11,10 +11,6 @@
 
 #include <sys/stat.h>
 
-extern struct options fs2go_options;
-extern char *croot;
-extern char *rroot;
-
 #define PRIO_LOW 1
 #define PRIO_MID 2
 #define PRIO_HIGH 3

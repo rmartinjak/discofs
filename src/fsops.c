@@ -29,6 +29,9 @@
 #include <attr/xattr.h>
 #endif
 
+extern pthread_mutex_t m_instant_pull;
+extern struct options fs2go_options;
+
 static pthread_t t_worker, t_state;
 
 /* called when fs is initialized.  starts worker and state checking thread */
