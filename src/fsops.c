@@ -384,8 +384,10 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
     pc = cache_path(path, strlen(path));
     if (op == OP_OPEN)
         FH_FD(fh) = open(pc, fi->flags);
-    else
+    else {
         FH_FD(fh) = open(pc, O_WRONLY|O_CREAT|O_TRUNC, mode);
+        schedule_push(path);
+    }
     free(pc);
 
     /* omg! */
