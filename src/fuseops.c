@@ -61,7 +61,6 @@ void op_destroy(void *p)
 
 int op_getattr(const char *path, struct stat *buf)
 {
-    FSOP("getattr(%s)\n", path);
     int res;
     int err;
     char *p;
@@ -86,10 +85,9 @@ int op_getattr(const char *path, struct stat *buf)
 
 int op_fgetattr(const char *path, struct stat *buf, struct fuse_file_info *fi)
 {
-    FSOP("fgetattr(%s)\n", path);
     int res;
 
-    res = fstat(FH_FD(fi->fh), buf);
+    res = fstat(FI_FD(fi), buf);
 
     if (res == -1)
         return -errno;
@@ -98,7 +96,6 @@ int op_fgetattr(const char *path, struct stat *buf, struct fuse_file_info *fi)
 
 int op_access(const char *path, int mode)
 {
-    FSOP("access(%s)\n", path);
     int res;
     char *p, *pc, *pr;
     size_t p_len = strlen(path);
@@ -136,7 +133,6 @@ int op_access(const char *path, int mode)
 
 int op_readlink(const char *path, char *buf, size_t bufsize)
 {
-    FSOP("readlink(%s)\n", path);
     int res;
     char *p;
 
@@ -151,7 +147,6 @@ int op_readlink(const char *path, char *buf, size_t bufsize)
 
 int op_opendir(const char *path, struct fuse_file_info *fi)
 {
-    FSOP("opendir(%s)\n", path);
     char *p, *p2;
     DIR **dirp;
     DIR **d;
@@ -196,7 +191,6 @@ int op_opendir(const char *path, struct fuse_file_info *fi)
 
 int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi)
 {
-    FSOP("readdir(%s)\n", path);
     int res;
     DIR **dirp;
     struct bst tree = BST_INIT;
@@ -258,7 +252,6 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
 
 int op_mknod(const char *path, mode_t mode, dev_t rdev)
 {
-    FSOP("mknod(%s)\n", path);
     int res;
     size_t p_len = strlen(path);
 
@@ -287,25 +280,21 @@ int op_mknod(const char *path, mode_t mode, dev_t rdev)
 
 int op_mkdir(const char *path, mode_t mode)
 {
-    FSOP("mkdir(%s)\n", path);
     return job(JOB_MKDIR, path, mode, 0, NULL, NULL);
 }
 
 int op_rmdir(const char *path)
 {
-    FSOP("rmdir(%s)\n", path);
     return job(JOB_RMDIR, path, 0, 0, NULL, NULL);
 }
 
 int op_unlink(const char *path)
 {
-    FSOP("unlink(%s)\n", path);
     return job(JOB_UNLINK, path, 0, 0, NULL, NULL);
 }
 
 int op_symlink(const char *to, const char *from)
 {
-    FSOP("symlink(%s, %s)\n", to, from);
     int res;
     res = job(JOB_SYMLINK, from, 0, 0, to, NULL);
     return res;
@@ -313,19 +302,16 @@ int op_symlink(const char *to, const char *from)
 
 int op_link(const char *from, const char *to)
 {
-    FSOP("link(%s, %s)\n", from, to);
     return -ENOTSUP;
 }
 
 int op_rename(const char *from, const char *to)
 {
-    FSOP("rename(%s, %s)\n", from, to);
     return job(JOB_RENAME, from, 0, 0, to, NULL);
 }
 
 int op_releasedir(const char* path, struct fuse_file_info *fi)
 {
-    FSOP("releasedir(%s)\n", path);
     int res = 0;
     DIR **dirp;
     dirp = (DIR **)fi->fh;
@@ -346,7 +332,6 @@ int op_releasedir(const char* path, struct fuse_file_info *fi)
 #define OP_CREATE 1
 static int op_open_create(int op, const char *path, mode_t mode, struct fuse_file_info *fi)
 {
-    FSOP("open_create(%s)\n", path);
     int sync;
     int *fh;
     char *pc, *pr;
@@ -415,22 +400,19 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
 
 int op_open(const char *path, struct fuse_file_info *fi)
 {
-    FSOP("open(%s)\n", path);
     return op_open_create(OP_OPEN, path, 0, fi);
 }
 
 int op_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 {
-    FSOP("create(%s)\n", path);
     return op_open_create(OP_CREATE, path, mode, fi);
 }
 
 int op_flush(const char *path, struct fuse_file_info *fi)
 {
-    FSOP("flush(%s)\n", path);
     int res;
     /* forward the flush op to underlying fd */
-    res = close(dup(FH_FD(fi->fh)));
+    res = close(dup(FI_FD(fi)));
     if (res == -1)
         return -errno;
 
@@ -440,12 +422,11 @@ int op_flush(const char *path, struct fuse_file_info *fi)
 int op_release(const char *path, struct fuse_file_info *fi)
 {
     int res;
-    FSOP("release(%s)\n", path);
     remove_lock(path, LOCK_OPEN);
-    res = close(FH_FD(fi->fh));
+    res = close(FI_FD(fi));
 
     /* file written -> schedule push */
-    if (FH_FLAGS(fi->fh) & FH_WRITTEN) {
+    if (FI_FLAGS(fi) & FH_WRITTEN) {
         schedule_push(path);
     }
     free((int*)fi->fh);
@@ -454,12 +435,11 @@ int op_release(const char *path, struct fuse_file_info *fi)
 
 int op_fsync(const char *path, int isdatasync, struct fuse_file_info *fi)
 {
-    FSOP("fsync(%s)\n", path);
     int res;
     if (isdatasync)
-        res = fdatasync(FH_FD(fi->fh));
+        res = fdatasync(FI_FD(fi));
     else
-        res = fsync(FH_FD(fi->fh));
+        res = fsync(FI_FD(fi));
     if (res == -1)
         return -errno;
     return 0;
@@ -467,7 +447,6 @@ int op_fsync(const char *path, int isdatasync, struct fuse_file_info *fi)
 
 int op_fsyncdir(const char *path, int isdatasync, struct fuse_file_info *fi)
 {
-    FSOP("fsyncdir(%s)\n", path);
     int res;
     int fd;
     fd = dirfd((DIR *)fi->fh);
@@ -483,9 +462,8 @@ int op_fsyncdir(const char *path, int isdatasync, struct fuse_file_info *fi)
 
 int op_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {
-    FSOP("read(%s)\n", path);
     int res;
-    res = pread(FH_FD(fi->fh), (void *)buf, size, offset);
+    res = pread(FI_FD(fi), (void *)buf, size, offset);
     if (res == -1)
         return -errno;
     return res;
@@ -493,19 +471,17 @@ int op_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_
 
 int op_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {
-    FSOP("write(%s)\n", path);
     int res;
-    res = pwrite(FH_FD(fi->fh), (void *)buf, size, offset);
+    res = pwrite(FI_FD(fi), (void *)buf, size, offset);
     if (res == -1)
         return -errno;
 
-    FH_FLAGS(fi->fh) |= FH_WRITTEN;
+    FI_FLAGS(fi) |= FH_WRITTEN;
     return res;
 }
 
 int op_truncate(const char *path, off_t size)
 {
-    FSOP("truncate(%s)\n", path);
     int res;
     char *p;
     size_t p_len = strlen(path);
@@ -539,19 +515,16 @@ int op_truncate(const char *path, off_t size)
 
 int op_chown(const char *path, uid_t uid, gid_t gid)
 {
-    FSOP("chown(%s)\n", path);
     return job(JOB_CHOWN, path, (jobp_t)uid, (jobp_t)gid, NULL, NULL);
 }
 
 int op_chmod(const char *path, mode_t mode)
 {
-    FSOP("chmod(%s)\n", path);
     return job(JOB_CHMOD, path, (jobp_t)mode, 0, NULL, NULL);
 }
 
 int op_utimens(const char *path, const struct timespec ts[2])
 {
-    FSOP("utimens(%s)\n", path);
     int res;
     char *p;
     size_t p_len = strlen(path);
@@ -573,7 +546,6 @@ int op_utimens(const char *path, const struct timespec ts[2])
 
 int op_statfs(const char *path, struct statvfs *buf)
 {
-    FSOP("statfs(%s)\n", path);
     int res;
     char *p;
 
@@ -589,7 +561,6 @@ int op_statfs(const char *path, struct statvfs *buf)
 #if HAVE_SETXATTR
 int op_setxattr(const char *path, const char *name, const char *value, size_t size, int flags)
 {
-    FSOP("setxattr(%s)\n", path);
 
     if (!(fs_features & FEAT_XATTR))
         return -ENOTSUP;
@@ -599,7 +570,6 @@ int op_setxattr(const char *path, const char *name, const char *value, size_t si
 
 int op_getxattr(const char *path, const char *name, char *value, size_t size)
 {
-    FSOP("getxattr(%s)\n", path);
     int res;
     char *p;
 
@@ -618,7 +588,6 @@ int op_getxattr(const char *path, const char *name, char *value, size_t size)
 
 int op_listxattr(const char *path, char *list, size_t size)
 {
-    FSOP("listxattr(%s)\n", path);
     int res;
     char *p;
 
