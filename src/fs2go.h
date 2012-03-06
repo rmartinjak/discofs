@@ -124,5 +124,4 @@ enum fs2go_opt_keys
 int get_state();
 void set_state(int s, int *oldstate);
 
-int main(int argc, char **argv);
 #endif
