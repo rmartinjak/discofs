@@ -29,7 +29,7 @@ void log_print(int level, const char *fmt, ...);
 #define ERROR(...) log_print(LOG_ERROR, WHERE __VA_ARGS__)
 #define INFO(...) log_print(LOG_INFO, WHERE __VA_ARGS__)
 #define VERBOSE(...) log_print(LOG_VERBOSE, WHERE __VA_ARGS__)
-#define FSOP(...) log_print(LOG_FSOP, WHERE __VA_ARGS__)
+#define FSOP(...) log_print(LOG_FSOP, __VA_ARGS__)
 #define DEBUG(...) log_print(LOG_DEBUG, WHERE __VA_ARGS__)
 #define DEBUGTIME(msg) { struct timespec debug_tp; clock_gettime(CLOCK_REALTIME, &debug_tp); DEBUG(msg ": %ld, %ld\n", debug_tp.tv_sec, debug_tp.tv_nsec); }
 #define TIMEDCALL(call) \
