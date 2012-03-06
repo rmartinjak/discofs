@@ -4,7 +4,7 @@
  */
 
 #include "config.h"
-#include "fuseops.h"
+#include "fsops.h"
 
 #include "fs2go.h"
 #include "log.h"

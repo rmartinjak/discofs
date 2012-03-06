@@ -13,9 +13,14 @@
 #include "sync.h"
 #include "job.h"
 #include "worker.h"
-#include "fuseops.h"
 #include "db.h"
 #include "paths.h"
+
+#ifdef DEBUG_FS_OPS
+#include "debugops.h"
+#else
+#include "fsops.h"
+#endif
 
 #include <fuse.h>
 #include <fuse_opt.h>
@@ -411,7 +416,11 @@ void sig_handler(int signo)
     }
 }
 
+#ifdef DEBUG_FS_OPS
+#define OPER(n) .n = debug_op_ ## n
+#else
 #define OPER(n) .n = op_ ## n
+#endif
 static struct fuse_operations fs2go_oper =
 {
     OPER(init),

@@ -3,7 +3,7 @@ include config.mk
 SRCDIR=src
 OBJDIR=obj
 
-_OBJ = fs2go.o funcs.o paths.o sync.o job.o conflict.o worker.o transfer.o db.o log.o lock.o fuseops.o queue.o bst.o hashtable.o
+_OBJ = fs2go.o funcs.o paths.o sync.o job.o conflict.o worker.o transfer.o db.o log.o lock.o fsops.o debugops.o queue.o bst.o hashtable.o
 OBJ = $(addprefix $(OBJDIR)/,$(_OBJ))
 
 default : fs2go

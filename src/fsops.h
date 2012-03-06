@@ -3,8 +3,8 @@
  * see LICENSE for full license (BSD 2-Clause)
  */
 
-#ifndef FS2GO_FUSEOPS_H
-#define FS2GO_FUSEOPS_H
+#ifndef FS2GO_FSOPS_H
+#define FS2GO_FSOPS_H
 
 #include "config.h"
 #include "fs2go.h"
@@ -18,6 +18,9 @@ extern int fs_features;
 #define FH_SIZE (sizeof(int) * 2)
 #define FH_FD(fh) ((int*)fh)[0]
 #define FH_FLAGS(fh) ((int*)fh)[1]
+
+#define FI_FD(fi) FH_FD((fi->fh))
+#define FI_FLAGS(fi) FH_FLAGS((fi->fh))
 
 #define FH_WRITTEN 1
 
