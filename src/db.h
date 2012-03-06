@@ -15,8 +15,6 @@
 
 #include <sqlite3.h>
 
-/* "rowid" of a sqlite row */
-typedef long long rowid_t;
 
 #define DB_OK 0
 #define DB_ERROR -1
@@ -63,14 +61,14 @@ int db_cfg_get_str(const char *option, char **buf);
 
 
 int db_store_job(const struct job *j);
-int db_defer_job(rowid_t id);
+int db_defer_job(long long id);
 
 int db_has_job(const char *path, int opmask);
 int db_get_jobs(queue *qu);
-int db_get_job_by_id(struct job *j, rowid_t id);
+int db_get_job_by_id(struct job *j, long long id);
 
 int db_delete_jobs(const char* path, int opmask);
-int db_delete_job_id(rowid_t id);
+int db_delete_job_id(long long id);
 
 int db_load_sync(void);
 

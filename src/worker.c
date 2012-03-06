@@ -251,7 +251,7 @@ void *worker_main(void *arg)
 
     struct job *j;
 
-    rowid_t current = 0;
+    long long current = 0;
     struct job j_current;
     JOB_INIT(&j_current);
 

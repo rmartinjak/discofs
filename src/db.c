@@ -43,7 +43,7 @@
 #define COL_INT64(t) (t)sqlite3_column_int64(stmt, colpos++)
 #define COL_INT() sqlite3_column_int(stmt, colpos++)
 
-#define COL_ROWID() COL_INT64(rowid_t)
+#define COL_ROWID() COL_INT64(long long)
 #define COL_TIME_T() COL_INT64(time_t)
 #define COL_LONG() COL_INT64(long)
 #define COL_JOBP() COL_INT64(jobp_t)
@@ -285,7 +285,7 @@ int db_store_job(const struct job *j)
     return res;
 }
 
-int db_defer_job(rowid_t id)
+int db_defer_job(long long id)
 {
     VARS;
 
@@ -390,7 +390,7 @@ int db_get_jobs(queue *qu)
     return res;
 }
 
-int db_get_job_by_id(struct job *j, rowid_t id)
+int db_get_job_by_id(struct job *j, long long id)
 {
     VARS;
 
@@ -438,7 +438,7 @@ int db_delete_jobs(const char *path, int opmask)
     return res;
 }
 
-int db_delete_job_id(rowid_t id)
+int db_delete_job_id(long long id)
 {
     VARS;
 

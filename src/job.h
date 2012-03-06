@@ -32,11 +32,10 @@
 #define JOB_MAX_ATTEMPTS 5
 #define JOB_DEFER_TIME 10
 
-typedef long long rowid_t;
 typedef long long jobp_t;
 
 struct job {
-    rowid_t rowid;
+    long long rowid;
     int prio;
     int op;
     int attempts;
