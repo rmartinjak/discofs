@@ -134,7 +134,7 @@ static void print_usage()
         " nfs                   same as \"--no-owner --no-group\"\n"
         "";
 
-    fprintf(stderr, s);
+    fprintf(stderr, "%s", s);
 }
 
 static void print_version()
