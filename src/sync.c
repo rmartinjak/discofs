@@ -13,6 +13,7 @@
 #include "hashtable.h"
 #include "db.h"
 
+#include <stdint.h>
 #include <errno.h>
 #include <time.h>
 #include <fcntl.h>
@@ -128,9 +129,9 @@ int get_sync_stat(const char *path, struct stat *buf)
 static hash_t sync_hash(const void *p, const void *n)
 {
     if (n)
-        return (hash_t)djb2((char*)p, *((size_t*)n));
+        return djb2((char*)p, *((size_t*)n));
     else
-        return (hash_t)djb2((char*)p, -1);
+        return djb2((char*)p, SIZE_MAX);
 }
 
 static int sync_cmp(const void *p1, const void *p2, const void *n)

@@ -11,6 +11,7 @@
 #include "log.h"
 
 #include <stdlib.h>
+#include <stdint.h>
 #include <pthread.h>
 
 static pthread_mutex_t m_lock_tree = PTHREAD_MUTEX_INITIALIZER;
@@ -20,7 +21,7 @@ static struct bst lock_tree;
 int has_lock(const char *path, int type)
 {
     int res;
-    bstdata_t hash = (bstdata_t)djb2(path, -1);
+    bstdata_t hash = djb2(path, SIZE_MAX);
 
     hash <<= LOCK_TYPE_BITS;
     hash |= type;
@@ -35,7 +36,7 @@ int has_lock(const char *path, int type)
 int set_lock(const char *path, int type)
 {
     int res;
-    bstdata_t hash = (bstdata_t)djb2(path, -1);
+    bstdata_t hash = djb2(path, SIZE_MAX);
 
     hash <<= LOCK_TYPE_BITS;
     hash |= type;
@@ -55,7 +56,7 @@ int set_lock(const char *path, int type)
 int remove_lock(const char *path, int type)
 {
     int res;
-    bstdata_t hash = (bstdata_t)djb2(path, -1);
+    bstdata_t hash = djb2(path, SIZE_MAX);
 
     hash <<= LOCK_TYPE_BITS;
     hash |= type;

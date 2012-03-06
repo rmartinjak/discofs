@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <dirent.h>
 #include <pthread.h>
@@ -229,7 +230,7 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
             if (is_partfile(ent->d_name))
                 continue;
 
-            hash = (bstdata_t)djb2(ent->d_name, -1);
+            hash = djb2(ent->d_name, SIZE_MAX);
 
             if (bst_contains(&tree, hash))
                 continue;

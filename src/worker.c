@@ -17,10 +17,12 @@
 #include "conflict.h"
 #include "bst.h"
 
+#include <stdint.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <pthread.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <signal.h>
 #if HAVE_CLOCK_GETTIME
 #include <sys/time.h>
@@ -131,7 +133,7 @@ void scan_remote(queue *q)
         if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0)
             continue;
 
-        bst_insert(&found_tree, djb2(ent->d_name, -1));
+        bst_insert(&found_tree, djb2(ent->d_name, SIZE_MAX));
 
         d_len = strlen(ent->d_name);
 
@@ -188,7 +190,7 @@ void scan_remote(queue *q)
         if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0)
             continue;
 
-        if (!bst_contains(&found_tree, djb2(ent->d_name, -1))) {
+        if (!bst_contains(&found_tree, djb2(ent->d_name, SIZE_MAX))) {
             p = join_path(srch, srch_len, ent->d_name, strlen(ent->d_name));
             if (!p)
                 break;

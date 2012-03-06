@@ -41,14 +41,8 @@ unsigned long djb2(const char *str, size_t n)
 {
     unsigned long hash = 5381;
     int c;
-    if (n < 0) {
-        while ((c = *str++))
-            hash = ((hash << 5) + hash) + c;
-    }
-    else {
-        while ((c = *str++) && n--)
-            hash = ((hash << 5) + hash) + c;
-    }
+    while ((c = *str++) && n--)
+        hash = ((hash << 5) + hash) + c;
 
     return hash;
 }

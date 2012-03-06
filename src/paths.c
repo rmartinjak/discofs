@@ -9,6 +9,7 @@
 #include "funcs.h"
 
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 
 static char *get_home_dir(void);
@@ -50,7 +51,7 @@ char *paths_data_root(const char *remote)
         FATAL("memory allocation failed\n");
     }
 
-    sprintf(hash, "%lu", djb2(remote, -1));
+    sprintf(hash, "%lu", djb2(remote, SIZE_MAX));
 
     /* use $XDG_DATA_HOME */
     root = getenv("XDG_DATA_HOME");
