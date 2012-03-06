@@ -113,7 +113,7 @@ echo -n > $OUT_MK || exit 1
 # search for compiler
 for c in $CC_CANDIDATES
 do
-	if which $c 2> /dev/null
+	if which $c 2>&1 > /dev/null
 		then
 			echo "compiler: $c"
 			cc=$c
@@ -127,10 +127,10 @@ then
 	exit 1
 fi
 
-if which pkg-config 2> /dev/null
+if which pkg-config 2>&1 > /dev/null
 then
-	CFLAGS+=" $(pkg-config $PKGCONF --cflags)"
-	LIBS+=" $(pkg-config $PKGCONF --libs)"
+	CFLAGS="${CFLAGS} $(pkg-config $PKGCONF --cflags)"
+	LIBS="${LIBS} $(pkg-config $PKGCONF --libs)"
 else
 	echo "pkg-config not found"
 	exit 1
@@ -160,8 +160,6 @@ fi
 if [ -n "$PROG_VERSION" ]; then
 	define PROG_VERSION \"$PROG_VERSION\"
 fi
-
-hg_rev=$(hg id -n 2> /dev/null):$(hg id -i 2> /dev/null) && define HG_REV \"$hg_rev\"
 
 # test headers and functions
 
