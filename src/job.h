@@ -9,8 +9,6 @@
 #include "config.h"
 #include "fs2go.h"
 
-#include <sys/stat.h>
-
 #define PRIO_LOW 1
 #define PRIO_MID 2
 #define PRIO_HIGH 3
