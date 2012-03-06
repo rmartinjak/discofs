@@ -239,7 +239,6 @@ int copy_rec(const char *from, const char *to)
 
     dirp = opendir(from);
     if (!dirp) {
-        perror("opendir failed");
         return -1;
     }
     bufsize = dirent_buf_size(dirp);
@@ -303,7 +302,6 @@ int copy_symlink(const char *from, const char *to)
     *(buf + bufsz) = '\0';
 
     if (readlink(from, buf, bufsz) != bufsz) {
-        perror("error reading link");
         free(buf);
         return -1;
     }
@@ -665,7 +663,6 @@ int rmdir_rec(const char *path)
 
     dirp = opendir(path);
     if (!dirp) {
-        perror("opendir failed");
         return -1;
     }
     dbufsize = dirent_buf_size(dirp);
