@@ -101,7 +101,6 @@ struct options
     .remote_root = NULL,\
     .data_root = NULL,\
     .cache_root = NULL,\
-    .fs_features = 0,\
     .debug = 0,\
     .fs_features = 0,\
     .uid = 0,\
