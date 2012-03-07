@@ -102,7 +102,7 @@ static void print_usage()
         "\n"
         "general options:\n"
         /*"  -o opt,[opt...]    mount options\n"*/
-        " -h --help         display help and exit\n"
+        " -h --help             display help and exit\n"
         " -v --version          display version and exit\n"
         " -d --debug            enable debugging output, don't fork to background\n"
         " -f --foreground       don't fork to background\n"
@@ -113,11 +113,11 @@ static void print_usage()
         " pid=<filename>        file containing PID to test for remote fs avialability\n"
         " scan=<seconds>        interval to wait before scanning remote fs for changes. default is " STR(DEF_SCAN_INTERVAL) "\n"
         " conflict=<mode>       conflict resolution mode. possible values:\n"
-        "                       newer, mine, theirs. default is 'newer'\n"
+        "                       'newer', 'mine' or 'theirs'. default is 'newer'\n"
         " bprefix=<prefix>\n"
         " bsuffix=<suffix>      backup prefix/suffix (see the manual for more information)\n"
         " clear                 delete database and cache before mounting\n"
-        " loglevel=<level>      logging level, possible values: none, error, info, verbose, fsop, debug\n"
+        " loglevel=<level>      logging level, possible values: none, error, info, verbose, debug, fsop\n"
         "                       each including its predecessors. default is 'none'\n"
         " logfile=<file>        logging output file. default ist stderr\n"
         "\n"
@@ -126,12 +126,12 @@ static void print_usage()
         " no-owner              don't sync user ownership\n"
         " no-group              don't sync group ownership\n"
 #if HAVE_SETXATTR
-        " no-xattr              don't sync extended attributes (set with getfattr)\n"
-        " sshfs                 same as \"--no-owner --no-group --no-xattr\"\n"
+        " no-xattr              don't sync extended attributes\n"
+        " sshfs                 same as \"no-owner,no-group,no-xattr\"\n"
+        " nfs                   same as \"no-xattr\"\n"
 #else
-        " sshfs                 same as \"--no-owner --no-group\"\n"
+        " sshfs                 same as \"no-owner,no-group\"\n"
 #endif
-        " nfs                   same as \"--no-owner --no-group\"\n"
         "";
 
     fprintf(stderr, "%s", s);
