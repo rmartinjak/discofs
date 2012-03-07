@@ -379,7 +379,7 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
 
             /* use numeric id if strtol() was successful */
             if (*endptr == '\0' && endptr != val)
-                getpwuid(fs2go_options.uid);
+                pw = getpwuid(fs2go_options.uid);
 
             /* or try the given string */
             else
