@@ -27,47 +27,54 @@ int conflict_handle(const struct job *j, int *keep_which)
 
     path = (j->op == JOB_RENAME) ? j->sparam1 : j->path;
 
-    /* select which to keep */
+    /* select which to keep by comparing mtime */
     if (fs2go_options.conflict == CONFLICT_NEWER) {
         struct stat st_c;
         struct stat st_r;
         int cmp;
 
+        /* stat cache file */
         p = cache_path(path, p_len);
         res = lstat(p, &st_c);
         free(p);
         if (res == -1)
             return -1;
 
+        /* stat remote file */
         p = remote_path(path, p_len);
         res = lstat(p, &st_r);
         free(p);
         if (res == -1)
             return -1;
 
+        /* compare mtime */
         cmp = timecmp(ST_MTIME(st_c), ST_MTIME(st_r));
 
+        /* keep newer file */
         keep = (cmp < 0) ? CONFLICT_KEEP_REMOTE : CONFLICT_KEEP_CACHE;
     }
+    /* always keep remote */
     else if (fs2go_options.conflict == CONFLICT_THEIRS)
         keep = CONFLICT_KEEP_REMOTE;
+    /* always keep cache */
     else if (fs2go_options.conflict == CONFLICT_MINE)
         keep = CONFLICT_KEEP_CACHE;
-    else {
-        errno = EINVAL;
-        return -1;
-    }
 
+    /* save which file to keep in caller-provided pointer */
     if (keep_which)
         *keep_which = keep;
 
+    /* delete/backup the file NOT to keep
+       this will also schedule a push/pull job if
+       the file was backed up */
     delete_or_backup(path, keep);
 
     if (keep == CONFLICT_KEEP_REMOTE) {
         p = cache_path(path, p_len);
+
         if (j->op == JOB_RENAME) {
             char *newpath = conflict_path(path);
-            /* no prefix/suffix -> delete sync and anything in db */
+            /* no prefix/suffix -> delete sync and sync/jobs in db */
             if (!newpath) {
                 if (is_dir(p))
                     sync_delete_dir(path);
@@ -75,7 +82,7 @@ int conflict_handle(const struct job *j, int *keep_which)
                     sync_delete_file(path);
                 db_delete_path(path);
             }
-            /* else rename sync and anything in db */
+            /* else rename sync and sync/jobs in db */
             else if (is_dir(p)) {
                 sync_rename_dir(path, newpath);
                 db_rename_dir(path, newpath);
@@ -86,7 +93,7 @@ int conflict_handle(const struct job *j, int *keep_which)
             }
             free(newpath);
         }
-        /* JOB_PUSH */
+        /* j is a PUSH job -> pull the file from remote */
         else
             schedule_pull(path);
         free(p);
@@ -109,7 +116,10 @@ int delete_or_backup(const char *path, int keep)
     char *p, *confp;
     char *dest;
 
+    /* get old path */
     p = (keep == CONFLICT_KEEP_REMOTE) ? cache_path(path, strlen(path)) : remote_path(path, strlen(path));
+
+    /* get new path (or NULL if no bprefix/bsuffix set) */
     dest = conflict_path(p);
 
     if (dest) {
