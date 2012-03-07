@@ -8,36 +8,36 @@
 
 /* simple binary search tree implementation */
 
-
-#include <stdlib.h>
-
-#define BST_INIT { NULL }
-#define CMP(x, y) ((x < y) ? -1 : (x > y ? 1 : 0 ))
-
 #ifndef bstdata_t
 typedef unsigned long bstdata_t;
 #endif
 
-struct bstnode {
-    bstdata_t data;
-    struct bstnode *parent;
-    struct bstnode *left;
-    struct bstnode *right;
-};
+typedef struct bst bst;
 
-struct bst {
-    struct bstnode *root;
-};
+/*====================*/
+/* exported functions */ 
+/*====================*/
 
-#define bst_empty(t) ((t)->root == NULL)
+/* initialize bst */
+bst *bst_init(void);
 
-#define bst_insert(t, data) bst_insert_(t, data, 0)
-#define bst_insert_dup(t, data) bst_insert_(t, data, 1)
-int bst_insert_(struct bst *t, bstdata_t data, int allow_dups);
+/* free a bst */
+void bst_free(bst *t);
 
-#define bst_delete(t, data) bst_delete_(t, data, 0)
-#define bst_delete_all(t, data) bst_delete_(t, data, 1)
-int bst_delete_(struct bst *t, bstdata_t data, int delete_dups);
-int bst_contains(struct bst *t, bstdata_t data);
-void bst_clear(struct bst *t);
+/* free all nodes from tree; leaves an empty tree */
+void bst_clear(bst *t);
+
+/* insert an item into the tree */
+int bst_insert(bst *t, bstdata_t data);
+/* insert allowing duplicates */
+int bst_insert_dup(bst *t, bstdata_t data);
+
+/* delete item from tree */
+int bst_delete(bst *t, bstdata_t data);
+/* delete all equal items from tree */
+int bst_delete_dup(bst *t, bstdata_t data);
+
+/* check if tree contains equal item */
+int bst_contains(bst *t, bstdata_t data);
+
 #endif

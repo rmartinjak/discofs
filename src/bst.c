@@ -8,9 +8,79 @@
 #include <stdlib.h>
 #include <errno.h>
 
-static struct bstnode *bst_findpath(struct bstnode *n, bstdata_t data)
+
+/*========*/
+/* macros */
+/*========*/
+#define BST_CMP(x, y) ((x < y) ? -1 : (x > y ? 1 : 0))
+
+/*=========*/
+/* structs */
+/*=========*/
+
+/* node in a bst */
+typedef struct bstnode
 {
-    int cmp = CMP(data, n->data);
+    bstdata_t data;
+    struct bstnode *parent;
+    struct bstnode *left;
+    struct bstnode *right;
+} bstnode;
+
+/* bst object, a pointer to it is the first argument to all bst_ functions */
+struct bst
+{
+    bstnode *root;
+};
+
+
+/*===================*/
+/* static prototypes */
+/*===================*/
+
+static bstnode *bstnode_init(bstdata_t data, bstnode *parent);
+static void bstnode_free(bstnode *n);
+
+static bstnode *bst_findpath(bstnode *n, bstdata_t data);
+static int bst_insert_(bst *t, bstdata_t data, int dups);
+static int bst_delete_(bst *t, bstdata_t data, int dups);
+static bstnode *bst_delete_at(bstnode *n);
+
+
+/*==================*/
+/* static functions */
+/*=================*/
+
+/* create a new bst node */
+static bstnode *bstnode_init(bstdata_t data, bstnode *parent)
+{
+    bstnode *n = malloc(sizeof(bstnode));
+
+    if (n) {
+        n->data = data;
+        n->parent = parent;
+        n->left = NULL;
+        n->right = NULL;
+    }
+    return n;
+}
+
+/* free a bst node and all it's descendants */
+static void bstnode_free(bstnode *n)
+{
+    if (!n)
+        return;
+
+    bstnode_free(n->left);
+    bstnode_free(n->right);
+
+    free(n);
+}
+
+/* find node in tree */
+static bstnode *bst_findpath(bstnode *n, bstdata_t data)
+{
+    int cmp = BST_CMP(data, n->data);
     if (cmp == 0)
         return n;
     else if (cmp < 0)
@@ -19,58 +89,63 @@ static struct bstnode *bst_findpath(struct bstnode *n, bstdata_t data)
         return (!n->right) ? n : bst_findpath(n->right, data);
 }
 
-int bst_insert_(struct bst *t, bstdata_t data, int allow_dups)
+/* insert a node */
+static int bst_insert_(bst *t, bstdata_t data, int dups)
 {
-    struct bstnode *n;
-    struct bstnode *ins;
+    bstnode *n;
+    bstnode *ins;
     int cmp;
 
     if (!t->root) {
-        t->root = malloc(sizeof(struct bstnode));
+        t->root = bstnode_init(data, NULL);
         if (!t->root) {
             errno = ENOMEM;
             return -1;
         }
-
-        t->root->data = data;
-        t->root->left = NULL;
-        t->root->right = NULL;
-        t->root->parent = NULL;
         return 0;
     }
 
     n = bst_findpath(t->root, data);
 
-    cmp = CMP(data, n->data);
+    cmp = BST_CMP(data, n->data);
 
-#define NODEINS(dir) if (!(ins = malloc(sizeof(struct bstnode)))) { errno = ENOMEM; return -1; } \
-    ins->data = data; \
-    ins->parent = n; \
-    ins->left = NULL; \
-    ins->right = NULL; \
-    n->dir = ins; \
-    return 0;
-
+    /* another node with equal data exists */
     if (cmp == 0) {
-        if (!allow_dups) {
+        /* no duplicates allowed */
+        if (!dups) {
             errno = EINVAL;
             return -1;
         }
-        NODEINS(left);
+        /* duplicates alloewd -> insert left */
+        ins = bstnode_init(data, n);
+        n->left = ins;
     }
+    /* new data smaller -> insert left */
     else if (cmp < 0) {
-        NODEINS(left);
+        ins = bstnode_init(data, n);
+        n->left = ins;
     }
+    /* new data greater -> insert right */
     else {
-        NODEINS(right);
+        ins = bstnode_init(data, n);
+        n->right = ins;
     }
-#undef NODEINS
+
+    if (!ins) {
+        errno = ENOMEM;
+        return -1;
+    }
+
+    return 0;
 }
 
-static struct bstnode *bst_delete_at(struct bstnode *n)
+/* find node that replaces a node n, move it to n's position and return it */
+static bstnode *bst_delete_at(bstnode *n)
 {
     static int bst_del_from_left = 1;
-    struct bstnode *p;
+
+    /* p will take n's position */
+    bstnode *p;
 
     /* no children */
     if (!n->left && !n->right) {
@@ -88,18 +163,29 @@ static struct bstnode *bst_delete_at(struct bstnode *n)
     else {
         /* go either left or right way */
         bst_del_from_left ^= 1;
+
+        /* n's predecessor replaces n */
         if (bst_del_from_left) {
+            /* find predecessor (rightmost item of left subtree) */
             p = n->left;
             if (p->right) {
                 while (p->right)
                     p = p->right;
+
+                /* p's left subtree becomes his former parent's right subtree 
+                   (p has no right subtree)
+                 */
                 if (p->left)
                     p->left->parent = p->parent;
                 p->parent->right = p->left;
+
+                /* p's new left subtree is n's subtree */
                 p->left = n->left;
             }
+            /* p's new left subtree is n's subtree */
             p->right = n->right;
         }
+        /* analoguous to the above method */
         else {
             p = n->right;
             if (p->left) {
@@ -114,32 +200,47 @@ static struct bstnode *bst_delete_at(struct bstnode *n)
         }
     }
 
+    /* update children's parent ptr */
     if (p->right)
         p->right->parent = p;
     if (p->left)
         p->left->parent = p;
+
+    /* set parent */
     p->parent = n->parent;
+
+    /* child ref of n's (now p's) parent update outside of this function */
     return p;
 }
 
-int bst_delete_(struct bst *t, bstdata_t data, int delete_dups)
+/* delete one/all nodes with the given data */
+static int bst_delete_(bst *t, bstdata_t data, int dups)
 {
-    struct bstnode *del;
-    struct bstnode *par;
+    /* node to delete and it's parent */
+    bstnode *del, *par;
 
-    /* empty */
-    if (!t->root)
+    /* number of deleted nodes */
+    int deleted = 0;
+
+    /* empty tree */
+    if (!t->root) {
+        errno = EINVAL;
         return -1;
+    }
 
     do {
         del = bst_findpath(t->root, data);
 
-        /* data not found */
-        if (CMP(data, del->data) != 0) {
-            return (delete_dups) ? 0 : -1;
+        /* no node found, return */
+        if (BST_CMP(data, del->data) != 0) {
+            return deleted;
         }
 
         par = del->parent;
+
+        /* bst_delete_at returns node that will replace the deleted node
+           uptdate del's parents (or t's root if del was the old root) */
+
         if (del == t->root)
             t->root = bst_delete_at(del);
         /* is left child */
@@ -149,38 +250,78 @@ int bst_delete_(struct bst *t, bstdata_t data, int delete_dups)
         else
             par->right = bst_delete_at(del);
 
+        /* finally free it */
         free(del);
 
-    } while (delete_dups);
+        deleted++;
+    /* repeat if dups non-zero until no node found */
+    } while (dups);
 
+    return deleted;
+}
+
+
+/*====================*/
+/* exported functions */
+/*====================*/
+
+bst *bst_init(void)
+{
+    bst *t = malloc(sizeof(bst));
+    if (t) {
+        t->root = NULL;
+    }
     return 0;
 }
 
-int bst_contains(struct bst *t, bstdata_t data)
+void bst_free(bst *t)
 {
-    struct bstnode *n;
+    bst_clear(t);
+    free(t);
+}
+
+void bst_clear(bst *t)
+{
+    if (!t || !t->root)
+        return;
+
+    bstnode_free(t->root);
+    t->root = NULL;
+}
+
+int bst_empty(bst *t)
+{
+    return (t->root == NULL);
+}
+
+int bst_insert(bst *t, bstdata_t data)
+{
+    return bst_insert_(t, data, 0);
+}
+
+int bst_insert_dup(bst *t, bstdata_t data)
+{
+    return bst_insert_(t, data, 1);
+}
+
+int bst_delete(bst *t, bstdata_t data)
+{
+    return bst_delete_(t, data, 0);
+}
+
+int bst_delete_dup(bst *t, bstdata_t data)
+{
+    return bst_delete_(t, data, 1);
+}
+
+int bst_contains(bst *t, bstdata_t data)
+{
+    bstnode *n;
 
     if (!t || !t->root)
         return 0;
 
     n = bst_findpath(t->root, data);
 
-    return (CMP(data, n->data) == 0);
-}
-
-static void bst_clear_at(struct bstnode *n)
-{
-    if (n->left)
-        bst_clear_at(n->left);
-    if (n->right)
-        bst_clear_at(n->right);
-    free(n);
-}
-
-void bst_clear(struct bst *t)
-{
-    if (!t || !t->root)
-        return;
-
-    bst_clear_at(t->root);
+    return (BST_CMP(data, n->data) == 0);
 }

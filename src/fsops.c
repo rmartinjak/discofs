@@ -197,7 +197,7 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
 {
     int res;
     DIR **dirp;
-    struct bst tree = BST_INIT;
+    bst *tree = bst_init();
 
     size_t dbufsize;
     struct dirent *ent;
@@ -232,24 +232,24 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
 
             hash = djb2(ent->d_name, SIZE_MAX);
 
-            if (bst_contains(&tree, hash))
+            if (bst_contains(tree, hash))
                 continue;
 
             memset(&st, 0, sizeof(st));
             st.st_ino = ent->d_ino;
             st.st_mode = DTTOIF(ent->d_type);
             if (filler(buf, ent->d_name, &st, 0)) {
-                bst_clear(&tree);
+                bst_free(tree);
                 free(dbuf);
                 return -ENOMEM;
             }
-            bst_insert(&tree, hash);
+            bst_insert(tree, hash);
         } while ((res = readdir_r(*dirp, dbuf, &ent)) == 0 && ent);
 
         dirp++;
     }
 
-    bst_clear(&tree);
+    bst_free(tree);
     free(dbuf);
     return 0;
 }

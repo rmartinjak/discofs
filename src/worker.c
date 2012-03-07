@@ -94,7 +94,7 @@ void scan_remote(queue *q)
     struct dirent *dbuf;
     struct dirent *ent;
     struct stat st;
-    struct bst found_tree = BST_INIT;
+    bst *found_tree = bst_init();
 
     if (!ONLINE)
         return;
@@ -133,7 +133,7 @@ void scan_remote(queue *q)
         if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0)
             continue;
 
-        bst_insert(&found_tree, djb2(ent->d_name, SIZE_MAX));
+        bst_insert(found_tree, djb2(ent->d_name, SIZE_MAX));
 
         d_len = strlen(ent->d_name);
 
@@ -190,7 +190,7 @@ void scan_remote(queue *q)
         if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0)
             continue;
 
-        if (!bst_contains(&found_tree, djb2(ent->d_name, SIZE_MAX))) {
+        if (!bst_contains(found_tree, djb2(ent->d_name, SIZE_MAX))) {
             p = join_path(srch, srch_len, ent->d_name, strlen(ent->d_name));
             if (!p)
                 break;
@@ -203,7 +203,7 @@ void scan_remote(queue *q)
         }
     }
 
-    bst_clear(&found_tree);
+    bst_free(found_tree);
     free(srch_c);
     free(srch_r);
     if (strcmp(srch, "/") != 0)
