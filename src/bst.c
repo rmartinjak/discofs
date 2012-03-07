@@ -67,9 +67,9 @@ int bst_insert_(struct bst *t, bstdata_t data, int allow_dups)
 #undef NODEINS
 }
 
-static int bst_del_from_left = 1;
 static struct bstnode *bst_delete_at(struct bstnode *n)
 {
+    static int bst_del_from_left = 1;
     struct bstnode *p;
 
     /* no children */
