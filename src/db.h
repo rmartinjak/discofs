@@ -71,10 +71,7 @@ int db_delete_jobs(const char* path, int opmask);
 int db_delete_job_id(long long id);
 
 int db_load_sync(sync_load_cb_t callback);
-
-int db_sync_get(const char *path, struct sync *s);
 int db_store_sync(const struct sync *s);
-int db_delete_sync(const char *path);
 
 int db_rename_file(const char *from, const char *to);
 int db_rename_dir(const char *from, const char *to);

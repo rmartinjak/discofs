@@ -506,48 +506,6 @@ int db_load_sync(sync_load_cb_t callback)
     return res;
 }
 
-int db_sync_get(const char *path, struct sync *s)
-{
-    VARS;
-    int sql_res;
-
-    db_open();
-
-#if HAVE_UTIMENSAT && HAVE_CLOCK_GETTIME
-    PREPARE("SELECT mtime_s, mtime_ns, ctime_s, ctime_ns FROM " TABLE_SYNC " WHERE path=?;");
-#else
-    PREPARE("SELECT mtime_s, ctime_s FROM " TABLE_SYNC " WHERE path=?;");
-#endif
-
-    BIND_TEXT(path);
-
-    sql_res = STEP();
-    if (sql_res == SQLITE_ROW) {
-#if HAVE_UTIMENSAT && HAVE_CLOCK_GETTIME
-        s->mtime.tv_sec = COL_TIME_T();
-        s->mtime.tv_nsec = COL_LONG();
-
-        s->ctime.tv_sec = COL_TIME_T();
-        s->ctime.tv_nsec = COL_LONG();
-#else
-        s->mtime = COL_TIME_T();
-        s->ctime = COL_TIME_T();
-#endif
-    }
-    else if (sql_res == SQLITE_DONE) {
-        DEBUG("db_sync_get(%s): no row returned\n", path);
-        res = DB_NOTFOUND;
-    }
-    else {
-        ERRMSG("db_sync_get");
-        res = DB_ERROR;
-    }
-
-    FINALIZE();
-    db_close();
-    return res;
-}
-
 int db_store_sync(const struct sync *s)
 {
     VARS;
