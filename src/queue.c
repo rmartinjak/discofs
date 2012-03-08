@@ -10,7 +10,7 @@
 
 int q_enqueue(queue *q, void *d) {
     struct qitem *ins;
-    ins = malloc(sizeof(struct qitem));
+    ins = malloc(sizeof (struct qitem));
     if (!ins) {
         errno = ENOMEM;
         return -1;

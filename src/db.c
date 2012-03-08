@@ -368,7 +368,7 @@ int db_get_jobs(queue *qu)
 
     while ((sql_res = STEP()) == SQLITE_ROW) {
         colpos = 0;
-        j = malloc(sizeof(struct job));
+        j = malloc(sizeof (struct job));
         JOB_INIT(j);
         if (!j) {
             res = DB_ERROR;

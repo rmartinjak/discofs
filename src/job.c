@@ -83,7 +83,7 @@ int job(int op, const char *path, jobp_t p1, jobp_t p2, const char *sp1, const c
         return schedule_pp(path, op);
     }
 
-    j = malloc(sizeof(struct job));
+    j = malloc(sizeof (struct job));
     if (!j) {
         errno = ENOMEM;
         return -1;
@@ -214,7 +214,7 @@ int schedule_pp(const char *path, int op)
 {
     struct job *j;
 
-    j = malloc(sizeof(struct job));
+    j = malloc(sizeof (struct job));
     if (!j) {
         errno = ENOMEM;
         return -1;

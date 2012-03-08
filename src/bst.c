@@ -59,7 +59,7 @@ static bstnode *bst_delete_at(bstnode *n);
 /* create a new bst node */
 static bstnode *bstnode_init(bstdata_t data, bstnode *parent)
 {
-    bstnode *n = malloc(sizeof(bstnode));
+    bstnode *n = malloc(sizeof (bstnode));
 
     if (n) {
         n->data = data;
@@ -272,7 +272,7 @@ static int bst_delete_(bst *t, bstdata_t data, int dups)
 
 bst *bst_init(void)
 {
-    bst *t = malloc(sizeof(bst));
+    bst *t = malloc(sizeof (bst));
     if (t) {
         t->root = NULL;
     }

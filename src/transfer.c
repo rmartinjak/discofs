@@ -91,7 +91,7 @@ int transfer(const char *from, const char *to)
     }
 
     while (ONLINE && !worker_has_block()) {
-        readbytes = read(fdread, buf, sizeof(buf));
+        readbytes = read(fdread, buf, sizeof buf);
         if (readbytes < 0 || write(fdwrite, buf, readbytes) < readbytes || fsync(fdwrite)) {
 
             if (readbytes < 0)
@@ -105,7 +105,7 @@ int transfer(const char *from, const char *to)
         }
 
         /* copy completed, set mode and ownership */
-        if (readbytes < sizeof(buf)) {
+        if (readbytes < sizeof buf) {
 
             t_active = 0;
 

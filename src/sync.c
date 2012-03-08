@@ -168,7 +168,7 @@ static struct sync *sync_ht_set(const char *path, sync_xtime_t mtime, sync_xtime
 
     if (!s) {
         /* create new path & sync item */
-        if ((s = malloc(sizeof(struct sync))) == NULL) {
+        if ((s = malloc(sizeof (struct sync))) == NULL) {
             errno = ENOMEM;
             return NULL;
         }
@@ -366,6 +366,10 @@ int sync_get_stat(const char *path, struct stat *buf)
         return SYNC_NOT_FOUND;
     }
 
+    /* copy stat data to caller-provided buffer */
+    if (buf)
+        memcpy(buf, &st, sizeof st);
+
     /* get sync data from ht */
     pthread_mutex_lock(&m_sync_ht);
     res = sync_ht_get(path, &s);
@@ -373,8 +377,6 @@ int sync_get_stat(const char *path, struct stat *buf)
 
     /* no sync data yet -> new file/dir */
     if (res != 0) {
-        if (buf)
-            memcpy(buf, &st, sizeof(struct stat));
         return SYNC_NEW;
     }
 
@@ -387,10 +389,6 @@ int sync_get_stat(const char *path, struct stat *buf)
     /* ctime newer -> file/dir was changed */
     else if (timecmp(ST_CTIME(st), s.ctime) > 0)
         sync = SYNC_CHG;
-
-    /* copy stat data to caller-provided buffer */
-    if (buf)
-        memcpy(buf, &st, sizeof(struct stat));
 
     return sync;
 }

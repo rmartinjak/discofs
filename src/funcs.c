@@ -335,7 +335,7 @@ int copy_file(const char *from, const char *to)
             return -1;
         }
 
-        while ((res = read(fdread, buf, sizeof(buf))) > 0) {
+        while ((res = read(fdread, buf, sizeof buf)) > 0) {
             if (write(fdwrite, buf, res) < 0) {
                 close(fdread);
                 close(fdwrite);
@@ -445,7 +445,7 @@ int copy_xattrs(const char *from, const char *to)
         if (valsz == -1)
             return -1;
 
-        CALLOC(val, valsz, sizeof(void));
+        CALLOC(val, valsz, sizeof (char));
         if (lgetxattr(from, p, val, valsz) == -1
                 || lsetxattr(to, p, val, valsz, 0) == -1) {
             free(val);
@@ -716,6 +716,6 @@ size_t dirent_buf_size(DIR * dirp)
 #       endif
 #   endif
     name_end = (size_t)offsetof(struct dirent, d_name) + name_max + 1;
-    return (name_end > sizeof(struct dirent)
-            ? name_end : sizeof(struct dirent));
+    return (name_end > sizeof (struct dirent)
+            ? name_end : sizeof (struct dirent));
 }

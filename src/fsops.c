@@ -153,7 +153,7 @@ int op_opendir(const char *path, struct fuse_file_info *fi)
     DIR **d;
     size_t p_len = strlen(path);
 
-    dirp = malloc(2 * sizeof(DIR *));
+    dirp = malloc(2 * sizeof (DIR *));
     if (!dirp)
         return -EIO;
 
@@ -201,7 +201,7 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
     bstdata_t hash;
     struct dirent *dbuf;
     struct stat st;
-    memset(&st, 0, sizeof(st));
+    memset(&st, 0, sizeof st);
 
 
     dirp = (DIR **)fi->fh;
@@ -232,7 +232,7 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
             if (bst_contains(tree, hash))
                 continue;
 
-            memset(&st, 0, sizeof(st));
+            memset(&st, 0, sizeof st);
             st.st_ino = ent->d_ino;
             st.st_mode = DTTOIF(ent->d_type);
             if (filler(buf, ent->d_name, &st, 0)) {

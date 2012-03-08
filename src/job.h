@@ -44,7 +44,7 @@ struct job {
     char *sparam2;
 };
 
-#define JOB_INIT(p) { memset(p, 0, sizeof(struct job)); (p)->path = NULL; (p)->sparam1 = NULL; (p)->sparam2 = NULL; }
+#define JOB_INIT(p) { memset(p, 0, sizeof (struct job)); (p)->path = NULL; (p)->sparam1 = NULL; (p)->sparam2 = NULL; }
 void free_job(void *p);
 void free_job2(void *p);
 
