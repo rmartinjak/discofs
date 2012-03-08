@@ -536,7 +536,7 @@ int sync_rename_file(const char *path, const char *newpath)
     free(s->path);
     s->path = dirname_r(newpath);
     if (!s->path) {
-        ERRNO = ENOMEM;
+        errno = ENOMEM;
         return -1;
     }
 
