@@ -32,7 +32,17 @@ extern struct options fs2go_options;
 static queue sync_queue = QUEUE_INIT;
 static pthread_mutex_t m_sync_queue = PTHREAD_MUTEX_INITIALIZER;
 
-/* hashtable for all sync entries + mutex */
+/* yo dawg i herd u like fast lookups so we put some hashtables inside a
+   hashtable so you can have O(1) lookup time while you have O(1) lookup time
+
+   sync_ht is a hashtable (we'll call it "dirname ht") which uses
+   key:     dirname (for "/foo/bar": /foo)
+   value:   a hashtable ("basename ht") using
+            key:    basename (for "/foo/bar": bar)
+            value:  sync data
+    so to get/set sync time, we first need to lookup/create the dirname
+    hashtable and then get/set the entry for basename
+ */
 static hashtable *sync_ht = NULL;
 static pthread_mutex_t m_sync_ht = PTHREAD_MUTEX_INITIALIZER;
 
@@ -41,12 +51,23 @@ static pthread_mutex_t m_sync_ht = PTHREAD_MUTEX_INITIALIZER;
 /* static prototypes */
 /*-------------------*/
 
-static void         sync_free2(void *p);
-static hash_t       sync_hash(const void *p, const void *n);
-static int          sync_cmp(const void *p1, const void *p2, const void *n);
-static void         sync_ht_free(void);
+/* completely free struct sync pointer */
+static void sync_free2(void *p);
+
+/* hash function for hashtables */
+static hash_t sync_hash(const void *p, const void *n);
+
+/* compare function for hashtables */
+static int sync_cmp(const void *p1, const void *p2, const void *n);
+
+/* free dirname ht + contained basename hts */
+static void sync_ht_free(void);
+
+/* set sync entry */
 static struct sync* sync_ht_set(const char *path, sync_xtime_t mtime, sync_xtime_t ctime);
-static int          sync_ht_get(const char *path, struct sync *s);
+
+/* retrieve sync entry */
+static int sync_ht_get(const char *path, struct sync *s);
 
 
 /*==================*/
@@ -56,9 +77,9 @@ static int          sync_ht_get(const char *path, struct sync *s);
 static hash_t sync_hash(const void *p, const void *n)
 {
     if (n)
-        return djb2((char*)p, *((size_t*)n));
+        return djb2((const char*)p, *((size_t*)n));
     else
-        return djb2((char*)p, SIZE_MAX);
+        return djb2((const char*)p, SIZE_MAX);
 }
 
 static int sync_cmp(const void *p1, const void *p2, const void *n)
@@ -74,33 +95,53 @@ static void sync_ht_free(void)
     htiter *it;
     hashtable *ht;
     char *p;
+
+    /* sync_ht must be initialized */
     if (!sync_ht)
         return;
+
     pthread_mutex_lock(&m_sync_ht);
 
+    /* create iterator */
     it = ht_iter(sync_ht);
 
+    /* free all items of dirname hashtable */
     while (htiter_next(it, (void**)&p, (void**)&ht)) {
+        /* free basename ht */
         ht_free_f(ht, NULL, sync_free2);
+
+        /* free path */
         free(p);
     }
+
+    /* free iterator object */
     free(it);
+
+    /* finally free the dirname hashtable */
     ht_free(sync_ht);
+    sync_ht = NULL;
+
     pthread_mutex_unlock(&m_sync_ht);
 }
 
 static struct sync *sync_ht_set(const char *path, sync_xtime_t mtime, sync_xtime_t ctime)
 {
+    /* found/created sync data */
     struct sync *s = NULL;
+
+    /* found/created basename ht */
     hashtable *ht;
-    char *dir;
-    char *file;
+
+    /* dirname & basename */
+    char *dir, *base;
+
+    /* length of dirname (without trailing '/')*/
     size_t n;
 
     /* we can safely assume that path always contains a / */
     n = strrchr(path, '/') - path;
 
-    /* yo dawg i heard you like hashtables */
+    /* get basename ht */
     if ((ht = ht_get_a(sync_ht, path, &n, &n)) == NULL) {
 
         /* hash table for dir part of path not found -> create it */
@@ -136,15 +177,15 @@ static struct sync *sync_ht_set(const char *path, sync_xtime_t mtime, sync_xtime
             errno = ENOMEM;
             return NULL;
         }
-        if ((file = basename_r(path)) == NULL) {
+        if ((base = basename_r(path)) == NULL) {
             free(s->path);
             free(s);
             errno = ENOMEM;
             return NULL;
         }
-        if (ht_insert(ht, file, s) != HT_OK) {
+        if (ht_insert(ht, base, s) != HT_OK) {
             PERROR("inserting ht to sync_ht");
-            free(file);
+            free(base);
             free(s->path);
             free(s);
             return NULL;
@@ -192,8 +233,11 @@ int sync_init(void)
     int res;
 
     pthread_mutex_lock(&m_sync_ht);
+
+    /* initialize dirname ht */
     ht_init(&sync_ht, sync_hash, sync_cmp);
 
+    /* load sync data from db, call sync_ht_set() for each row */
     res = db_load_sync(sync_ht_set);
 
     pthread_mutex_unlock(&m_sync_ht);
@@ -217,19 +261,23 @@ int sync_destroy(void)
 
 int sync_store(void)
 {
-    struct sync *s;
-    int res = DB_OK;
+    struct sync *s;     /* sync data retrieved from queue */
+    int res = DB_OK;    /* return value of db_store_sync() */
 
     do {
+        /* dequeue data */
         pthread_mutex_lock(&m_sync_queue);
         s = q_dequeue(&sync_queue);
         pthread_mutex_unlock(&m_sync_queue);
 
+        /* store data in db */
         if (s)
             res = db_store_sync(s);
 
+    /* continue if queue wasn't empty and inserting was OK */
     } while (s && res == DB_OK);
 
+    /* return error if inserting failed */
     if (res != DB_OK)
         return -1;
 
@@ -238,57 +286,67 @@ int sync_store(void)
 
 void sync_free(struct sync *s)
 {
-    if (s)
+    if (s) {
         free(s->path);
+    }
 }
 
 static void sync_free2(void *p)
 {
+    /* free contents */
     sync_free((struct sync*) p);
+    /* free struct pointer */
     free(p);
 }
 
 int sync_set(const char *path)
 {
-    char *p;
-    sync_xtime_t mtime, ctime;
-    struct stat st;
-    struct sync *s;
+    char *p;                    /* path to remote file/dir */
+    sync_xtime_t mtime, ctime;  /* mtime and ctime of remote file/dir to set */
+    struct stat st;             /* stat buffer */
+    struct sync *s;             /* sync data to enqueue */
 
-    /* can only set sync when online */
+    /* only set sync when online */
     if (!ONLINE)
         return -1;
 
+    /* mtime is NOW */
     GETTIME(mtime);
 
+    /* ctime will be kept, so retrieve it via lstat() */
     p = remote_path(path, strlen(path));
-    /* get ctime */
     if (lstat(p, &st) == -1) {
+        PERROR("lstat() in sync_set");
         free(p);
         return -1;
     }
     ctime = ST_CTIME(st);
     free(p);
 
-    /* db_set_sync(path, &s); */
+    /* insert in sync ht */
     pthread_mutex_lock(&m_sync_ht);
     VERBOSE("setting sync for %s\n", path);
     s = sync_ht_set(path, mtime, ctime);
     pthread_mutex_unlock(&m_sync_ht);
 
+    /* if ht entry set successfully, add item to update queue */
     if (s) {
         pthread_mutex_lock(&m_sync_queue);
         q_enqueue(&sync_queue, s);
         pthread_mutex_unlock(&m_sync_queue);
-        return 0;
     }
-    ERROR("sync_ht_set failed!?\n");
+    /* or log error and return -1 */
+    else {
+        ERROR("sync_set failed!?\n");
+        return -1;
+    }
 
-    return -1;
+    return 0;
 }
 
 int sync_get_stat(const char *path, struct stat *buf)
 {
+    /* sync state mask, consists of SYNC_ flags */
     int sync;
     int res;
     char *p;
@@ -308,23 +366,30 @@ int sync_get_stat(const char *path, struct stat *buf)
         return SYNC_NOT_FOUND;
     }
 
+    /* get sync data from ht */
     pthread_mutex_lock(&m_sync_ht);
     res = sync_ht_get(path, &s);
     pthread_mutex_unlock(&m_sync_ht);
+
+    /* no sync data yet -> new file/dir */
     if (res != 0) {
         if (buf)
             memcpy(buf, &st, sizeof(struct stat));
         return SYNC_NEW;
     }
 
+    /* assume SYNC */
     sync = SYNC_SYNC;
 
+    /* not a dir and mtime is newer than in sync ht -> file was modified */
     if (!S_ISDIR(st.st_mode) && timecmp(ST_MTIME(st), s.mtime) > 0)
         sync = SYNC_MOD;
+    /* ctime newer -> file/dir was changed */
     else if (timecmp(ST_CTIME(st), s.ctime) > 0)
         sync = SYNC_CHG;
 
-    if (buf && sync & (SYNC_CHG|SYNC_MOD))
+    /* copy stat data to caller-provided buffer */
+    if (buf)
         memcpy(buf, &st, sizeof(struct stat));
 
     return sync;
@@ -332,47 +397,68 @@ int sync_get_stat(const char *path, struct stat *buf)
 
 int sync_rename_dir(const char *from, const char *to)
 {
-    queue q = QUEUE_INIT;
+    queue q = QUEUE_INIT;           /* queue for hashtables to "rename" */
     hashtable *ht;
     htiter *it;
     char *p, *oldpath, *newpath;
-    size_t from_len, to_len;
+    size_t from_len, to_len;        /* string lengths */
 
     from_len = strlen(from);
     to_len = strlen(to);
 
-    it = ht_iter(sync_ht);
-    if (!it)
-        return -1;
-
-    /* find all directory hashtables where path is below "path" */
     pthread_mutex_lock(&m_sync_ht);
+
+    it = ht_iter(sync_ht);
+    if (!it) {
+        pthread_mutex_unlock(&m_sync_ht);
+        return -1;
+    }
+
+    /* find all basename hashtables where key is a directory below "path" */
     while (htiter_next(it, (void**)&p, NULL)) {
+
+        /* enqueue key if key is below "path" ? */
         if (strncmp(p, from, from_len)) {
-            if ((oldpath = strdup(p)) == NULL) {
+
+            /* create copy of the key */
+            oldpath = strdup(p);
+            if (!oldpath) {
                 pthread_mutex_unlock(&m_sync_ht);
                 q_clear(&q, 1);
                 free(it);
                 errno = ENOMEM;
                 return -1;
             }
+            /* enqueue the copy */
             q_enqueue(&q, oldpath);
         }
     }
 
-    while ( /* items in queue ? */
-            (oldpath = q_dequeue(&q))
-            /* retrieve and remove directory hashtable from "master" ht */
-            && (ht = ht_remove(sync_ht, oldpath))
-            /* create new path */
-            && (newpath = join_path(to, to_len, oldpath+from_len, strlen(oldpath+from_len)))) {
-        free(oldpath);
+    free(it);
+
+    /* dequeue found keys, remove corresp onding ht and reinsert with renamed key */
+    while ((oldpath = q_dequeue(&q)))
+    {
+        /* generate new key */
+        newpath = join_path(to, to_len, oldpath+from_len, strlen(oldpath+from_len));
+        if (!newpath) {
+            free(oldpath);
+            errno = ENOMEM;
+            break;
+        }
+
+        /* remove basename ht */
+        ht = ht_remove(sync_ht, oldpath);
+
+        /* insert basename ht with new key */
         ht_insert(sync_ht, newpath, ht);
+
+        free(oldpath);
     }
 
-    free(it);
     pthread_mutex_unlock(&m_sync_ht);
 
+    /* if q is not empty something terrible happened! */
     if (!q_empty(&q)) {
         q_clear(&q, 1);
         return -1;
@@ -386,17 +472,23 @@ int sync_delete_dir(const char *path)
 
     pthread_mutex_lock(&m_sync_ht);
 
+    /* remove basename ht from dirname ht */
     ht = ht_remove_f(sync_ht, path, free);
 
     pthread_mutex_unlock(&m_sync_ht);
 
+    /* no hashtable found */
     if (!ht)
         return -1;
 
-    if (!ht_empty(ht))
+    /* ht should be empty (rmdir is only allowed on empty dirs)
+       if it isn't, nag a little and free it's content */
+    if (!ht_empty(ht)) {
         ERROR("deleting non-empty dir hashtable\n");
+        ht_free_f(ht, NULL, sync_free2);
+    }
 
-    ht_free_f(ht, NULL, sync_free2);
+    /* free the ht */
     free(ht);
     return 0;
 }
@@ -409,14 +501,17 @@ int sync_delete_file(const char *path)
 
     n = strrchr(path, '/') - path;
 
-    /* find ht according to dirname */
+    /* find dirname ht */
     if ((ht = ht_get_a(sync_ht, path, &n, &n)) == NULL) {
         return -1;
     }
 
-    s = ht_remove(ht, path + n +1);
+    /* remove sync entry (path+n+1 points to basename part) */
+    s = ht_remove(ht, path + n + 1);
     if (!s)
         return -1;
+
+    /* free it */
     sync_free2(s);
     return 0;
 }
@@ -434,14 +529,19 @@ int sync_rename_file(const char *path, const char *newpath)
         return -1;
     }
 
-    /* get sync entry for filename */
-    s = ht_remove(ht, path + n +1);
+    /* remove sync entry*/
+    s = ht_remove(ht, path + n + 1);
     if (!s)
         return -1;
 
+    /* set new path */
     free(s->path);
-    if ((s->path = dirname_r(newpath)) == NULL) {
+    s->path = dirname_r(newpath);
+    if (!s->path) {
+        ERRNO = ENOMEM;
         return -1;
     }
+
+    /* reinsert with new path */
     return ht_insert(ht, s->path, s);
 }
