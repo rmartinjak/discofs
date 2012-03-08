@@ -16,7 +16,7 @@
 
 
 /*=============*/
-/* definitions */
+/* DEFINITIONS */
 /*=============*/
 
 #define STATE_ONLINE 0
@@ -57,7 +57,7 @@
 
 
 /*=========*/
-/* options */
+/* OPTIONS */
 /*=========*/
 
 /*-----------------*/
@@ -139,7 +139,7 @@ enum fs2go_opt_keys
 
 
 /*====================*/
-/* exported functions */
+/* EXPORTED FUNCTIONS */
 /*====================*/
 
 int get_state();

@@ -150,7 +150,7 @@ void scan_remote(queue *q)
             q_enqueue(q, p);
         }
         else {
-            switch (get_sync(p)) {
+            switch (sync_get(p)) {
                 case SYNC_NEW:
                 case SYNC_MOD:
                     schedule_pull(p);
@@ -290,7 +290,7 @@ void *worker_main(void *arg)
                         break;
                     case TRANSFER_FINISH:
                         remove_lock(j_current.path, LOCK_TRANSFER);
-                        set_sync(j_current.path);
+                        sync_set(j_current.path);
                         db_delete_job_id(current);
                         current = 0;
                         j_current.rowid = 0;
@@ -343,14 +343,14 @@ void *worker_main(void *arg)
                         pwrite = cache_path(j->path, p_len);
                     }
                     copy_attrs(pread, pwrite);
-                    set_sync(j->path);
+                    sync_set(j->path);
                     db_delete_job_id(j->rowid);
                     free(pread);
                     free(pwrite);
                     break;
 
                 case JOB_PUSH:
-                    if (get_sync(j->path) & (SYNC_MOD|SYNC_NEW)) {
+                    if (sync_get(j->path) & (SYNC_MOD|SYNC_NEW)) {
                         DEBUG("conflict\n");
                         conflict_handle(j, NULL);
                         db_delete_job_id(j->rowid);
@@ -368,7 +368,7 @@ void *worker_main(void *arg)
                     }
                     else {
                         if (transfer_result == TRANSFER_FINISH) {
-                            set_sync(j->path);
+                            sync_set(j->path);
                             db_delete_job_id(j->rowid);
                         }
                         else {

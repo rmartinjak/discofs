@@ -259,7 +259,7 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
     switch (key) {
 
         /*==============*/
-        /* mount points */
+        /* MOUNT POINTS */
         /*==============*/
 
         case FUSE_OPT_KEY_NONOPT:
@@ -334,7 +334,7 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
 
 
         /*======================*/
-        /* --version and --help */
+        /* --VERSION AND --HELP */
         /*======================*/
 
         case FS2GO_OPT_VERSION:
@@ -346,7 +346,7 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
             exit(EXIT_SUCCESS);
 
         /*==========================*/
-        /* --debug and --foreground */
+        /* --DEBUG AND --FOREGROUND */
         /*==========================*/
         case FS2GO_OPT_DEBUG:
             fs2go_options.debug = 1;
@@ -361,7 +361,7 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
 
 
         /*================*/
-        /* UID and/or GID */
+        /* UID AND/OR GID */
         /*================*/
 
         /*-----*/
@@ -412,7 +412,7 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
 
 
         /*=============================*/
-        /* file attributes not to copy */
+        /* FILE ATTRIBUTES NOT TO COPY */
         /*=============================*/
 
         #define OPT_COPYADDR(n) case FS2GO_OPT_ ## n: \
@@ -429,7 +429,7 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
 
 
         /*==========*/
-        /* loglevel */
+        /* LOGLEVEL */
         /*==========*/
 
         case FS2GO_OPT_LOGLEVEL:
@@ -452,7 +452,7 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
 
 
         /*==========================*/
-        /* conflict resolution mode */
+        /* CONFLICT RESOLUTION MODE */
         /*==========================*/
 
         case FS2GO_OPT_CONFLICT:
@@ -679,7 +679,7 @@ int main(int argc, char **argv)
 
 
     /*=========================*/
-    /* initialize cache and db */
+    /* INITIALIZE CACHE AND DB */
     /*=========================*/
 
     /* compute data root if not passed as option */
@@ -748,32 +748,35 @@ int main(int argc, char **argv)
     }
 
 
+    /*-----------------*/
+    /* initialize sync */
+    /*-----------------*/
+
+    sync_init();
+
+
     /*----------------------*/
     /* print options to log */
     /*----------------------*/
     log_options(LOG_VERBOSE, fs2go_options);
 
 
-    /*=================*/
+    /*-----------------*/
     /* run fuse_main() */
-    /*=================*/
+    /*-----------------*/
     ret = fuse_main(args.argc, args.argv, &fs2go_oper, NULL);
 
 
-    /*======*/
+    /*------*/
     /* exit */
-    /*======*/
+    /*------*/
 
     /* store queued jobs */
     VERBOSE("storing jobs\n");
     job_store_queue();
 
-    /* store sync entries to database */
-    VERBOSE("storing sync data\n");
-    sync_store();
-
-    /* free sync data */
-    sync_ht_free();
+    /* store and free sync data */
+    sync_destroy();
 
     /* free arguments */
     fuse_opt_free_args(&args);
@@ -781,9 +784,11 @@ int main(int argc, char **argv)
     /* close database connection */
     db_destroy();
 
+
     /* end logging */
     INFO("exiting\n");
     log_destroy();
+
 
     /* return fuse_main()s return value */
     return ret;

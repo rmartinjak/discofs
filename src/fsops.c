@@ -38,9 +38,6 @@ static pthread_t t_worker, t_state;
 /* called when fs is initialized.  starts worker and state checking thread */
 void *op_init(struct fuse_conn_info *conn)
 {
-    VERBOSE("restoring sync data\n");
-    TIMEDCALL(sync_load());
-
     VERBOSE("starting state check thread\n");
     if (pthread_create(&t_state, NULL, worker_statecheck, NULL))
         FATAL("failed to create thread\n");
@@ -111,7 +108,7 @@ int op_access(const char *path, int mode)
         p = pr;
 
         /* doesn't exit remote: */
-        if (get_sync(path) == SYNC_NOT_FOUND) {
+        if (sync_get(path) == SYNC_NOT_FOUND) {
             if (has_lock(path, LOCK_TRANSFER) || has_job(path, JOB_PUSH))
                 p = pc;
             else {
@@ -273,7 +270,7 @@ int op_mknod(const char *path, mode_t mode, dev_t rdev)
         free(p);
         if (res != 0)
             return -errno;
-        set_sync(path);
+        sync_set(path);
     }
     else {
         schedule_push(path);
@@ -346,7 +343,7 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
     FH_FLAGS(fh) = 0;
 
     if (ONLINE && !has_lock(path, LOCK_OPEN)) {
-        sync = get_sync(path);
+        sync = sync_get(path);
 
         if (sync == -1) {
             free(fh);
@@ -370,7 +367,7 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
 
             /* maybe the last instant_pull pulled exactly the file we
                want to open. if not, instant_pull it now */
-            sync = get_sync(path);
+            sync = sync_get(path);
             if (sync == SYNC_NEW || sync == SYNC_MOD)
                 instant_pull(path);
         }

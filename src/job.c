@@ -280,7 +280,7 @@ static int do_job_rename(struct job *j, int do_remote)
         else if (has_lock(j->path, LOCK_TRANSFER)) {
             transfer_rename(j->sparam1, 1);
         }
-        else if ((sync = get_sync(j->sparam1)) == SYNC_NEW || sync == SYNC_MOD) {
+        else if ((sync = sync_get(j->sparam1)) == SYNC_NEW || sync == SYNC_MOD) {
             conflict_handle(j, &keep);
             if (keep == CONFLICT_KEEP_REMOTE) {
                 char *to_alt;
@@ -327,7 +327,7 @@ int do_job(struct job *j, int do_remote)
 
         case JOB_UNLINK:
             if (do_remote) {
-                sync = get_sync(j->path);
+                sync = sync_get(j->path);
 
                 /* this would be a conflict! don't delete but pull */
                 if (sync == SYNC_MOD) {
@@ -406,7 +406,7 @@ int do_job(struct job *j, int do_remote)
         res = 0;
 
     if (do_remote && !res && !has_job(j->path, JOB_ANY)) {
-        set_sync(j->path);
+        sync_set(j->path);
     }
 
     free(path);
@@ -448,7 +448,7 @@ int instant_pull(const char *path)
 
     /* file is in sync now */
     delete_jobs(path, JOB_PULL|JOB_PULLATTR);
-    set_sync(path);
+    sync_set(path);
 
     pthread_mutex_unlock(&m_instant_pull);
     return 0;

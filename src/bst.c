@@ -9,14 +9,19 @@
 #include <errno.h>
 
 
-/*========*/
+/*=============*/
+/* DEFINITIONS */
+/*=============*/
+
+/*--------*/
 /* macros */
-/*========*/
+/*--------*/
 #define BST_CMP(x, y) ((x < y) ? -1 : (x > y ? 1 : 0))
 
-/*=========*/
+
+/*---------*/
 /* structs */
-/*=========*/
+/*---------*/
 
 /* node in a bst */
 typedef struct bstnode
@@ -34,9 +39,9 @@ struct bst
 };
 
 
-/*===================*/
+/*-------------------*/
 /* static prototypes */
-/*===================*/
+/*-------------------*/
 
 static bstnode *bstnode_init(bstdata_t data, bstnode *parent);
 static void bstnode_free(bstnode *n);
@@ -48,7 +53,7 @@ static bstnode *bst_delete_at(bstnode *n);
 
 
 /*==================*/
-/* static functions */
+/* STATIC FUNCTIONS */
 /*=================*/
 
 /* create a new bst node */
@@ -262,7 +267,7 @@ static int bst_delete_(bst *t, bstdata_t data, int dups)
 
 
 /*====================*/
-/* exported functions */
+/* EXPORTED FUNCTIONS */
 /*====================*/
 
 bst *bst_init(void)

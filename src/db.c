@@ -457,7 +457,7 @@ int db_delete_job_id(long long id)
 }
 
 /* ====== SYNC ====== */
-int db_load_sync(void)
+int db_load_sync(sync_load_cb_t callback)
 {
     VARS;
     int sql_res;
@@ -487,8 +487,8 @@ int db_load_sync(void)
         ctime = COL_TIME_T();
 #endif
 
-        if (sync_ht_set(path, mtime, ctime) == NULL) {
-            ERRMSG("db_load_syncs in cb()");
+        if (callback(path, mtime, ctime) == NULL) {
+            PERROR("db_load_syncs in callback()");
             free(path);
             res = DB_ERROR;
             break;
@@ -506,7 +506,7 @@ int db_load_sync(void)
     return res;
 }
 
-int db_get_sync(const char *path, struct sync *s)
+int db_sync_get(const char *path, struct sync *s)
 {
     VARS;
     int sql_res;
@@ -535,11 +535,11 @@ int db_get_sync(const char *path, struct sync *s)
 #endif
     }
     else if (sql_res == SQLITE_DONE) {
-        DEBUG("db_get_sync(%s): no row returned\n", path);
+        DEBUG("db_sync_get(%s): no row returned\n", path);
         res = DB_NOTFOUND;
     }
     else {
-        ERRMSG("db_get_sync");
+        ERRMSG("db_sync_get");
         res = DB_ERROR;
     }
 

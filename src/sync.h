@@ -12,11 +12,14 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#define SYNC_SYNC 0
-#define SYNC_MOD 1
-#define SYNC_CHG 2
-#define SYNC_NEW 4
-#define SYNC_NOT_FOUND 8
+
+/*=============*/
+/* DEFINITIONS */
+/*=============*/
+
+/*----------------------*/
+/* type for mtime/ctime */
+/*----------------------*/
 
 #if HAVE_UTIMENSAT && HAVE_CLOCK_GETTIME
 typedef struct timespec sync_xtime_t;
@@ -24,25 +27,67 @@ typedef struct timespec sync_xtime_t;
 typedef time_t sync_xtime_t;
 #endif
 
-struct sync {
+
+/*-------------*/
+/* sync object */
+/*-------------*/
+
+struct sync
+{
     char *path;
     sync_xtime_t mtime;
     sync_xtime_t ctime;
 };
 
+
+/*-------------------------------------------*/
+/* callback function type for db_load_sync() */
+/*-------------------------------------------*/
+typedef struct sync * (*sync_load_cb_t) (const char*, sync_xtime_t, sync_xtime_t);
+
+
+/*-----------------------------*/
+/* return values of get_sync() */
+/*-----------------------------*/
+
+/* file is synchronised */
+#define SYNC_SYNC   0
+
+/* file has been modified */
+#define SYNC_MOD    (1 << 0)
+
+/* file has been changed */
+#define SYNC_CHG    (1 << 1)
+
+/* file is new (sync for it never set */
+#define SYNC_NEW    (1 << 2)
+
+/* file doesn't exit on remote fs */
+#define SYNC_NOT_FOUND  (1 << 3)
+
+
+/*====================*/
+/* EXPORTED FUNCTIONS */
+/*====================*/
+
+/* initialize/destroy needed data structures */
+int sync_init(void);
+int sync_destroy(void);
+
+/* store changed sync data from "change queue" to db */
+int sync_store(void);
+
+/* free a struct sync */
 void sync_free(struct sync *s);
 
-int set_sync(const char *path);
-int get_sync_stat(const char *path, struct stat *buf);
-#define get_sync(p) get_sync_stat(p, NULL)
+/* mark file "path" as synchronised */
+int sync_set(const char *path);
 
-void sync_ht_free(void);
-struct sync* sync_ht_set(const char *path, sync_xtime_t mtime, sync_xtime_t ctime);
-int sync_ht_get(const char *path, struct sync *s);
+/* retrieve sync status (put lstat() info in buf) */
+#define sync_get(p) sync_get_stat(p, NULL)
+int sync_get_stat(const char *path, struct stat *buf);
 
-int sync_load();
-int sync_store();
-
+/* rename sync entries */
 int sync_rename_dir(const char *from, const char *to);
 int sync_delete_dir(const char *path);
 int sync_rename_file(const char *from, const char *to);

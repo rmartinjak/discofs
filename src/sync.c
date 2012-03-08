@@ -16,115 +16,42 @@
 #include <stdint.h>
 #include <errno.h>
 #include <time.h>
-#include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <pthread.h>
 #include <string.h>
 
+/*=============*/
+/* DEFINITIONS */
+/*=============*/
+
+/* options */
 extern struct options fs2go_options;
 
-queue sync_queue = QUEUE_INIT;
-pthread_mutex_t m_sync_queue = PTHREAD_MUTEX_INITIALIZER;
+/* queue for changed sync entries + mutex */
+static queue sync_queue = QUEUE_INIT;
+static pthread_mutex_t m_sync_queue = PTHREAD_MUTEX_INITIALIZER;
 
-hashtable *sync_ht = NULL;
-pthread_mutex_t m_sync_ht = PTHREAD_MUTEX_INITIALIZER;
+/* hashtable for all sync entries + mutex */
+static hashtable *sync_ht = NULL;
+static pthread_mutex_t m_sync_ht = PTHREAD_MUTEX_INITIALIZER;
 
-static void sync_free2(void *p);
 
-void sync_free(struct sync *s)
-{
-    if (s)
-        free(s->path);
-}
+/*-------------------*/
+/* static prototypes */
+/*-------------------*/
 
-static void sync_free2(void *p)
-{
-    sync_free((struct sync*) p);
-    free(p);
-}
+static void         sync_free2(void *p);
+static hash_t       sync_hash(const void *p, const void *n);
+static int          sync_cmp(const void *p1, const void *p2, const void *n);
+static void         sync_ht_free(void);
+static struct sync* sync_ht_set(const char *path, sync_xtime_t mtime, sync_xtime_t ctime);
+static int          sync_ht_get(const char *path, struct sync *s);
 
-int set_sync(const char *path)
-{
-    char *p;
-    sync_xtime_t mtime, ctime;
-    struct stat st;
-    struct sync *s;
 
-    /* can only set sync when online */
-    if (!ONLINE)
-        return -1;
-
-    GETTIME(mtime);
-
-    p = remote_path(path, strlen(path));
-    /* get ctime */
-    if (lstat(p, &st) == -1) {
-        free(p);
-        return -1;
-    }
-    ctime = ST_CTIME(st);
-    free(p);
-
-    /* db_set_sync(path, &s); */
-    pthread_mutex_lock(&m_sync_ht);
-    VERBOSE("setting sync for %s\n", path);
-    s = sync_ht_set(path, mtime, ctime);
-    pthread_mutex_unlock(&m_sync_ht);
-
-    if (s) {
-        pthread_mutex_lock(&m_sync_queue);
-        q_enqueue(&sync_queue, s);
-        pthread_mutex_unlock(&m_sync_queue);
-        return 0;
-    }
-    ERROR("sync_ht_set failed!?\n");
-
-    return -1;
-}
-
-int get_sync_stat(const char *path, struct stat *buf)
-{
-    int sync;
-    int res;
-    char *p;
-    struct stat st;
-    struct sync s;
-
-    if ((p = remote_path(path, strlen(path))) == NULL) {
-        errno = ENOMEM;
-        return -1;
-    }
-
-    res = lstat(p, &st);
-    free(p);
-    /* no such file */
-    if (res == -1) {
-        DEBUG("file not found remote: %s\n", path);
-        return SYNC_NOT_FOUND;
-    }
-
-    pthread_mutex_lock(&m_sync_ht);
-    res = sync_ht_get(path, &s);
-    pthread_mutex_unlock(&m_sync_ht);
-    if (res != 0) {
-        if (buf)
-            memcpy(buf, &st, sizeof(struct stat));
-        return SYNC_NEW;
-    }
-
-    sync = SYNC_SYNC;
-
-    if (!S_ISDIR(st.st_mode) && timecmp(ST_MTIME(st), s.mtime) > 0)
-        sync = SYNC_MOD;
-    else if (timecmp(ST_CTIME(st), s.ctime) > 0)
-        sync = SYNC_CHG;
-
-    if (buf && sync & (SYNC_CHG|SYNC_MOD))
-        memcpy(buf, &st, sizeof(struct stat));
-
-    return sync;
-}
+/*==================*/
+/* STATIC FUNCTIONS */
+/*==================*/
 
 static hash_t sync_hash(const void *p, const void *n)
 {
@@ -142,41 +69,7 @@ static int sync_cmp(const void *p1, const void *p2, const void *n)
         return strcmp((char*)p1, (char*)p2);
 }
 
-int sync_load()
-{
-    int res;
-
-    pthread_mutex_lock(&m_sync_ht);
-    ht_init(&sync_ht, sync_hash, sync_cmp);
-
-    res = db_load_sync();
-
-    pthread_mutex_unlock(&m_sync_ht);
-    return res;
-}
-
-int sync_store()
-{
-    struct sync *s;
-    int res = DB_OK;
-
-    do {
-        pthread_mutex_lock(&m_sync_queue);
-        s = q_dequeue(&sync_queue);
-        pthread_mutex_unlock(&m_sync_queue);
-
-        if (s)
-            res = db_store_sync(s);
-
-    } while (s && res == DB_OK);
-
-    if (res != DB_OK)
-        return -1;
-
-    return 0;
-}
-
-void sync_ht_free(void)
+static void sync_ht_free(void)
 {
     htiter *it;
     hashtable *ht;
@@ -196,7 +89,7 @@ void sync_ht_free(void)
     pthread_mutex_unlock(&m_sync_ht);
 }
 
-struct sync *sync_ht_set(const char *path, sync_xtime_t mtime, sync_xtime_t ctime)
+static struct sync *sync_ht_set(const char *path, sync_xtime_t mtime, sync_xtime_t ctime)
 {
     struct sync *s = NULL;
     hashtable *ht;
@@ -264,7 +157,7 @@ struct sync *sync_ht_set(const char *path, sync_xtime_t mtime, sync_xtime_t ctim
     return s;
 }
 
-int sync_ht_get(const char *path, struct sync *s)
+static int sync_ht_get(const char *path, struct sync *s)
 {
     hashtable *ht;
     size_t n;
@@ -289,6 +182,153 @@ int sync_ht_get(const char *path, struct sync *s)
     return -1;
 }
 
+
+/*====================*/
+/* EXPORTED FUNCTIONS */
+/*====================*/
+
+int sync_init(void)
+{
+    int res;
+
+    pthread_mutex_lock(&m_sync_ht);
+    ht_init(&sync_ht, sync_hash, sync_cmp);
+
+    res = db_load_sync(sync_ht_set);
+
+    pthread_mutex_unlock(&m_sync_ht);
+    return res;
+}
+
+int sync_destroy(void)
+{
+    int res;
+
+    /* store queue to db */
+    res = sync_store();
+    if (res)
+        return res;
+
+    /* free hash table */
+    sync_ht_free();
+
+    return 0;
+}
+
+int sync_store(void)
+{
+    struct sync *s;
+    int res = DB_OK;
+
+    do {
+        pthread_mutex_lock(&m_sync_queue);
+        s = q_dequeue(&sync_queue);
+        pthread_mutex_unlock(&m_sync_queue);
+
+        if (s)
+            res = db_store_sync(s);
+
+    } while (s && res == DB_OK);
+
+    if (res != DB_OK)
+        return -1;
+
+    return 0;
+}
+
+void sync_free(struct sync *s)
+{
+    if (s)
+        free(s->path);
+}
+
+static void sync_free2(void *p)
+{
+    sync_free((struct sync*) p);
+    free(p);
+}
+
+int sync_set(const char *path)
+{
+    char *p;
+    sync_xtime_t mtime, ctime;
+    struct stat st;
+    struct sync *s;
+
+    /* can only set sync when online */
+    if (!ONLINE)
+        return -1;
+
+    GETTIME(mtime);
+
+    p = remote_path(path, strlen(path));
+    /* get ctime */
+    if (lstat(p, &st) == -1) {
+        free(p);
+        return -1;
+    }
+    ctime = ST_CTIME(st);
+    free(p);
+
+    /* db_set_sync(path, &s); */
+    pthread_mutex_lock(&m_sync_ht);
+    VERBOSE("setting sync for %s\n", path);
+    s = sync_ht_set(path, mtime, ctime);
+    pthread_mutex_unlock(&m_sync_ht);
+
+    if (s) {
+        pthread_mutex_lock(&m_sync_queue);
+        q_enqueue(&sync_queue, s);
+        pthread_mutex_unlock(&m_sync_queue);
+        return 0;
+    }
+    ERROR("sync_ht_set failed!?\n");
+
+    return -1;
+}
+
+int sync_get_stat(const char *path, struct stat *buf)
+{
+    int sync;
+    int res;
+    char *p;
+    struct stat st;
+    struct sync s;
+
+    if ((p = remote_path(path, strlen(path))) == NULL) {
+        errno = ENOMEM;
+        return -1;
+    }
+
+    res = lstat(p, &st);
+    free(p);
+    /* no such file */
+    if (res == -1) {
+        DEBUG("file not found remote: %s\n", path);
+        return SYNC_NOT_FOUND;
+    }
+
+    pthread_mutex_lock(&m_sync_ht);
+    res = sync_ht_get(path, &s);
+    pthread_mutex_unlock(&m_sync_ht);
+    if (res != 0) {
+        if (buf)
+            memcpy(buf, &st, sizeof(struct stat));
+        return SYNC_NEW;
+    }
+
+    sync = SYNC_SYNC;
+
+    if (!S_ISDIR(st.st_mode) && timecmp(ST_MTIME(st), s.mtime) > 0)
+        sync = SYNC_MOD;
+    else if (timecmp(ST_CTIME(st), s.ctime) > 0)
+        sync = SYNC_CHG;
+
+    if (buf && sync & (SYNC_CHG|SYNC_MOD))
+        memcpy(buf, &st, sizeof(struct stat));
+
+    return sync;
+}
 
 int sync_rename_dir(const char *from, const char *to)
 {
@@ -340,7 +380,6 @@ int sync_rename_dir(const char *from, const char *to)
     return 0;
 }
 
-/* dirs can only be removed if they're empty -> path will only be matched exactly, not partially */
 int sync_delete_dir(const char *path)
 {
     hashtable *ht;

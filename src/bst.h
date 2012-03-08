@@ -6,7 +6,14 @@
 #ifndef BST_H
 #define BST_H
 
+/********************************************/
 /* simple binary search tree implementation */
+/********************************************/
+
+
+/*=============*/
+/* DEFINITIONS */
+/*=============*/
 
 #ifndef bstdata_t
 typedef unsigned long bstdata_t;
@@ -14,8 +21,9 @@ typedef unsigned long bstdata_t;
 
 typedef struct bst bst;
 
+
 /*====================*/
-/* exported functions */ 
+/* EXPORTED FUNCTIONS */ 
 /*====================*/
 
 /* initialize bst */
