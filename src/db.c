@@ -607,7 +607,7 @@ static int db_rename_dir_(const char *sql_select, const char *sql_update,
 
     PREPARE(sql_update);
     while (res == DB_OK && (oldpath = q_dequeue(&q))) {
-        newpath = join_path(to, to_len, oldpath+from_len, strlen(oldpath)-from_len);
+        newpath = join_path2(to, to_len, oldpath+from_len, 0);
         if (!newpath) {
             errno = ENOMEM;
             return DB_ERROR;

@@ -67,14 +67,14 @@ int op_getattr(const char *path, struct stat *buf)
     char *p;
     size_t p_len = strlen(path);
 
-    p = cache_path(path, p_len);
+    p = cache_path2(path, p_len);
 
     res = lstat(p, buf);
     err = errno;
     free(p);
 
     if (res == -1 && ONLINE) {
-        p = remote_path(path, p_len);
+        p = remote_path2(path, p_len);
         res = lstat(p, buf);
         free(p);
     }
@@ -101,8 +101,8 @@ int op_access(const char *path, int mode)
     char *p, *pc, *pr;
     size_t p_len = strlen(path);
 
-    pc = cache_path(path, p_len);
-    pr = remote_path(path, p_len);
+    pc = cache_path2(path, p_len);
+    pr = remote_path2(path, p_len);
 
     if (ONLINE && !has_lock(path, LOCK_OPEN) && strcmp(path, "/") != 0) {
         p = pr;
@@ -137,7 +137,7 @@ int op_readlink(const char *path, char *buf, size_t bufsize)
     int res;
     char *p;
 
-    p = get_path(path, strlen(path));
+    p = get_path(path);
     res = readlink(p, buf, bufsize);
     free(p);
 
@@ -161,10 +161,10 @@ int op_opendir(const char *path, struct fuse_file_info *fi)
     d = dirp;
 
     /* open cache dir */
-    p = cache_path(path, p_len);
+    p = cache_path2(path, p_len);
     if ((*d = opendir(p)) == NULL) {
         if (errno == ENOENT && ONLINE) {
-            p2 = remote_path(path, p_len);
+            p2 = remote_path2(path, p_len);
             clone_dir(p2, p);
             free(p2);
             *d = opendir(p);
@@ -178,7 +178,7 @@ int op_opendir(const char *path, struct fuse_file_info *fi)
 
     d++;
     if (ONLINE) {
-        p = remote_path(path, p_len);
+        p = remote_path2(path, p_len);
         *d = opendir(p);
         free(p);
     }
@@ -258,14 +258,14 @@ int op_mknod(const char *path, mode_t mode, dev_t rdev)
 
     char *p;
 
-    p = cache_path(path, p_len);
+    p = cache_path2(path, p_len);
     res = mknod(p, mode, rdev);
     if (res != 0)
         return -errno;
     free(p);
 
     if (ONLINE) {
-        p = remote_path(path, p_len);
+        p = remote_path2(path, p_len);
         res = mknod(p, mode, rdev);
         free(p);
         if (res != 0)
@@ -335,6 +335,7 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
 {
     int sync;
     int *fh;
+    size_t p_len;
     char *pc, *pr;
 
     if ((fh = malloc(FH_SIZE)) == NULL)
@@ -372,8 +373,9 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
                 instant_pull(path);
         }
         else if (sync == SYNC_CHG) {
-            pc = cache_path(path, strlen(path));
-            pr = remote_path(path, strlen(path));
+            p_len = strlen(path);
+            pc = cache_path2(path, p_len);
+            pr = remote_path2(path, p_len);
             copy_attrs(pr, pc);
             free(pr);
             free(pc);
@@ -382,7 +384,7 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
 
     set_lock(path, LOCK_OPEN);
 
-    pc = cache_path(path, strlen(path));
+    pc = cache_path2(path, p_len);
     if (op == OP_OPEN)
         FH_FD(fh) = open(pc, fi->flags);
     else {
@@ -489,7 +491,7 @@ int op_truncate(const char *path, off_t size)
     char *p;
     size_t p_len = strlen(path);
 
-    p = cache_path(path, p_len);
+    p = cache_path2(path, p_len);
     res = truncate(p, size);
     free(p);
     if (res == -1)
@@ -502,7 +504,7 @@ int op_truncate(const char *path, off_t size)
                 remove_lock(path, LOCK_TRANSFER);
             }
 
-            p = remote_path(path, p_len);
+            p = remote_path2(path, p_len);
             res = truncate(p, size);
             free(p);
             if (res == -1 && !has_job(path, JOB_PUSH))
@@ -532,14 +534,14 @@ int op_utimens(const char *path, const struct timespec ts[2])
     char *p;
     size_t p_len = strlen(path);
 
-    p = cache_path(path, p_len);
+    p = cache_path2(path, p_len);
     res = utimensat(-1, p, ts, AT_SYMLINK_NOFOLLOW);
     free(p);
     if (res == -1)
         return -errno;
 
     if (ONLINE) {
-        p = remote_path(path, p_len);
+        p = remote_path2(path, p_len);
         utimensat(-1, p, ts, AT_SYMLINK_NOFOLLOW);
         free(p);
     }
@@ -552,7 +554,7 @@ int op_statfs(const char *path, struct statvfs *buf)
     int res;
     char *p;
 
-    p = get_path(path, strlen(path));
+    p = get_path(path);
     res = statvfs(p, buf);
     free(p);
 
@@ -579,7 +581,7 @@ int op_getxattr(const char *path, const char *name, char *value, size_t size)
     if (!(fs2go_options.fs_features & FEAT_XATTR))
         return -ENOTSUP;
 
-    p = get_path(path, strlen(path));
+    p = get_path(path);
 
     res = lgetxattr(p, name, value, size);
     free(p);
@@ -597,7 +599,7 @@ int op_listxattr(const char *path, char *list, size_t size)
     if (!(fs2go_options.fs_features & FEAT_XATTR))
         return -ENOTSUP;
 
-    p = get_path(path, strlen(path));
+    p = get_path(path);
     res = llistxattr(p, list, size);
     free(p);
 

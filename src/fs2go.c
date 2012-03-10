@@ -482,7 +482,7 @@ static int test_fs_features(int *f)
     VERBOSE("testing remote fs features\n");
 
     /* create test file */
-    p = remote_path(TESTFILE1, strlen(TESTFILE1));
+    p = remote_path(TESTFILE1);
     if (mknod(p, S_IFREG | S_IRUSR | S_IWUSR, 0)) {
         perror("failed to create feature test file");
         return -1;
@@ -698,7 +698,7 @@ int main(int argc, char **argv)
     /*----------------------*/
 
     /* set cache dir */
-    CACHE_ROOT = join_path2(fs2go_options.data_root, "cache");
+    CACHE_ROOT = join_path(fs2go_options.data_root, "cache");
 
     /* store length of cache root (to save a few hundred strlen() calls)  */
     CACHE_ROOT_LEN = strlen(CACHE_ROOT);
@@ -722,7 +722,7 @@ int main(int argc, char **argv)
     /*---------------------*/
 
     /* set db filename */
-    db_file = join_path2(fs2go_options.data_root, "db.sqlite");
+    db_file = join_path(fs2go_options.data_root, "db.sqlite");
 
     /* initialize tables etc */
     db_init(db_file, fs2go_options.clear);

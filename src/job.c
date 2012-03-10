@@ -245,8 +245,8 @@ static int do_job_rename(struct job *j, int do_remote)
 
     /* do in cache */
     if (!do_remote) {
-        from = cache_path(j->path, strlen(j->path));
-        to = cache_path(j->sparam1, strlen(j->sparam1));
+        from = cache_path(j->path);
+        to = cache_path(j->sparam1);
 
         db_delete_path(j->sparam1);
 
@@ -271,8 +271,8 @@ static int do_job_rename(struct job *j, int do_remote)
         }
     }
     else {
-        from = remote_path(j->path, strlen(j->path));
-        to = remote_path(j->sparam1, strlen(j->sparam1));
+        from = remote_path(j->path);
+        to = remote_path(j->sparam1);
 
         if (has_lock(j->sparam1, LOCK_TRANSFER)) {
             transfer_abort();
@@ -316,7 +316,7 @@ int do_job(struct job *j, int do_remote)
     char *path;
     int sync;
 
-    path = (do_remote) ? remote_path(j->path, strlen(j->path)) : cache_path(j->path, strlen(j->path));
+    path = (do_remote) ? remote_path(j->path) : cache_path(j->path);
 
     switch (j->op) {
         case JOB_RENAME:
@@ -427,8 +427,8 @@ int instant_pull(const char *path)
 
     worker_block();
 
-    pr = remote_path(path, p_len);
-    pc = cache_path(path, p_len);
+    pr = remote_path2(path, p_len);
+    pc = cache_path2(path, p_len);
 
     /* copy data */
     res = copy_file(pr, pc);

@@ -106,8 +106,8 @@ void scan_remote(queue *q)
     }
 
     srch_len = strlen(srch);
-    srch_r = remote_path(srch, srch_len);
-    srch_c = cache_path(srch, srch_len);
+    srch_r = remote_path2(srch, srch_len);
+    srch_c = cache_path2(srch, srch_len);
 
     /* directory not in cache -> create it. */
     if (!is_dir(srch_c)) {
@@ -137,14 +137,14 @@ void scan_remote(queue *q)
 
         d_len = strlen(ent->d_name);
 
-        p = join_path(srch_r, strlen(srch_r), ent->d_name, d_len);
+        p = join_path2(srch_r, 0, ent->d_name, d_len);
         res = lstat(p, &st);
         free(p);
         if (res == -1) {
             DEBUG("lstat in scan_remote failed\n");
             break;
         }
-        p = join_path(srch, srch_len, ent->d_name, d_len);
+        p = join_path2(srch, srch_len, ent->d_name, d_len);
 
         if (S_ISDIR(st.st_mode)) {
             q_enqueue(q, p);
@@ -191,7 +191,7 @@ void scan_remote(queue *q)
             continue;
 
         if (!bst_contains(found_tree, djb2(ent->d_name, SIZE_MAX))) {
-            p = join_path(srch, srch_len, ent->d_name, strlen(ent->d_name));
+            p = join_path2(srch, srch_len, ent->d_name, 0);
             if (!p)
                 break;
 
@@ -335,12 +335,12 @@ void *worker_main(void *arg)
             p_len = strlen(j->path);
             switch (j->op) {
                 case JOB_PUSHATTR:
-                    pread = cache_path(j->path, p_len);
-                    pwrite = remote_path(j->path, p_len);
+                    pread = cache_path2(j->path, p_len);
+                    pwrite = remote_path2(j->path, p_len);
                 case JOB_PULLATTR:
                     if (j->op != JOB_PUSHATTR) {
-                        pread = remote_path(j->path, p_len);
-                        pwrite = cache_path(j->path, p_len);
+                        pread = remote_path2(j->path, p_len);
+                        pwrite = cache_path2(j->path, p_len);
                     }
                     copy_attrs(pread, pwrite);
                     sync_set(j->path);

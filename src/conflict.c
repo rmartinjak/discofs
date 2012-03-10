@@ -34,14 +34,14 @@ int conflict_handle(const struct job *j, int *keep_which)
         int cmp;
 
         /* stat cache file */
-        p = cache_path(path, p_len);
+        p = cache_path2(path, p_len);
         res = lstat(p, &st_c);
         free(p);
         if (res == -1)
             return -1;
 
         /* stat remote file */
-        p = remote_path(path, p_len);
+        p = remote_path2(path, p_len);
         res = lstat(p, &st_r);
         free(p);
         if (res == -1)
@@ -70,7 +70,7 @@ int conflict_handle(const struct job *j, int *keep_which)
     delete_or_backup(path, keep);
 
     if (keep == CONFLICT_KEEP_REMOTE) {
-        p = cache_path(path, p_len);
+        p = cache_path2(path, p_len);
 
         if (j->op == JOB_RENAME) {
             char *newpath = conflict_path(path);
@@ -117,7 +117,7 @@ int delete_or_backup(const char *path, int keep)
     char *dest;
 
     /* get old path */
-    p = (keep == CONFLICT_KEEP_REMOTE) ? cache_path(path, strlen(path)) : remote_path(path, strlen(path));
+    p = (keep == CONFLICT_KEEP_REMOTE) ? cache_path(path) : remote_path(path);
 
     /* get new path (or NULL if no bprefix/bsuffix set) */
     dest = conflict_path(p);
