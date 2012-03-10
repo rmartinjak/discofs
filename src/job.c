@@ -20,28 +20,35 @@
 #include <errno.h>
 #include <unistd.h>
 #include <pthread.h>
+
+#if HAVE_SETXATTR
 #include <attr/xattr.h>
+#endif
 
 extern struct options fs2go_options;
-extern char *croot;
-extern char *rroot;
 
 static int q_find_job(const void *path, const void *job, void *opmask);
 static int do_job_rename(struct job *j, int do_remote);
 
 pthread_mutex_t m_instant_pull = PTHREAD_MUTEX_INITIALIZER;
 
-queue job_queue = QUEUE_INIT;
-pthread_mutex_t m_job_queue = PTHREAD_MUTEX_INITIALIZER;
+static queue q_low = QUEUE_INIT;
+static queue q_mid = QUEUE_INIT;
+static queue q_high = QUEUE_INIT;
 
-#define FREE(p) { free(p); p = NULL; }
+pthread_mutex_t m_q_low = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t m_q_mid = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t m_q_high = PTHREAD_MUTEX_INITIALIZER;
+
 void free_job(void *p)
 {
     struct job *j = (struct job *)p;
 
+#define FREE(p) { free(p); p = NULL; }
     FREE(j->path);
     FREE(j->sparam1);
     FREE(j->sparam2);
+#undef FREE
 }
 
 void free_job2(void *p)
@@ -49,10 +56,9 @@ void free_job2(void *p)
     free_job(p);
     free(p);
 }
-#undef FREE
 
 /* ====== STORE JOBS IN DB ====== */
-int job_store_queue(void)
+int job_store(void)
 {
     struct job *j;
     int res = DB_OK;
@@ -74,7 +80,7 @@ int job_store_queue(void)
 
 
 /* may not be called with JOB_PUSH or JOB_PULL, these should be scheduled */
-int job(int op, const char *path, jobp_t p1, jobp_t p2, const char *sp1, const char *sp2)
+int job(int op, const char *path, job_param p1, jobp_t p2, const char *sp1, const char *sp2)
 {
     int res;
     struct job *j;
@@ -112,16 +118,6 @@ int job(int op, const char *path, jobp_t p1, jobp_t p2, const char *sp1, const c
             switch (j->op) {
                 case JOB_RENAME:
                     /* change transfer destination */
-                    worker_block();
-                    transfer_rename(j->sparam1, 1);
-                    remove_lock(j->path, LOCK_TRANSFER);
-                    set_lock(j->sparam1, LOCK_TRANSFER);
-                    /* execute job and ignore return value */
-                    do_job_cache(j);
-                    do_job_remote(j);
-                    free_job2(j);
-                    worker_unblock();
-                    return 0;
 
                 case JOB_UNLINK:
                     /* abort transfer */
@@ -147,185 +143,12 @@ int job(int op, const char *path, jobp_t p1, jobp_t p2, const char *sp1, const c
     return res;
 }
 
-static int q_find_job(const void *path, const void *job, void *opmask)
+int job_do_unlink(const char *path)
 {
-    char *p = (char *)path;
-    struct job *j = (struct job *)job;
-    int op = *((int *)opmask);
+    int res, sync;
+    char *pr;
 
-    if (op != JOB_ANY && !(j->op & op))
-        return -1;
-
-    return strcmp(p, j->path);
-}
-
-int has_job(const char *path, int opmask)
-{
-    if (q_contains2(&job_queue, path, q_find_job, &opmask))
-        return 1;
-    return db_has_job(path, opmask);
-}
-
-int delete_jobs(const char *path, int opmask)
-{
-    struct job *j;
-
-    if (has_job(path, opmask)) {
-        while ((j = q_dequeue(&job_queue))) {
-            if (strcmp(j->path, path) || opmask == JOB_ANY || !(opmask & j->op)) {
-                DEBUG("storing job in db\n");
-                db_store_job(j);
-            }
-            free_job2(j);
-        }
-    }
-
-    return db_delete_jobs(path, opmask);
-}
-
-int schedule_job(struct job *j)
-{
-
-    switch (j->op) {
-        case 0:
-            return 0;
-        case JOB_PULL:
-        case JOB_PUSH:
-            j->prio = PRIO_LOW;
-            break;
-        case JOB_RENAME:
-        case JOB_UNLINK:
-            j->prio = PRIO_HIGH;
-            break;
-        default:
-            j->prio = PRIO_MID;
-    }
-
-    pthread_mutex_lock(&m_job_queue);
-    q_enqueue(&job_queue, j);
-    pthread_mutex_unlock(&m_job_queue);
-
-    worker_wakeup();
-    return 0;
-}
-
-/* shortcut for scheduling push(attr)/pull(attr) jobs via macros schedule_push() etc. */
-int schedule_pp(const char *path, int op)
-{
-    struct job *j;
-
-    j = malloc(sizeof (struct job));
-    if (!j) {
-        errno = ENOMEM;
-        return -1;
-    }
-    JOB_INIT(j);
-
-    j->op = op;
-    j->path = strdup(path);
-    if (!j->path) {
-        free(j);
-        return -1;
-    }
-
-    if (has_lock(path, LOCK_TRANSFER)) {
-        DEBUG("aborting current transfer\n");
-        transfer_abort();
-    }
-
-    return schedule_job(j);
-}
-
-static int do_job_rename(struct job *j, int do_remote)
-{
-    int res;
-    int sync;
-    int keep;
-    char *from, *to;
-
-    /* do in cache */
-    if (!do_remote) {
-        from = cache_path(j->path, strlen(j->path));
-        to = cache_path(j->sparam1, strlen(j->sparam1));
-
-        db_delete_path(j->sparam1);
-
-        /* store jobs from queue so db_rename_* won't miss them */
-        job_store_queue();
-
-        if (is_dir(from)) {
-            DEBUG("renaming directory %s -> %s\n", from, to);
-            sync_delete_dir(j->sparam1);
-            sync_rename_dir(j->path, j->sparam1);
-            db_rename_dir(j->path, j->sparam1);
-        }
-        else {
-            DEBUG("renaming file %s -> %s\n", from, to);
-            sync_delete_file(j->sparam1);
-            sync_rename_file(j->path, j->sparam1);
-            db_rename_file(j->path, j->sparam1);
-            if (has_lock(j->path, LOCK_OPEN)) {
-                remove_lock(j->path, LOCK_OPEN);
-                set_lock(j->sparam1, LOCK_OPEN);
-            }
-        }
-    }
-    else {
-        from = remote_path(j->path, strlen(j->path));
-        to = remote_path(j->sparam1, strlen(j->sparam1));
-
-        if (has_lock(j->sparam1, LOCK_TRANSFER)) {
-            transfer_abort();
-        }
-        else if (has_lock(j->path, LOCK_TRANSFER)) {
-            transfer_rename(j->sparam1, 1);
-        }
-        else if ((sync = sync_get(j->sparam1)) == SYNC_NEW || sync == SYNC_MOD) {
-            conflict_handle(j, &keep);
-            if (keep == CONFLICT_KEEP_REMOTE) {
-                char *to_alt;
-                if ((to_alt = conflict_path(to)) == NULL) {
-                    free(from);
-                    free(to);
-                    errno = ENOMEM;
-                    return -1;
-                }
-                free(to);
-                to = to_alt;
-            }
-        }
-    }
-
-    if (do_remote && is_dir(from)) {
-        res = rename(from, to);
-        transfer_rename_dir(j->path, j->sparam1);
-    }
-    else {
-        res = rename(from, to);
-    }
-
-
-    free(from);
-    free(to);
-    return res;
-}
-
-int do_job(struct job *j, int do_remote)
-{
-    int res;
-    char *path;
-    int sync;
-
-    path = (do_remote) ? remote_path(j->path, strlen(j->path)) : cache_path(j->path, strlen(j->path));
-
-    switch (j->op) {
-        case JOB_RENAME:
-            if (!j->sparam1)
-                return -1;
-            res = do_job_rename(j, do_remote);
-            break;
-
-        case JOB_UNLINK:
+    pr = remote_path(path, strlen(path));
             if (do_remote) {
                 sync = sync_get(j->path);
 
@@ -350,6 +173,24 @@ int do_job(struct job *j, int do_remote)
                 res = unlink(path);
                 delete_jobs(j->path, JOB_PUSH);
             }
+}
+
+int do_job(struct job *j, int do_remote)
+{
+    int res;
+    char *path;
+    int sync;
+
+    path = (do_remote) ? remote_path(j->path, strlen(j->path)) : cache_path(j->path, strlen(j->path));
+
+    switch (j->op) {
+        case JOB_RENAME:
+            if (!j->sparam1)
+                return -1;
+            res = do_job_rename(j, do_remote);
+            break;
+
+        case JOB_UNLINK:
             break;
 
         case JOB_SYMLINK:
@@ -372,32 +213,7 @@ int do_job(struct job *j, int do_remote)
             break;
 
         case JOB_CHOWN:
-            if (!do_remote) {
-                res = lchown(path, (uid_t)j->param1, (gid_t)j->param2);
-            }
-            else {
-                uid_t uid = j->param1;
-                gid_t gid = j->param2;
-                if (fs2go_options.copyattr & COPYATTR_NO_OWNER)
-                    uid = -1;
-                if (fs2go_options.copyattr & COPYATTR_NO_GROUP)
-                    gid = -1;
 
-                res = lchown(path, uid, gid);
-            }
-            break;
-
-#ifdef HAVE_SETXATTR
-        case JOB_SETXATTR:
-            if (!do_remote || !(fs2go_options.copyattr & COPYATTR_NO_XATTR))
-                res = lsetxattr(path, j->sparam1, j->sparam2, (size_t)j->param1, (int)j->param2);
-            else
-                res = 0;
-            break;
-#endif
-        default:
-            errno = EINVAL;
-            return -1;
     }
 
     /* ignore ENOENT error when performing remote job.

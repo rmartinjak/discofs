@@ -17,15 +17,12 @@
 
 extern struct options fs2go_options;
 
-int conflict_handle(const struct job *j, int *keep_which)
+int conflict_handle(const char *path, job_op op, int *keep_which)
 {
     int res;
     int keep;
-    const char *path;
     char *p;
-    size_t p_len = strlen(j->path);
-
-    path = (j->op == JOB_RENAME) ? j->sparam1 : j->path;
+    size_t p_len = path;
 
     /* select which to keep by comparing mtime */
     if (fs2go_options.conflict == CONFLICT_NEWER) {
@@ -72,7 +69,7 @@ int conflict_handle(const struct job *j, int *keep_which)
     if (keep == CONFLICT_KEEP_REMOTE) {
         p = cache_path(path, p_len);
 
-        if (j->op == JOB_RENAME) {
+        if (op == JOB_RENAME) {
             char *newpath = conflict_path(path);
             /* no prefix/suffix -> delete sync and sync/jobs in db */
             if (!newpath) {
@@ -93,7 +90,7 @@ int conflict_handle(const struct job *j, int *keep_which)
             }
             free(newpath);
         }
-        /* j is a PUSH job -> pull the file from remote */
+        /* PUSH job -> pull the file from remote */
         else
             schedule_pull(path);
         free(p);

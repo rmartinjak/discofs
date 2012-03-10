@@ -291,14 +291,53 @@ int op_rmdir(const char *path)
 
 int op_unlink(const char *path)
 {
-    return job(JOB_UNLINK, path, 0, 0, NULL, NULL);
+    char *p;
+    p = cache_path(path);
+
+    res = unlink(path);
+
+    free(p);
+
+    if (res)
+        return -errno;
+
+    job_delete(path, JOB_ANY);
+    job_delete_rename_to(path);
+
+    if (ONLINE) {
+        remoteop_unlink(path);
+    }
+    else {
+        if (!job_schedule(path, JOB_UNLINK, 0, 0, NULL, NULL))
+            return -EIO;
+    }
+    return 0;
 }
 
-int op_symlink(const char *to, const char *from)
+int op_symlink(const char *to, const char *path)
 {
     int res;
+    char *p;
+    size_t len_path = strlen(path);;
+    
+    p = cache_path(path, len_path);
+    res = symlink(to, p);
+    free(p);
+
+    if (res)
+        return -errno;
+    
+    if (ONLINE) {
+        p = remote_path(path, len_path);
+        res = symlink(to, p);
+        free(p);
+    }
+    else {
     res = job(JOB_SYMLINK, from, 0, 0, to, NULL);
-    return res;
+    }
+
+    if (res)
+        return -errno;
 }
 
 int op_link(const char *from, const char *to)
@@ -308,7 +347,85 @@ int op_link(const char *from, const char *to)
 
 int op_rename(const char *from, const char *to)
 {
-    return job(JOB_RENAME, from, 0, 0, to, NULL);
+    int res = 0
+    char *pf, *pt;
+    size_t len_from, len_to;
+    int from_is_dir, to_is_dir;
+    int sync, keep;
+
+    len_from = strlen(from);
+    len_to = strlen(to);
+
+    pf = cache_path(from, len_from);
+    pt = cache_path(to, len_to);
+
+    /* needed later */
+    from_is_dir = is_dir(pf);
+    to_is_dir = is_dir(pt);
+
+    /* rename in cache */
+    res = rename(pf, pt);
+
+    free(pf);
+    free(pt);
+
+    /* error occured, return it */
+    if (res) {
+        return -errno;
+    }
+
+    /*------*/
+    /* jobs */
+    /*------*/
+
+    /* delete all pending jobs for "to" */
+    job_delete(to, JOB_ANY);
+
+    /* rename jobs */
+    job_rename(from, to);
+
+
+    /*------*/
+    /* sync */
+    /*------*/
+
+    /* delete syncs for/matching "to" */
+    if (to_is_dir)
+        sync_delete_dir(to);
+    else
+        sync_delete_file(to);
+
+    /* rename sync entry/ies */
+    if (from_is_dir)
+        sync_rename_dir(from, to);
+    else
+        sync_rename_file(from, to);
+
+
+    /*------*/
+    /* lock */
+    /*------*/
+
+    /* "rename" all OPEN locks */
+    while (has_lock(from, LOCK_OPEN)) {
+        remove_lock(from, LOCK_OPEN);
+        set_lock(to, LOCK_OPEN);
+    }
+
+
+    /*------------------*/
+    /* rename on remote */
+    /*------------------*/
+
+    if (ONLINE) {
+        res = remoteop_rename(from, to);
+    }
+    else {
+        if (!job_schedule(from, JOB_RENAME, 0, 0, to, NULL))
+            return -EIO;
+    }
+
+    return res 
 }
 
 int op_releasedir(const char* path, struct fuse_file_info *fi)
@@ -439,10 +556,12 @@ int op_release(const char *path, struct fuse_file_info *fi)
 int op_fsync(const char *path, int isdatasync, struct fuse_file_info *fi)
 {
     int res;
+
     if (isdatasync)
         res = fdatasync(FI_FD(fi));
     else
         res = fsync(FI_FD(fi));
+
     if (res == -1)
         return -errno;
     return 0;
@@ -452,12 +571,14 @@ int op_fsyncdir(const char *path, int isdatasync, struct fuse_file_info *fi)
 {
     int res;
     int fd;
+
     fd = dirfd((DIR *)fi->fh);
 
     if (isdatasync)
         res = fdatasync(fd);
     else
         res = fsync(fd);
+
     if (res == -1)
         return -errno;
     return 0;
@@ -466,7 +587,9 @@ int op_fsyncdir(const char *path, int isdatasync, struct fuse_file_info *fi)
 int op_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {
     int res;
+
     res = pread(FI_FD(fi), (void *)buf, size, offset);
+
     if (res == -1)
         return -errno;
     return res;
@@ -475,7 +598,9 @@ int op_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_
 int op_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {
     int res;
+
     res = pwrite(FI_FD(fi), (void *)buf, size, offset);
+    
     if (res == -1)
         return -errno;
 
@@ -492,6 +617,7 @@ int op_truncate(const char *path, off_t size)
     p = cache_path(path, p_len);
     res = truncate(p, size);
     free(p);
+
     if (res == -1)
         return -errno;
 
