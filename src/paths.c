@@ -58,7 +58,7 @@ char *paths_data_root(const char *remote)
     if (!root || *root != '/') {
         /* else use ~/.local/share */
         home = get_home_dir();
-        root = join_path2(home, ".local/share" );
+        root = join_path(home, ".local/share" );
         strcat(tmp, root);
         free(root);
     }

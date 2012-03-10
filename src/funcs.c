@@ -48,18 +48,23 @@ unsigned long djb2(const char *str, size_t n)
 }
 
 /* join two path elements */
-char *join_path(const char *p1, size_t len1, const char *p2, size_t len2)
+char *join_path2(const char *p1, size_t n1, const char *p2, size_t n2)
 {
     char *ret, *p;
 
-    ret = malloc(len1 + len2 + 2);
+    if (!n1)
+        n1 = strlen(p1);
+    if (!n2)
+        n2 = strlen(p2);
+
+    ret = malloc(n1 + n2 + 2);
     if (!ret)
         return NULL;
 
     p = ret;
-    memcpy(p, p1, len1);
+    memcpy(p, p1, n1);
 
-    p += len1-1;
+    p += n1-1;
 
     /* append trailing '/' to p1 if not already present */
     if (*p != '/')
@@ -68,10 +73,10 @@ char *join_path(const char *p1, size_t len1, const char *p2, size_t len2)
     /* ignore leading '/' of p2 */
     if (*p2 == '/') {
         p2++;
-        len2--;
+        n2--;
     }
 
-    memcpy(++p, p2, len2+1);
+    memcpy(++p, p2, n2+1);
     return ret;
 }
 
@@ -250,8 +255,8 @@ int copy_rec(const char *from, const char *to)
 
         d_len = strlen(ent->d_name);
 
-        subfrom = join_path(from, from_len, ent->d_name, d_len);
-        subto = join_path(to, to_len, ent->d_name, d_len);
+        subfrom = join_path2(from, from_len, ent->d_name, d_len);
+        subto = join_path2(to, to_len, ent->d_name, d_len);
         if (S_ISDIR(st.st_mode)) {
             res2 = copy_rec(subfrom, subto);
             free(subfrom);
@@ -665,7 +670,7 @@ int rmdir_rec(const char *path)
         if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0)
             continue;
 
-        subpath = join_path2(path, ent->d_name);
+        subpath = join_path(path, ent->d_name);
         if (lstat(subpath, &st) == -1) {
             closedir(dirp);
             free(subpath);

@@ -314,7 +314,7 @@ int sync_set(const char *path)
     GETTIME(mtime);
 
     /* ctime will be kept, so retrieve it via lstat() */
-    p = remote_path(path, strlen(path));
+    p = remote_path(path);
     if (lstat(p, &st) == -1) {
         PERROR("lstat() in sync_set");
         free(p);
@@ -353,7 +353,7 @@ int sync_get_stat(const char *path, struct stat *buf)
     struct stat st;
     struct sync s;
 
-    if ((p = remote_path(path, strlen(path))) == NULL) {
+    if ((p = remote_path(path)) == NULL) {
         errno = ENOMEM;
         return -1;
     }
@@ -438,7 +438,7 @@ int sync_rename_dir(const char *from, const char *to)
     while ((oldpath = q_dequeue(&q)))
     {
         /* generate new key */
-        newpath = join_path(to, to_len, oldpath+from_len, strlen(oldpath+from_len));
+        newpath = join_path2(to, to_len, oldpath+from_len, 0);
         if (!newpath) {
             free(oldpath);
             errno = ENOMEM;

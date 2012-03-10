@@ -145,12 +145,12 @@ int transfer_begin(const struct job *j)
     size_t p_len = strlen(j->path);
 
     if (j->op == JOB_PUSH) {
-        pread = cache_path(j->path, p_len);
-        pwrite = remote_path(j->path, p_len);
+        pread = cache_path2(j->path, p_len);
+        pwrite = remote_path2(j->path, p_len);
     }
     else if (j->op == JOB_PULL) {
-        pread = remote_path(j->path, p_len);
-        pwrite = cache_path(j->path, p_len);
+        pread = remote_path2(j->path, p_len);
+        pwrite = cache_path2(j->path, p_len);
     }
 
     if (!pread || !pwrite) {
@@ -209,7 +209,8 @@ int transfer_begin(const struct job *j)
     return TRANSFER_FAIL;
 }
 
-void transfer_rename_dir(const char *from, const char *to) {
+void transfer_rename_dir(const char *from, const char *to)
+{
     size_t from_len;
     char *p, *t_path_new;
 
@@ -225,7 +226,7 @@ void transfer_rename_dir(const char *from, const char *to) {
     p = t_path;
     p += from_len;
 
-    t_path_new = join_path2(to, p);
+    t_path_new = join_path(to, p);
 
     transfer_rename(t_path_new, 0);
 
@@ -255,12 +256,12 @@ void transfer_rename(const char *to, int rename_partfile)
     free(t_read);
     free(t_write);
     if (t_op == JOB_PUSH) {
-        t_read = cache_path(to, to_len);
-        t_write = remote_path(to, to_len);
+        t_read = cache_path2(to, to_len);
+        t_write = remote_path2(to, to_len);
     }
     else {
-        t_read = remote_path(to, to_len);
-        t_write = cache_path(to, to_len);
+        t_read = remote_path2(to, to_len);
+        t_write = cache_path2(to, to_len);
     }
 
     /* rename part file */

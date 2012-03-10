@@ -243,8 +243,8 @@ int instant_pull(const char *path)
 
     worker_block();
 
-    pr = remote_path(path, p_len);
-    pc = cache_path(path, p_len);
+    pr = remote_path2(path, p_len);
+    pc = cache_path2(path, p_len);
 
     /* copy data */
     res = copy_file(pr, pc);
