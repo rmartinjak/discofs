@@ -209,7 +209,8 @@ int transfer_begin(const struct job *j)
     return TRANSFER_FAIL;
 }
 
-void transfer_rename_dir(const char *from, const char *to) {
+void transfer_rename_dir(const char *from, const char *to)
+{
     size_t from_len;
     char *p, *t_path_new;
 
