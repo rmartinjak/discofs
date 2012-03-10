@@ -48,23 +48,23 @@ unsigned long djb2(const char *str, size_t n)
 }
 
 /* join two path elements */
-char *join_path2(const char *p1, size_t len1, const char *p2, size_t len2)
+char *join_path2(const char *p1, size_t n1, const char *p2, size_t n2)
 {
     char *ret, *p;
 
-    if (!len1)
-        len1 = strlen(p1);
-    if (!len2)
-        len2 = strlen(p2);
+    if (!n1)
+        n1 = strlen(p1);
+    if (!n2)
+        n2 = strlen(p2);
 
-    ret = malloc(len1 + len2 + 2);
+    ret = malloc(n1 + n2 + 2);
     if (!ret)
         return NULL;
 
     p = ret;
-    memcpy(p, p1, len1);
+    memcpy(p, p1, n1);
 
-    p += len1-1;
+    p += n1-1;
 
     /* append trailing '/' to p1 if not already present */
     if (*p != '/')
@@ -73,10 +73,10 @@ char *join_path2(const char *p1, size_t len1, const char *p2, size_t len2)
     /* ignore leading '/' of p2 */
     if (*p2 == '/') {
         p2++;
-        len2--;
+        n2--;
     }
 
-    memcpy(++p, p2, len2+1);
+    memcpy(++p, p2, n2+1);
     return ret;
 }
 

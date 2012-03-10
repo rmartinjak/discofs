@@ -37,16 +37,16 @@
 
 unsigned long djb2(const char *str, size_t n);
 
-char *join_path2(const char *p1, size_t len1, const char *p2, size_t len2);
+char *join_path2(const char *p1, size_t n1, const char *p2, size_t n2);
 #define join_path(p1, p2) join_path2(p1, 0, p2, 0)
 
-#define remote_path2(p, len) join_path2(REMOTE_ROOT, REMOTE_ROOT_LEN, p, len)
+#define remote_path2(p, n) join_path2(REMOTE_ROOT, REMOTE_ROOT_LEN, p, n)
 #define remote_path(p) remote_path2(p, 0)
 
-#define cache_path2(p, len) join_path2(CACHE_ROOT, CACHE_ROOT_LEN, p, len)
+#define cache_path2(p, n) join_path2(CACHE_ROOT, CACHE_ROOT_LEN, p, n)
 #define cache_path(p) cache_path2(p, 0)
 
-#define get_path2(p, len) (ONLINE) ? remote_path2(p, len) : cache_path2(p, len)
+#define get_path2(p, n) (ONLINE) ? remote_path2(p, n) : cache_path2(p, n)
 #define get_path(p) get_path2(p, 0)
 
 #if HAVE_UTIMENSAT && HAVE_CLOCK_GETTIME
