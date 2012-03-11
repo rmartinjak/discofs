@@ -476,7 +476,7 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
             if (has_lock(path, LOCK_TRANSFER))
                 transfer_abort();
 
-            instant_pull(path);
+            transfer_instant_pull(path);
         }
         else if (sync == SYNC_NEW || sync == SYNC_MOD) {
             /* wait until eventually running instant_pull is finished */
@@ -487,7 +487,7 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
                want to open. if not, instant_pull it now */
             sync = sync_get(path);
             if (sync == SYNC_NEW || sync == SYNC_MOD)
-                instant_pull(path);
+                transfer_instant_pull(path);
         }
         else if (sync == SYNC_CHG) {
             p_len = strlen(path);

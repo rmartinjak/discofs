@@ -18,6 +18,8 @@
 
 extern struct options fs2go_options;
 
+pthread_mutex_t m_instant_pull = PTHREAD_MUTEX_INITIALIZER;
+
 static pthread_mutex_t m_transfer = PTHREAD_MUTEX_INITIALIZER;
 static off_t t_off;
 static char *t_path, *t_read = NULL, *t_write = NULL, *t_write_part = NULL;
@@ -301,3 +303,43 @@ void transfer_abort(void)
     worker_unblock();
 }
 
+/* instantly copy a file from remote to cache */
+int transfer_instant_pull(const char *path)
+{
+    int res;
+    char *pc;
+    char *pr;
+    size_t p_len = strlen(path);
+
+    VERBOSE("instant_pulling %s\n", path);
+
+    pthread_mutex_lock(&m_instant_pull);
+
+    worker_block();
+
+    pr = remote_path2(path, p_len);
+    pc = cache_path2(path, p_len);
+
+    /* copy data */
+    res = copy_file(pr, pc);
+
+    worker_unblock();
+
+    copy_attrs(pr, pc);
+    free(pr);
+    free(pc);
+
+    /* if copying failed, return error and dont set sync */
+    if (res == -1) {
+        ERROR("instant_pull on %s FAILED\n", path);
+        pthread_mutex_unlock(&m_instant_pull);
+        return -1;
+    }
+
+    /* file is in sync now */
+    delete_jobs(path, JOB_PULL|JOB_PULLATTR);
+    sync_set(path);
+
+    pthread_mutex_unlock(&m_instant_pull);
+    return 0;
+}

@@ -40,7 +40,8 @@ typedef unsigned int job_op;
 typedef unsigned int job_id;
 typedef long job_param;
 
-struct job {
+struct job
+{
     job_id id;
     job_op op;
     unsigned int attempts;
@@ -69,7 +70,6 @@ int job_delete(const char *path, int opmask);
 int job_delete_rename_to(const char *path);
 
 int job_rename(const char *from, const char *to);
-
 
 
 int job(int op, const char *path, jobp_t p1, jobp_t p2, const char *sp1, const char *sp2);

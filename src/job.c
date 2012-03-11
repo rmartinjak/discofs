@@ -30,7 +30,6 @@ extern struct options fs2go_options;
 static int q_find_job(const void *path, const void *job, void *opmask);
 static int do_job_rename(struct job *j, int do_remote);
 
-pthread_mutex_t m_instant_pull = PTHREAD_MUTEX_INITIALIZER;
 
 static queue q_low = QUEUE_INIT;
 static queue q_mid = QUEUE_INIT;
@@ -229,43 +228,3 @@ int do_job(struct job *j, int do_remote)
     return res;
 }
 
-/* instantly copy a file from remote to cache */
-int instant_pull(const char *path)
-{
-    int res;
-    char *pc;
-    char *pr;
-    size_t p_len = strlen(path);
-
-    VERBOSE("instant_pulling %s\n", path);
-
-    pthread_mutex_lock(&m_instant_pull);
-
-    worker_block();
-
-    pr = remote_path2(path, p_len);
-    pc = cache_path2(path, p_len);
-
-    /* copy data */
-    res = copy_file(pr, pc);
-
-    worker_unblock();
-
-    copy_attrs(pr, pc);
-    free(pr);
-    free(pc);
-
-    /* if copying failed, return error and dont set sync */
-    if (res == -1) {
-        ERROR("instant_pull on %s FAILED\n", path);
-        pthread_mutex_unlock(&m_instant_pull);
-        return -1;
-    }
-
-    /* file is in sync now */
-    delete_jobs(path, JOB_PULL|JOB_PULLATTR);
-    sync_set(path);
-
-    pthread_mutex_unlock(&m_instant_pull);
-    return 0;
-}
