@@ -8,7 +8,8 @@
 #include <stdlib.h>
 #include <errno.h>
 
-int q_enqueue(queue *q, void *d) {
+int q_enqueue(queue *q, void *d)
+{
     struct qitem *ins;
     ins = malloc(sizeof (struct qitem));
     if (!ins) {
@@ -27,7 +28,8 @@ int q_enqueue(queue *q, void *d) {
     return 0;
 }
 
-void *q_dequeue(queue *q) {
+void *q_dequeue(queue *q)
+{
     void *ret;
     struct qitem *del;
 
@@ -47,7 +49,8 @@ void *q_dequeue(queue *q) {
     return ret;
 }
 
-void q_clear(queue *q, int free_data) {
+void q_clear(queue *q, int free_data)
+{
     void *del;
     while (q->head) {
         del = q_dequeue(q);
@@ -56,7 +59,8 @@ void q_clear(queue *q, int free_data) {
     }
 }
 
-void q_clear_cb(queue *q, int free_data, void (*cb)(void*)) {
+void q_clear_cb(queue *q, int free_data, void (*cb)(void*))
+{
     void *del;
     while (q->head) {
         del = q_dequeue(q);
@@ -66,7 +70,8 @@ void q_clear_cb(queue *q, int free_data, void (*cb)(void*)) {
     }
 }
 
-int q_contains(queue *q, const void *d, int(*cmp)(const void*, const void*)) {
+int q_contains(queue *q, const void *d, int(*cmp)(const void*, const void*))
+{
     struct qitem *p;
     for (p = q->head; p; p = p->next) {
         if (cmp(d, p->data) == 0)
@@ -76,7 +81,8 @@ int q_contains(queue *q, const void *d, int(*cmp)(const void*, const void*)) {
     return 0;
 }
 
-int q_contains2(queue *q, const void *d, int(*cmp)(const void*, const void*, void*), void *arg) {
+int q_contains2(queue *q, const void *d, int(*cmp)(const void*, const void*, void*), void *arg)
+{
     struct qitem *p;
     for (p = q->head; p; p = p->next) {
         if (cmp(d, p->data, arg) == 0)
@@ -86,6 +92,7 @@ int q_contains2(queue *q, const void *d, int(*cmp)(const void*, const void*, voi
     return 0;
 }
 
-int q_empty(queue *q) {
+int q_empty(queue *q)
+{
     return (q->head == NULL);
 }
