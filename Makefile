@@ -2,27 +2,54 @@ include config.mk
 
 SRCDIR=src
 OBJDIR=obj
+SUBOBJDIR=$(OBJDIR)/sub
 
-_OBJ = fs2go.o funcs.o paths.o sync.o job.o conflict.o worker.o transfer.o db.o log.o lock.o fsops.o debugops.o queue.o bst.o hashtable.o
-OBJ = $(addprefix $(OBJDIR)/,$(_OBJ))
+_OBJ = fs2go funcs paths sync job conflict worker transfer db log lock fsops debugops queue bst
+OBJ = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(_OBJ)))
 
-default : fs2go
+SUBMODULES = datastructs
+SUBOBJ = $(addprefix $(OBJDIR)/,$(addsuffix .a,$(SUBMODULES)))
+
+SUBINCLUDES = -Isrc/datastructs/src
+
+INCLUDES += $(SUBINCLUDES)
+
+export CC CPPFLAGS CFLAGS LDFLAGS LIBS
+
+default : options fs2go
+
+# directories
 
 $(OBJDIR) :
 	@mkdir $(OBJDIR)
 
+$(SUBOBJDIR) : $(OBJDIR)
+	@mkdir $(SUBOBJDIR)
+
+$(OBJDIR)/datastructs.a :
+	@make $(MAKEFLAGS) -C $(SRCDIR)/datastructs DESTDIR=$(realpath $(OBJDIR)) options archive
+
 $(OBJDIR)/%.o : $(SRCDIR)/%.c
 	@echo CC -c $<
-	@$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
+	@$(CC) $(CPPFLAGS) $(CFLAGS) $(SUBINCLUDES) -c -o $@ $<
 
-fs2go : $(OBJDIR) $(OBJ)
+fs2go : $(OBJDIR) $(OBJ) $(SUBOBJ)
 	@echo CC -o $@
-	@$(CC) -o fs2go $(OBJ) $(CFLAGS) $(LDFLAGS) $(LIBS)
+	@$(CC) -o fs2go $(OBJ) $(SUBOBJ) $(CFLAGS) $(LDFLAGS) $(LIBS)
 
 clean :
 	@echo cleaning
 	@rm -f fs2go
 	@rm -rf $(OBJDIR)
+
+options :
+	@echo "CC       =" $(CC)
+	@echo "CPPFLAGS =" $(CPPFLAGS)
+	@echo "CFLAGS   =" $(CFLAGS)
+	@echo "INCLUDES =" $(INCLUDES) $(SUBINCLUDES)
+	@echo "LDFLAGS  =" $(LDFLAGS)
+	@echo "LIBS     =" $(LIBS)
+	@echo
 
 install :
 	@echo installing executable to ${DESTDIR}${PREFIX}/bin
@@ -40,4 +67,4 @@ uninstall :
 	@echo removing manual page from ${DESTDIR}${MANPREFIX}/man1
 	@rm -f ${DESTDIR}${MANPREFIX}/man1/fs2go.1
 
-.PHONY: clean install
+.PHONY: clean install options
