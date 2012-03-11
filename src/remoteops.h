@@ -6,9 +6,20 @@
 #ifndef FS2GO_REMOTEOPS_H
 #define FS2GO_REMOTEOPS_H
 
-int remoteop_unlink(const char *path);
+#include <stddef.h>
+#include <sys/types.h>
 
 int remoteop_rename(const char *from, const char *to);
+
+int remoteop_unlink(const char *path);
+
+int remoteop_symlink(const char *to, const char *path);
+
+int remoteop_link(const char *to, const char *path);
+
+int remoteop_mkdir(const char *path, mode_t mode);
+
+int remoteop_rmdir(const char *path);
 
 int remoteop_chown(const char *path, uid_t uid, gid_t gid);
 

@@ -214,8 +214,6 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
     res = readdir_r(*dirp, dbuf, &ent);
     if (res > 0)
         return -res;
-    if (!ent && ONLINE)
-        return -errno;
 
     int n = 2;
     while (n-- && *dirp) {
@@ -248,7 +246,8 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
 
     bst_free(tree);
     free(dbuf);
-    return 0;
+
+    return -res;
 }
 
 int op_mknod(const char *path, mode_t mode, dev_t rdev)
@@ -281,21 +280,73 @@ int op_mknod(const char *path, mode_t mode, dev_t rdev)
 
 int op_mkdir(const char *path, mode_t mode)
 {
-    return job(JOB_MKDIR, path, mode, 0, NULL, NULL);
+    int res;
+    char *p;
+
+    p = cache_path(path);
+
+    if (!p)
+        return -EIO;
+
+    res = mkdir(p, mode);
+    free(p);
+
+    if (res)
+        return -errno;
+
+    sync_delete_dir(path);
+
+    if (ONLINE) {
+        res = remoteop_rmdir(path);
+    }
+    else {
+        if (job_schedule(JOB_MKDIR, path, mode, 0, NULL, NULL))
+            return -EIO;
+    }
+
+    return res;
 }
 
 int op_rmdir(const char *path)
 {
-    return job(JOB_RMDIR, path, 0, 0, NULL, NULL);
+    int res;
+    char *p;
+
+    p = cache_path(path);
+
+    if (!p)
+        return -EIO;
+
+    res = rmdir(p);
+    free(p);
+
+    if (res)
+        return -errno;
+
+    sync_delete_dir(path);
+
+    if (ONLINE) {
+        res = remoteop_rmdir(path);
+    }
+    else {
+        if (job_schedule(JOB_RMDIR, path, 0, 0, NULL, NULL))
+            return -EIO;
+    }
+
+    return res;
 }
 
 int op_unlink(const char *path)
 {
+    int res;
     char *p;
+
     p = cache_path(path);
 
-    res = unlink(path);
+    if (!p)
+        return -EIO;
 
+    res = unlink(p);
     free(p);
 
     if (res)
@@ -304,13 +355,18 @@ int op_unlink(const char *path)
     job_delete(path, JOB_ANY);
     job_delete_rename_to(path);
 
+    sync_delete_file(path);
+
     if (ONLINE) {
-        remoteop_unlink(path);
+        res = remoteop_unlink(path);
     }
     else {
-        if (!job_schedule(path, JOB_UNLINK, 0, 0, NULL, NULL))
+        if (!job_schedule(JOB_UNLINK, path, 0, 0, NULL, NULL))
             return -EIO;
     }
+
+    if (res)
+        return -errno;
     return 0;
 }
 
@@ -318,9 +374,9 @@ int op_symlink(const char *to, const char *path)
 {
     int res;
     char *p;
-    size_t len_path = strlen(path);;
     
-    p = cache_path(path, len_path);
+    p = cache_path(path);
+
     res = symlink(to, p);
     free(p);
 
@@ -328,19 +384,19 @@ int op_symlink(const char *to, const char *path)
         return -errno;
     
     if (ONLINE) {
-        p = remote_path(path, len_path);
-        res = symlink(to, p);
-        free(p);
+        res = remoteop_symlink(path);
     }
     else {
-    res = job(JOB_SYMLINK, from, 0, 0, to, NULL);
+        if (job_schedule(from, JOB_SYMLINK, 0, 0, to, NULL))
+            return -EIO;
     }
 
     if (res)
         return -errno;
+    return 0;
 }
 
-int op_link(const char *from, const char *to)
+int op_link(const char *to, const char *path)
 {
     return -ENOTSUP;
 }
@@ -358,6 +414,10 @@ int op_rename(const char *from, const char *to)
 
     pf = cache_path(from, len_from);
     pt = cache_path(to, len_to);
+    if (!pf || !pt) {
+        free(pf), free(pt);
+        return -EIO;
+    }
 
     /* needed later */
     from_is_dir = is_dir(pf);
@@ -421,11 +481,11 @@ int op_rename(const char *from, const char *to)
         res = remoteop_rename(from, to);
     }
     else {
-        if (!job_schedule(from, JOB_RENAME, 0, 0, to, NULL))
+        if (!job_schedule(JOB_RENAME, from, 0, 0, to, NULL))
             return -EIO;
     }
 
-    return res 
+    return res ;
 }
 
 int op_releasedir(const char* path, struct fuse_file_info *fi)
@@ -452,11 +512,13 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
 {
     int sync;
     int *fh;
-    size_t p_len;
     char *pc, *pr;
+    size_t p_len;
 
     if ((fh = malloc(FH_SIZE)) == NULL)
         return -EIO;
+
+    p_len = strlen(path);
 
     FH_FLAGS(fh) = 0;
 
@@ -490,27 +552,35 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
                 transfer_instant_pull(path);
         }
         else if (sync == SYNC_CHG) {
-            p_len = strlen(path);
             pc = cache_path2(path, p_len);
             pr = remote_path2(path, p_len);
+            if (!pc || !pr) {
+                free(pr), free(pc);
+                return -EIO; 
+            }
+
             copy_attrs(pr, pc);
-            free(pr);
-            free(pc);
+
+            free(pr), free(pc);
         }
     }
 
     set_lock(path, LOCK_OPEN);
 
     pc = cache_path2(path, p_len);
+    if (!pc)
+        return -EIO; 
+
     if (op == OP_OPEN)
         FH_FD(fh) = open(pc, fi->flags);
     else {
         FH_FD(fh) = open(pc, O_WRONLY|O_CREAT|O_TRUNC, mode);
         schedule_push(path);
     }
+
     free(pc);
 
-    /* omg! */
+    /* open() failed */
     if (FH_FD(fh) == -1) {
         free(fh);
         return -errno;
@@ -646,12 +716,48 @@ int op_truncate(const char *path, off_t size)
 
 int op_chown(const char *path, uid_t uid, gid_t gid)
 {
-    return job(JOB_CHOWN, path, (jobp_t)uid, (jobp_t)gid, NULL, NULL);
+    int res;
+    char *p;
+
+    p = cache_path(path);
+    res = lchown(p, uid, gid);
+    free(p);
+
+    if (res)
+        return -errno;
+
+    if (ONLINE) {
+        res = remoteop_chown(path, uid, gid);
+    }
+    else {
+        if (!job_schedule(JOB_CHOWN, path, uid, gid, NULL, NULL))
+            return -EIO;
+    }
+
+    return res;
 }
 
 int op_chmod(const char *path, mode_t mode)
 {
-    return job(JOB_CHMOD, path, (jobp_t)mode, 0, NULL, NULL);
+    int res;
+    char *p;
+
+    p = cache_path(path);
+    res = lchmod(p, mode);
+    free(p);
+
+    if (res)
+        return -errno;
+
+    if (ONLINE) {
+        res = remoteop_chmod(path, mode);
+    }
+    else {
+        if (!job_schedule(JOB_CHMOD, path, mode, 0, NULL, NULL))
+            return -EIO;
+    }
+
+    return res;
 }
 
 int op_utimens(const char *path, const struct timespec ts[2])

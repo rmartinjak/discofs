@@ -12,47 +12,6 @@
 
 extern struct options fs2go_options;
 
-int remoteop_unlink(const char *path)
-{
-    int sync;
-    char *p;
-
-    if (has_lock(path, LOCK_TRANSFER)) {
-        transfer_abort();
-        remove_lock(path, LOCK_TRANSFER);
-    }
-
-    /*
-       if file opened, prevent scheduling of PUSH job somehow
-     */
-
-    sync = sync_get(path);
-
-    /* this would be a conflict! don't delete but pull */
-    if (sync == SYNC_MOD) {
-        schedule_pull(path);
-        return 0;
-    }
-
-    db_delete_path(path);
-    sync_delete_file(path):
-
-    else if (sync == SYNC_NOT_FOUND) {
-        return 0;
-    }
-    else {
-        p = remote_path(path, strlen(path));
-
-        if (!p)
-            return -EIO;
-
-        res = unlink(p);
-        free(p);
-
-        return res;
-    }
-}
-
 int remoteop_rename(const char *from, const char *to)
 {
     int res;
@@ -60,10 +19,8 @@ int remoteop_rename(const char *from, const char *to)
 
     pf = remote_path(from, strlen(from));
     pt = remote_path(to, strlen(to));
-
     if (!pf || !pt) {
-        free(pf);
-        free(pt);
+        free(pf), free(pt);
         return -EIO;
     }
 
@@ -101,8 +58,7 @@ int remoteop_rename(const char *from, const char *to)
 
     /* do the actual renaming */
     if (pt) {
-        if(rename(pf, pt))
-            res = -errno;
+        res = rename(pf, pt);
         free(pf);
         free(pt);
     }
@@ -116,6 +72,124 @@ int remoteop_rename(const char *from, const char *to)
         res = 0;
         free(pf);
     }
+
+    if (res)
+        return -errno;
+
+    if (!job_exists(to, JOB_ANY))
+        sync_set(to);
+
+    return 0;
+}
+
+int remoteop_unlink(const char *path)
+{
+    int res, sync;
+    char *p;
+
+    if (has_lock(path, LOCK_TRANSFER)) {
+        transfer_abort();
+        remove_lock(path, LOCK_TRANSFER);
+    }
+
+    /*
+       if file opened, prevent scheduling of PUSH job somehow
+     */
+
+    sync = sync_get(path);
+
+    /* this would be a conflict! don't delete but pull */
+    if (sync == SYNC_MOD) {
+        schedule_pull(path);
+        return 0;
+    }
+
+    db_delete_path(path);
+    sync_delete_file(path):
+
+    if (sync == SYNC_NOT_FOUND) {
+        return 0;
+    }
+
+    p = remote_path(path);
+    if (!p)
+        return -EIO;
+
+    res = unlink(p);
+    free(p);
+
+    if (res)
+        return -errno;
+    return 0;
+}
+
+int remoteop_symlink(const char *to, const char *path)
+{
+    int res;
+    char *p;
+
+    p = remote_path(path);
+    if (!p)
+        return -EIO;
+
+    res = symlink(to, path);
+    free(p);
+
+    if (res)
+        return -errno;
+
+    if (!job_exists(path, JOB_ANY))
+        sync_set(path);
+
+    return 0;
+}
+
+int remoteop_link(const char *to, const char *path)
+{
+    return -ENOTSUP;
+}
+
+int remoteop_mkdir(const char *path, mode_t mode)
+{
+    int res;
+    char *p;
+
+    p = remote_path(path);
+    if (!p)
+        return -EIO;
+
+    res = mkdir(p, mode);
+    free(p);
+
+    if (res)
+        return -errno;
+
+    if (!job_exists(path, JOB_ANY))
+        sync_set(path);
+
+    return 0;
+}
+
+int remoteop_rmdir(const char *path)
+{
+    int res;
+    char *p;
+
+    p = remote_path(path);
+    if (!p)
+        return -EIO;
+
+    res = rmdir(p);
+    free(p);
+
+    if (res) {
+        /* ignore ENOENT */
+        if (errno == ENOENT) return 0;
+
+        return -errno;
+    }
+
+    return 0;
 }
 
 int remoteop_chown(const char *path, uid_t uid, gid_t gid)
@@ -137,7 +211,6 @@ int remoteop_chown(const char *path, uid_t uid, gid_t gid)
         return 0;
 
     p = remote_path(p);
-
     if (!p)
         return -EIO;
 
@@ -146,6 +219,9 @@ int remoteop_chown(const char *path, uid_t uid, gid_t gid)
 
     if (res)
         return -errno;
+
+    if (!job_exists(path, JOB_ANY))
+        sync_set(path);
 
     return 0;
 }
@@ -159,7 +235,6 @@ int remoteop_chmod(const char *path, mode_t mode)
         return 0;
 
     p = remote_path(path);
-
     if (!p)
         return -EIO;
 
@@ -168,6 +243,10 @@ int remoteop_chmod(const char *path, mode_t mode)
 
     if (res)
         return -errno;
+
+    if (!job_exists(path, JOB_ANY))
+        sync_set(path);
+
     return 0;
 }
 
@@ -182,7 +261,6 @@ int remoteop_setxattr(const char *path, const char *name, const char *value,
         return 0;
 
     p = remote_path(path);
-
     if (!p)
         return -EIO;
 
@@ -191,6 +269,10 @@ int remoteop_setxattr(const char *path, const char *name, const char *value,
 
     if (res)
         return -errno;
+
+    if (!job_exists(path, JOB_ANY))
+        sync_set(path);
+
     return 0;
 }
 #endif
