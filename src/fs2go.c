@@ -748,11 +748,13 @@ int main(int argc, char **argv)
     }
 
 
-    /*-----------------*/
-    /* initialize sync */
-    /*-----------------*/
-
-    sync_init();
+    /*---------------------------*/
+    /* initialize sync/job stuff */
+    /*---------------------------*/
+    if (sync_init())
+        FATAL("error initializing sync");
+    if (job_init_queue())
+        FATAL("error initializing job queue");
 
 
     /*----------------------*/

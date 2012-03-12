@@ -94,7 +94,7 @@ void scan_remote(queue *q)
     struct dirent *dbuf;
     struct dirent *ent;
     struct stat st;
-    bst *found_tree = bst_init();
+    bst *found_tree = bst_init(NULL);
 
     if (!ONLINE)
         return;
@@ -133,7 +133,7 @@ void scan_remote(queue *q)
         if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0)
             continue;
 
-        bst_insert(found_tree, djb2(ent->d_name, SIZE_MAX));
+        bst_insert(found_tree, djb2(ent->d_name, SIZE_MAX), NULL);
 
         d_len = strlen(ent->d_name);
 
@@ -203,7 +203,7 @@ void scan_remote(queue *q)
         }
     }
 
-    bst_free(found_tree);
+    bst_free(found_tree, NULL);
     free(srch_c);
     free(srch_r);
     if (strcmp(srch, "/") != 0)
@@ -248,8 +248,8 @@ void *worker_main(void *arg)
     transfer_abort(); }
     int state, transfer_result;
 
-    queue jobs = QUEUE_INIT;
-    queue search = QUEUE_INIT;
+    queue *jobs = q_init();
+    queue *search = q_init();
 
     struct job *j;
 
@@ -302,30 +302,30 @@ void *worker_main(void *arg)
             }
 
             /* no current job, get a new one */
-            db_get_jobs(&jobs);
+            db_get_jobs(jobs);
 
             /* no jobs in db */
-            if (q_empty(&jobs)) {
+            if (q_empty(jobs)) {
                 /* continue looking for jobs in top item on "search" queue,
                    if the queue is empty, sleep a while
                    (scan_remote will start in remote fs's root if the queue is empty)
                  */
-                if (q_empty(&search))
+                if (q_empty(search))
                     worker_sleep(fs2go_options.scan_interval);
 
-                scan_remote(&search);
+                scan_remote(search);
 
                 continue;
             }
 
             /* get job from queue */
-            j = q_dequeue(&jobs);
+            j = q_dequeue(jobs);
 
             /* skip locked files */
             while (j && (j->op & (JOB_PUSH|JOB_PULL)) && has_lock(j->path, LOCK_OPEN)) {
                 DEBUG("%s is locked, NEXT\n", j->path);
                 free_job2(j);
-                j = q_dequeue(&jobs);
+                j = q_dequeue(jobs);
             }
             if (!j) {
                 worker_sleep(SLEEP_LONG);
@@ -396,7 +396,7 @@ void *worker_main(void *arg)
             }
 
             free_job2(j);
-            q_clear_cb(&jobs, 1, free_job);
+            q_clear(jobs, free_job2);
         }
         /* OFFLINE */
         else {

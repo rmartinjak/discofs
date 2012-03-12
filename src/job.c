@@ -31,7 +31,7 @@ static int do_job_rename(struct job *j, int do_remote);
 
 pthread_mutex_t m_instant_pull = PTHREAD_MUTEX_INITIALIZER;
 
-queue job_queue = QUEUE_INIT;
+queue *job_queue = NULL;
 pthread_mutex_t m_job_queue = PTHREAD_MUTEX_INITIALIZER;
 
 #define FREE(p) { free(p); p = NULL; }
@@ -51,15 +51,25 @@ void free_job2(void *p)
 }
 #undef FREE
 
+int job_init_queue(void)
+{
+    job_queue = q_init();
+
+    if (!job_queue)
+        return -1;
+
+    return 0;
+}
+
 /* ====== STORE JOBS IN DB ====== */
 int job_store_queue(void)
 {
     struct job *j;
     int res = DB_OK;
 
-    while (res == DB_OK && !q_empty(&job_queue)) {
+    while (res == DB_OK && !q_empty(job_queue)) {
         pthread_mutex_lock(&m_job_queue);
-        j = q_dequeue(&job_queue);
+        j = q_dequeue(job_queue);
         pthread_mutex_unlock(&m_job_queue);
         res = db_store_job(j);
         free_job2(j);
@@ -161,7 +171,7 @@ static int q_find_job(const void *path, const void *job, void *opmask)
 
 int has_job(const char *path, int opmask)
 {
-    if (q_contains2(&job_queue, path, q_find_job, &opmask))
+    if (q_contains2(job_queue, path, q_find_job, &opmask))
         return 1;
     return db_has_job(path, opmask);
 }
@@ -171,7 +181,7 @@ int delete_jobs(const char *path, int opmask)
     struct job *j;
 
     if (has_job(path, opmask)) {
-        while ((j = q_dequeue(&job_queue))) {
+        while ((j = q_dequeue(job_queue))) {
             if (strcmp(j->path, path) || opmask == JOB_ANY || !(opmask & j->op)) {
                 DEBUG("storing job in db\n");
                 db_store_job(j);
@@ -202,7 +212,7 @@ int schedule_job(struct job *j)
     }
 
     pthread_mutex_lock(&m_job_queue);
-    q_enqueue(&job_queue, j);
+    q_enqueue(job_queue, j);
     pthread_mutex_unlock(&m_job_queue);
 
     worker_wakeup();

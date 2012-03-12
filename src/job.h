@@ -48,6 +48,8 @@ struct job {
 void free_job(void *p);
 void free_job2(void *p);
 
+int job_init_queue(void);
+
 int job_store_queue(void);
 
 int job(int op, const char *path, jobp_t p1, jobp_t p2, const char *sp1, const char *sp2);
