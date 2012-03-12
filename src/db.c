@@ -588,7 +588,7 @@ static int db_rename_dir_(const char *sql_select, const char *sql_update,
 {
     VARS;
     int sql_res;
-    queue q = QUEUE_INIT;
+    queue *q = q_init();
     char *oldpath, *newpath;
 
     db_open();
@@ -597,7 +597,7 @@ static int db_rename_dir_(const char *sql_select, const char *sql_update,
     BIND_TEXT(pat);
     while ((sql_res = STEP()) == SQLITE_ROW) {
         colpos = 0;
-        q_enqueue(&q, COL_TEXT());
+        q_enqueue(q, COL_TEXT());
     }
     if (sql_res != SQLITE_DONE) {
         ERRMSG("db_rename_dir");
@@ -606,7 +606,7 @@ static int db_rename_dir_(const char *sql_select, const char *sql_update,
     FINALIZE();
 
     PREPARE(sql_update);
-    while (res == DB_OK && (oldpath = q_dequeue(&q))) {
+    while (res == DB_OK && (oldpath = q_dequeue(q))) {
         newpath = join_path2(to, to_len, oldpath+from_len, 0);
         if (!newpath) {
             errno = ENOMEM;
@@ -617,13 +617,14 @@ static int db_rename_dir_(const char *sql_select, const char *sql_update,
         if (STEP() != SQLITE_DONE) {
             ERRMSG("db_rename_dir");
             res = DB_ERROR;
-            q_clear(&q, 1);
         }
         free(newpath);
         free(oldpath);
         RESET();
     }
     FINALIZE();
+
+    q_free(q, free);
 
     db_close();
     return res;

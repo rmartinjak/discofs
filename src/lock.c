@@ -21,10 +21,10 @@ static bst *lock_tree = NULL;
 int has_lock(const char *path, int type)
 {
     int res;
-    bstdata_t hash = djb2(path, SIZE_MAX);
+    long hash = djb2(path, SIZE_MAX);
 
     if (!lock_tree)
-        lock_tree = bst_init();
+        lock_tree = bst_init(NULL);
 
     hash <<= LOCK_TYPE_BITS;
     hash |= type;
@@ -39,10 +39,10 @@ int has_lock(const char *path, int type)
 int set_lock(const char *path, int type)
 {
     int res;
-    bstdata_t hash = djb2(path, SIZE_MAX);
+    long hash = djb2(path, SIZE_MAX);
 
     if (!lock_tree)
-        lock_tree = bst_init();
+        lock_tree = bst_init(NULL);
 
     hash <<= LOCK_TYPE_BITS;
     hash |= type;
@@ -50,9 +50,9 @@ int set_lock(const char *path, int type)
     pthread_mutex_lock(&m_lock_tree);
 
     if (type == LOCK_OPEN)
-        res = bst_insert_dup(lock_tree, hash);
+        res = bst_insert_dup(lock_tree, hash, NULL);
     else
-        res = bst_insert(lock_tree, hash);
+        res = bst_insert(lock_tree, hash, NULL);
 
     pthread_mutex_unlock(&m_lock_tree);
 
@@ -62,16 +62,16 @@ int set_lock(const char *path, int type)
 int remove_lock(const char *path, int type)
 {
     int res;
-    bstdata_t hash = djb2(path, SIZE_MAX);
+    long hash = djb2(path, SIZE_MAX);
 
     if (!lock_tree)
-        lock_tree = bst_init();
+        lock_tree = bst_init(NULL);
 
     hash <<= LOCK_TYPE_BITS;
     hash |= type;
 
     pthread_mutex_lock(&m_lock_tree);
-    res = bst_delete(lock_tree, hash);
+    res = bst_remove(lock_tree, hash, NULL);
     pthread_mutex_unlock(&m_lock_tree);
 
     return res;

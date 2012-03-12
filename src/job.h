@@ -16,9 +16,11 @@
 #define PRIO_LOW_JOBS   (JOB_PUSH | JOB_PULL)
 #define PRIO_HIGH_JOBS  (JOB_UNLINK)
 
-#define JOB_IS_LOW(op)  ((op) & PRIO_LOW_JOBS)
-#define JOB_IS_HIGH(op) ((op) & PRIO_HIGH_JOBS)
-#define JOB_IS_MID(op)  (!(JOB_IS_LOW(op) || JOB_IS_HIGH(op)))
+#define OP_PRIO_LOW(op)  ((op) & PRIO_LOW_JOBS)
+#define OP_PRIO_HIGH(op) ((op) & PRIO_HIGH_JOBS)
+#define OP_PRIO_MID(op)  (!(OP_PRIO_HIGH(op) || OP_PRIO_LOW(op)))
+
+#define OP_PRIO(op) ((OP_PRIO_LOW(op)) ? PRIO_LOW : ((OP_PRIO_HIGH) ? PRIO_HIGH : PRIO_MID))
 
 #define JOB_ANY         ((unsigned int)-1); 
 #define JOB_PULL        (1U << 0)
@@ -44,48 +46,28 @@ struct job
 {
     job_id id;
     job_op op;
-    unsigned int attempts;
     char *path;
+    unsigned int attempts;
     job_param nparam1;
     job_param nparam2;
     char *sparam1;
     char *sparam2;
 };
 
-
 int job_init(void);
 void job_destroy(void);
 
-struct job *job_create(const char *path, job_op op, jobparam_t par1, jobparam_t par2, const char *spar1, const char *spar2);
+int job_store(void);
+
+struct job *job_create(job_op op, const char *path, job_param n1, job_param n2, const char *s1, const char *s2);
+int job_schedule(job_op op, const char *path, job_param n1, job_param n2, const char *s1, const char *s2);
 
 void job_free(void *p);
 void job_free2(void *p);
 
-int job_store(void);
+int job_exists(const char *path, job_op mask);
 
-int job_perform(struct job *j);
-int job_exists(const char *path, int opmask);
-
-int job_delete(const char *path, int opmask);
+int job_delete(const char *path, job_op mask);
 int job_delete_rename_to(const char *path);
-
-int job_rename(const char *from, const char *to);
-
-
-int job(int op, const char *path, jobp_t p1, jobp_t p2, const char *sp1, const char *sp2);
-
-
-int schedule_job(struct job *j);
-int schedule_pp(const char *path, int op);
-#define schedule_push(p) schedule_pp(p, JOB_PUSH)
-#define schedule_pushattr(p) schedule_pp(p, JOB_PUSHATTR)
-#define schedule_pull(p) schedule_pp(p, JOB_PULL)
-#define schedule_pullattr(p) schedule_pp(p, JOB_PULLATTR)
-
-int do_job(struct job *j, int do_remote);
-#define do_job_cache(j) do_job(j, 0)
-#define do_job_remote(j) do_job(j, 1)
-
-int instant_pull(const char *path);
 
 #endif

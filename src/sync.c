@@ -29,7 +29,7 @@
 extern struct options fs2go_options;
 
 /* queue for changed sync entries + mutex */
-static queue sync_queue = QUEUE_INIT;
+static queue *sync_queue;
 static pthread_mutex_t m_sync_queue = PTHREAD_MUTEX_INITIALIZER;
 
 /* yo dawg i herd u like fast lookups so we put some hashtables inside a
@@ -232,6 +232,10 @@ int sync_init(void)
 {
     int res;
 
+    sync_queue = q_init();
+    if (!sync_queue)
+        return -1;
+
     pthread_mutex_lock(&m_sync_ht);
 
     /* initialize dirname ht */
@@ -267,7 +271,7 @@ int sync_store(void)
     do {
         /* dequeue data */
         pthread_mutex_lock(&m_sync_queue);
-        s = q_dequeue(&sync_queue);
+        s = q_dequeue(sync_queue);
         pthread_mutex_unlock(&m_sync_queue);
 
         /* store data in db */
@@ -332,7 +336,7 @@ int sync_set(const char *path)
     /* if ht entry set successfully, add item to update queue */
     if (s) {
         pthread_mutex_lock(&m_sync_queue);
-        q_enqueue(&sync_queue, s);
+        q_enqueue(sync_queue, s);
         pthread_mutex_unlock(&m_sync_queue);
     }
     /* or log error and return -1 */
@@ -395,11 +399,11 @@ int sync_get_stat(const char *path, struct stat *buf)
 
 int sync_rename_dir(const char *from, const char *to)
 {
-    queue q = QUEUE_INIT;           /* queue for hashtables to "rename" */
     hashtable *ht;
     htiter *it;
     char *p, *oldpath, *newpath;
     size_t from_len, to_len;        /* string lengths */
+    queue *q = q_init();           /* queue for hashtables to "rename" */
 
     from_len = strlen(from);
     to_len = strlen(to);
@@ -422,20 +426,20 @@ int sync_rename_dir(const char *from, const char *to)
             oldpath = strdup(p);
             if (!oldpath) {
                 pthread_mutex_unlock(&m_sync_ht);
-                q_clear(&q, 1);
+                q_clear(q, free);
                 free(it);
                 errno = ENOMEM;
                 return -1;
             }
             /* enqueue the copy */
-            q_enqueue(&q, oldpath);
+            q_enqueue(q, oldpath);
         }
     }
 
     free(it);
 
     /* dequeue found keys, remove corresp onding ht and reinsert with renamed key */
-    while ((oldpath = q_dequeue(&q)))
+    while ((oldpath = q_dequeue(q)))
     {
         /* generate new key */
         newpath = join_path2(to, to_len, oldpath+from_len, 0);
@@ -457,8 +461,8 @@ int sync_rename_dir(const char *from, const char *to)
     pthread_mutex_unlock(&m_sync_ht);
 
     /* if q is not empty something terrible happened! */
-    if (!q_empty(&q)) {
-        q_clear(&q, 1);
+    if (!q_empty(q)) {
+        q_clear(q, free);
         return -1;
     }
     return 0;

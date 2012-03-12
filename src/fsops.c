@@ -194,11 +194,11 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
 {
     int res;
     DIR **dirp;
-    bst *tree = bst_init();
+    bst *tree = bst_init(NULL);
 
     size_t dbufsize;
     struct dirent *ent;
-    bstdata_t hash;
+    long hash;
     struct dirent *dbuf;
     struct stat st;
     memset(&st, 0, sizeof st);
@@ -234,17 +234,17 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
             st.st_ino = ent->d_ino;
             st.st_mode = DTTOIF(ent->d_type);
             if (filler(buf, ent->d_name, &st, 0)) {
-                bst_free(tree);
+                bst_free(tree, NULL);
                 free(dbuf);
                 return -ENOMEM;
             }
-            bst_insert(tree, hash);
+            bst_insert(tree, hash, NULL);
         } while ((res = readdir_r(*dirp, dbuf, &ent)) == 0 && ent);
 
         dirp++;
     }
 
-    bst_free(tree);
+    bst_free(tree, NULL);
     free(dbuf);
 
     return -res;

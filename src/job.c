@@ -8,55 +8,102 @@
 
 #include "fs2go.h"
 #include "log.h"
-#include "funcs.h"
 #include "queue.h"
-#include "sync.h"
 #include "db.h"
-#include "lock.h"
-#include "worker.h"
-#include "transfer.h"
-#include "conflict.h"
 
-#include <errno.h>
-#include <unistd.h>
 #include <pthread.h>
 
-#if HAVE_SETXATTR
-#include <attr/xattr.h>
-#endif
+/*=============*/
+/* DEFINITIONS */
+/*=============*/
 
 extern struct options fs2go_options;
 
-static int q_find_job(const void *path, const void *job, void *opmask);
-static int do_job_rename(struct job *j, int do_remote);
+static queue job_queue = QUEUE_INIT;
+pthread_mutex_t m_job_queue = PTHREAD_MUTEX_INITIALIZER;
 
 
-static queue q_low = QUEUE_INIT;
-static queue q_mid = QUEUE_INIT;
-static queue q_high = QUEUE_INIT;
+/*-------------------*/
+/* static prototypes */
+/*-------------------*/
 
-pthread_mutex_t m_q_low = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t m_q_mid = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t m_q_high = PTHREAD_MUTEX_INITIALIZER;
+static job_id job_new_id(void);
 
-void free_job(void *p)
+
+/*==================*/
+/* STATIC FUNCTIONS */
+/*==================*/
+
+static job_id job_new_id(void)
+{
+    static job_id new_id = 1;
+    static pthread_mutex_t m_new_id = PTHREAD_MUTEX_INITIALIZER;
+
+    job_id id;
+
+    pthread_mutex_lock(&m_new_id);
+    id = new_id++;
+    pthread_mutex_unlock(&m_new_id);
+
+    return id;
+}
+
+
+/*====================*/
+/* EXPORTED FUNCTIONS */
+/*====================*/
+
+void job_free(void *p)
 {
     struct job *j = (struct job *)p;
 
-#define FREE(p) { free(p); p = NULL; }
+#define FREE(p) free(p), p = NULL
     FREE(j->path);
     FREE(j->sparam1);
     FREE(j->sparam2);
 #undef FREE
 }
 
-void free_job2(void *p)
+void job_free2(void *p)
 {
     free_job(p);
     free(p);
 }
 
-/* ====== STORE JOBS IN DB ====== */
+struct job *job_create(job_op op, const char *path, job_param n1, job_param n2, const char *s1, const char *s2)
+{
+    struct job *j = malloc(sizeof (struct job));
+
+    if (j) {
+        j->path = strdup(path);
+        j->sparam1 = (s1) ? strdup(s1) : NULL;
+        j->sparam2 = (s2) ? strdup(s2) : NULL;
+
+        /* if any strdup() failed, free alloc'd memory and return NULL */
+        if (!j->path || (s1 && !j->sparam1) || (s2 && !j->sparam2)) {
+            free(j->path), free(j->sparam1), free(j->sparam2);
+            free(j);
+            return NULL;
+        }
+
+        j->id = job_new_id();
+        j->op = op;
+        j->nparam1 = n1;
+        j->nparam2 = n2;
+    }
+
+    return j;
+}
+
+int job_schedule(job_op op, const char *path, job_param n1, job_param n2, const char *s1, const char *s2)
+{
+    int prio;
+    struct job *j = job_create(op, path, n1, n2, s1, s2);
+
+    prio = OP_PRIO(op);
+}
+
+/* store jobs in db */
 int job_store(void)
 {
     struct job *j;
@@ -76,155 +123,3 @@ int job_store(void)
 
     return 0;
 }
-
-
-/* may not be called with JOB_PUSH or JOB_PULL, these should be scheduled */
-int job(int op, const char *path, job_param p1, jobp_t p2, const char *sp1, const char *sp2)
-{
-    int res;
-    struct job *j;
-
-    if (op == JOB_PUSH || op == JOB_PULL) {
-        return schedule_pp(path, op);
-    }
-
-    j = malloc(sizeof (struct job));
-    if (!j) {
-        errno = ENOMEM;
-        return -1;
-    }
-    JOB_INIT(j);
-
-    j->op = op;
-    j->param1 = p1;
-    j->param2 = p2;
-
-    if (!path || strcmp(path, "") == 0)
-        FATAL("calling job() without path?\n");
-
-    STRDUP(j->path, path);
-
-    if (sp1) {
-        STRDUP(j->sparam1, sp1);
-    }
-    if (sp2) {
-        STRDUP(j->sparam2, sp2);
-    }
-
-    if (ONLINE) {
-        /* if the target is currently being transferred, rename and unlink must be treated differently */
-        if (has_lock(j->path, LOCK_TRANSFER)) {
-            switch (j->op) {
-                case JOB_RENAME:
-                    /* change transfer destination */
-
-                case JOB_UNLINK:
-                    /* abort transfer */
-                    transfer_abort();
-                    remove_lock(j->path, LOCK_TRANSFER);
-                    delete_jobs(j->path, JOB_PUSH | JOB_PULL);
-                    /* execute job and ignore return value */
-                    do_job_cache(j);
-                    do_job_remote(j);
-                    free_job2(j);
-                    return 0;
-            }
-        }
-        res = do_job_cache(j);
-        res = do_job_remote(j);
-        free_job2(j);
-    }
-    else {
-        res = do_job_cache(j);
-        res = schedule_job(j);
-    }
-
-    return res;
-}
-
-int job_do_unlink(const char *path)
-{
-    int res, sync;
-    char *pr;
-
-    pr = remote_path(path, strlen(path));
-            if (do_remote) {
-                sync = sync_get(j->path);
-
-                /* this would be a conflict! don't delete but pull */
-                if (sync == SYNC_MOD) {
-                    schedule_pull(j->path);
-                    return 0;
-                }
-                else if (sync == SYNC_NOT_FOUND) {
-                    db_delete_path(j->path);
-                    return 0;
-                }
-                else {
-                    db_delete_path(j->path);
-                    res = unlink(path);
-                    delete_jobs(j->path, JOB_PULL);
-                    free(path);
-                    return res;
-                }
-            }
-            else {
-                res = unlink(path);
-                delete_jobs(j->path, JOB_PUSH);
-            }
-}
-
-int do_job(struct job *j, int do_remote)
-{
-    int res;
-    char *path;
-    int sync;
-
-    path = (do_remote) ? remote_path(j->path, strlen(j->path)) : cache_path(j->path, strlen(j->path));
-
-    switch (j->op) {
-        case JOB_RENAME:
-            if (!j->sparam1)
-                return -1;
-            res = do_job_rename(j, do_remote);
-            break;
-
-        case JOB_UNLINK:
-            break;
-
-        case JOB_SYMLINK:
-            res = symlink(j->sparam1, path);
-            break;
-
-        case JOB_MKDIR:
-            res = mkdir(path, (mode_t)j->param1);
-            break;
-
-        case JOB_RMDIR:
-            res = rmdir(path);
-            break;
-
-        case JOB_CHMOD:
-            if (!do_remote || !(fs2go_options.copyattr & COPYATTR_NO_MODE))
-                res = chmod(path, (mode_t)j->param1);
-            else
-                res = 0;
-            break;
-
-        case JOB_CHOWN:
-
-    }
-
-    /* ignore ENOENT error when performing remote job.
-       (mode and ownership will be set after transfer is finished */
-    if (do_remote && res && errno == ENOENT)
-        res = 0;
-
-    if (do_remote && !res && !has_job(j->path, JOB_ANY)) {
-        sync_set(j->path);
-    }
-
-    free(path);
-    return res;
-}
-

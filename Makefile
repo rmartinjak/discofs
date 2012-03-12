@@ -4,7 +4,7 @@ SRCDIR=src
 OBJDIR=obj
 SUBOBJDIR=$(OBJDIR)/sub
 
-_OBJ = fs2go funcs paths sync job conflict worker transfer db log lock fsops debugops queue bst
+_OBJ = fs2go funcs paths sync job conflict worker transfer db log lock fsops debugops 
 OBJ = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(_OBJ)))
 
 SUBMODULES = datastructs
@@ -27,7 +27,7 @@ $(SUBOBJDIR) : $(OBJDIR)
 	@mkdir $(SUBOBJDIR)
 
 $(OBJDIR)/datastructs.a :
-	@make $(MAKEFLAGS) -C $(SRCDIR)/datastructs DESTDIR=$(realpath $(OBJDIR)) options archive
+	@make $(MAKEFLAGS) -C $(SRCDIR)/datastructs DESTDIR=$(realpath $(OBJDIR)) archive
 
 $(OBJDIR)/%.o : $(SRCDIR)/%.c
 	@echo CC -c $<
