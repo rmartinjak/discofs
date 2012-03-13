@@ -7,29 +7,43 @@
 #include "remoteops.h"
 
 #include "fs2go.h"
+#include "sync.h"
+#include "lock.h"
+#include "conflict.h"
+#include "transfer.h"
+#include "funcs.h"
 
+#include <errno.h>
 #include <unistd.h>
+#include <sys/types.h>
+#if HAVE_SETXATTR
+#include <attr/xattr.h>
+#endif
 
 extern struct options fs2go_options;
 
 int remoteop_rename(const char *from, const char *to)
 {
     int res;
+    int sync, keep;
     char *pf, *pt;
 
-    pf = remote_path(from, strlen(from));
-    pt = remote_path(to, strlen(to));
-    if (!pf || !pt) {
+    pf = remote_path(from);
+    pt = remote_path(to);
+    if (!pf || !pt)
+    {
         free(pf), free(pt);
         return -EIO;
     }
 
     /* abort eventual transfering of "to" */
-    if (has_lock(to, LOCK_TRANSFER)) {
+    if (has_lock(to, LOCK_TRANSFER))
+    {
         transfer_abort();
     }
     /* rename transfer if "from" is being transfered */
-    else if (has_lock(from, LOCK_TRANSFER)) {
+    else if (has_lock(from, LOCK_TRANSFER))
+    {
 
         transfer_rename(to, 1);
 
@@ -39,17 +53,21 @@ int remoteop_rename(const char *from, const char *to)
     }
 
     /* renaming a dir -> rename transfer if "inside" that dir */
-    else if (from_is_dir) {
+    else if (is_dir(pf))
+    {
         transfer_rename_dir(from, to);
     }
     /* renaming a file -> check for conflict */
-    else {
+    else
+    {
         sync = sync_get(to);
         /* target new/modified -> conflict! */
-        if (sync & (SYNC_NEW | SYNC_MOD)) {
+        if (sync & (SYNC_NEW | SYNC_MOD))
+        {
             conflict_handle(to, JOB_RENAME, &keep);
-            if (keep == CONFLICT_KEEP_REMOTE) {
-                char *pt_alt pt_alt = conflict_path(pt);
+            if (keep == CONFLICT_KEEP_REMOTE)
+            {
+                char *pt_alt = conflict_path(pt);
                 free(pt);
                 pt = pt_alt;
             }
@@ -57,7 +75,8 @@ int remoteop_rename(const char *from, const char *to)
     }
 
     /* do the actual renaming */
-    if (pt) {
+    if (pt)
+    {
         res = rename(pf, pt);
         free(pf);
         free(pt);
@@ -65,7 +84,8 @@ int remoteop_rename(const char *from, const char *to)
     /* pt is NULL if a conflict occured, the remote file is kept
        and no backup prefix/suffix was set. this means the file/dir 
        should be removed, not renamed */
-    else {
+    else
+    {
         /* one of those will work */
         unlink(pf);
         rmdir(pf);
@@ -76,9 +96,6 @@ int remoteop_rename(const char *from, const char *to)
     if (res)
         return -errno;
 
-    if (!job_exists(to, JOB_ANY))
-        sync_set(to);
-
     return 0;
 }
 
@@ -87,7 +104,8 @@ int remoteop_unlink(const char *path)
     int res, sync;
     char *p;
 
-    if (has_lock(path, LOCK_TRANSFER)) {
+    if (has_lock(path, LOCK_TRANSFER))
+    {
         transfer_abort();
         remove_lock(path, LOCK_TRANSFER);
     }
@@ -99,15 +117,16 @@ int remoteop_unlink(const char *path)
     sync = sync_get(path);
 
     /* this would be a conflict! don't delete but pull */
-    if (sync == SYNC_MOD) {
-        schedule_pull(path);
+    if (sync == SYNC_MOD)
+    {
+        job_schedule_pull(path);
         return 0;
     }
 
-    db_delete_path(path);
-    sync_delete_file(path):
+    sync_delete_file(path);
 
-    if (sync == SYNC_NOT_FOUND) {
+    if (sync == SYNC_NOT_FOUND)
+    {
         return 0;
     }
 
@@ -132,14 +151,11 @@ int remoteop_symlink(const char *to, const char *path)
     if (!p)
         return -EIO;
 
-    res = symlink(to, path);
+    res = symlink(to, p);
     free(p);
 
     if (res)
         return -errno;
-
-    if (!job_exists(path, JOB_ANY))
-        sync_set(path);
 
     return 0;
 }
@@ -164,9 +180,6 @@ int remoteop_mkdir(const char *path, mode_t mode)
     if (res)
         return -errno;
 
-    if (!job_exists(path, JOB_ANY))
-        sync_set(path);
-
     return 0;
 }
 
@@ -182,7 +195,8 @@ int remoteop_rmdir(const char *path)
     res = rmdir(p);
     free(p);
 
-    if (res) {
+    if (res)
+    {
         /* ignore ENOENT */
         if (errno == ENOENT) return 0;
 
@@ -196,11 +210,6 @@ int remoteop_chown(const char *path, uid_t uid, gid_t gid)
 {
     int res;
     char *p;
-    uid_t uid;
-    gid_t gid;
-
-    uid_t uid = j->param1;
-    gid_t gid = j->param2;
 
     if (fs2go_options.copyattr & COPYATTR_NO_OWNER)
         uid = -1;
@@ -210,7 +219,7 @@ int remoteop_chown(const char *path, uid_t uid, gid_t gid)
     if (uid == -1 && gid == -1)
         return 0;
 
-    p = remote_path(p);
+    p = remote_path(path);
     if (!p)
         return -EIO;
 
@@ -219,9 +228,6 @@ int remoteop_chown(const char *path, uid_t uid, gid_t gid)
 
     if (res)
         return -errno;
-
-    if (!job_exists(path, JOB_ANY))
-        sync_set(path);
 
     return 0;
 }
@@ -238,14 +244,11 @@ int remoteop_chmod(const char *path, mode_t mode)
     if (!p)
         return -EIO;
 
-    res = lchmod(p)
+    res = lchmod(p, mode);
     free (p);
 
     if (res)
         return -errno;
-
-    if (!job_exists(path, JOB_ANY))
-        sync_set(path);
 
     return 0;
 }
@@ -265,13 +268,10 @@ int remoteop_setxattr(const char *path, const char *name, const char *value,
         return -EIO;
 
     res = lsetxattr(p, name, value, size, flags);
-    free(p)
+    free(p);
 
     if (res)
         return -errno;
-
-    if (!job_exists(path, JOB_ANY))
-        sync_set(path);
 
     return 0;
 }

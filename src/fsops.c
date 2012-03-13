@@ -7,11 +7,11 @@
 #include "fsops.h"
 
 #include "fs2go.h"
+#include "remoteops.h"
 #include "log.h"
 #include "funcs.h"
 #include "sync.h"
 #include "job.h"
-#include "db.h"
 #include "lock.h"
 #include "worker.h"
 #include "transfer.h"
@@ -73,7 +73,8 @@ int op_getattr(const char *path, struct stat *buf)
     err = errno;
     free(p);
 
-    if (res == -1 && ONLINE) {
+    if (res == -1 && ONLINE)
+    {
         p = remote_path2(path, p_len);
         res = lstat(p, buf);
         free(p);
@@ -104,21 +105,25 @@ int op_access(const char *path, int mode)
     pc = cache_path2(path, p_len);
     pr = remote_path2(path, p_len);
 
-    if (ONLINE && !has_lock(path, LOCK_OPEN) && strcmp(path, "/") != 0) {
+    if (ONLINE && !has_lock(path, LOCK_OPEN) && strcmp(path, "/") != 0)
+    {
         p = pr;
 
         /* doesn't exit remote: */
-        if (sync_get(path) == SYNC_NOT_FOUND) {
-            if (has_lock(path, LOCK_TRANSFER) || has_job(path, JOB_PUSH))
+        if (sync_get(path) == SYNC_NOT_FOUND)
+        {
+            if (has_lock(path, LOCK_TRANSFER) || job_exists(path, JOB_PUSH))
                 p = pc;
-            else {
+            else
+            {
                 free(pc);
                 free(pr);
                 return -ENOENT;
             }
         }
     }
-    else {
+    else
+    {
         p = pc;
     }
 
@@ -162,14 +167,17 @@ int op_opendir(const char *path, struct fuse_file_info *fi)
 
     /* open cache dir */
     p = cache_path2(path, p_len);
-    if ((*d = opendir(p)) == NULL) {
-        if (errno == ENOENT && ONLINE) {
+    if ((*d = opendir(p)) == NULL)
+    {
+        if (errno == ENOENT && ONLINE)
+        {
             p2 = remote_path2(path, p_len);
             clone_dir(p2, p);
             free(p2);
             *d = opendir(p);
         }
-        else {
+        else
+        {
             free(p);
             return -errno;
         }
@@ -177,12 +185,14 @@ int op_opendir(const char *path, struct fuse_file_info *fi)
     free(p);
 
     d++;
-    if (ONLINE) {
+    if (ONLINE)
+    {
         p = remote_path2(path, p_len);
         *d = opendir(p);
         free(p);
     }
-    else {
+    else
+    {
         *d = NULL;
     }
 
@@ -216,7 +226,8 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
         return -res;
 
     int n = 2;
-    while (n-- && *dirp) {
+    while (n-- && *dirp)
+    {
         do {
             if (!ent)
                 continue;
@@ -233,13 +244,16 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
             memset(&st, 0, sizeof st);
             st.st_ino = ent->d_ino;
             st.st_mode = DTTOIF(ent->d_type);
-            if (filler(buf, ent->d_name, &st, 0)) {
+
+            if (filler(buf, ent->d_name, &st, 0))
+            {
                 bst_free(tree, NULL);
                 free(dbuf);
                 return -ENOMEM;
             }
             bst_insert(tree, hash, NULL);
-        } while ((res = readdir_r(*dirp, dbuf, &ent)) == 0 && ent);
+        }
+        while ((res = readdir_r(*dirp, dbuf, &ent)) == 0 && ent);
 
         dirp++;
     }
@@ -263,7 +277,8 @@ int op_mknod(const char *path, mode_t mode, dev_t rdev)
         return -errno;
     free(p);
 
-    if (ONLINE) {
+    if (ONLINE)
+    {
         p = remote_path2(path, p_len);
         res = mknod(p, mode, rdev);
         free(p);
@@ -271,8 +286,9 @@ int op_mknod(const char *path, mode_t mode, dev_t rdev)
             return -errno;
         sync_set(path);
     }
-    else {
-        schedule_push(path);
+    else
+    {
+        job_schedule_push(path);
     }
 
     return res;
@@ -296,10 +312,14 @@ int op_mkdir(const char *path, mode_t mode)
 
     sync_delete_dir(path);
 
-    if (ONLINE) {
+    if (ONLINE)
+    {
         res = remoteop_rmdir(path);
+        if (!res)
+            sync_set(path);
     }
-    else {
+    else
+    {
         if (job_schedule(JOB_MKDIR, path, mode, 0, NULL, NULL))
             return -EIO;
     }
@@ -325,10 +345,12 @@ int op_rmdir(const char *path)
 
     sync_delete_dir(path);
 
-    if (ONLINE) {
+    if (ONLINE)
+    {
         res = remoteop_rmdir(path);
     }
-    else {
+    else
+    {
         if (job_schedule(JOB_RMDIR, path, 0, 0, NULL, NULL))
             return -EIO;
     }
@@ -357,11 +379,13 @@ int op_unlink(const char *path)
 
     sync_delete_file(path);
 
-    if (ONLINE) {
+    if (ONLINE)
+    {
         res = remoteop_unlink(path);
     }
-    else {
-        if (!job_schedule(JOB_UNLINK, path, 0, 0, NULL, NULL))
+    else
+    {
+        if (job_schedule(JOB_UNLINK, path, 0, 0, NULL, NULL))
             return -EIO;
     }
 
@@ -383,11 +407,15 @@ int op_symlink(const char *to, const char *path)
     if (res)
         return -errno;
     
-    if (ONLINE) {
-        res = remoteop_symlink(path);
+    if (ONLINE)
+    {
+        res = remoteop_symlink(to, path);
+        if (!res)
+            sync_set(path);
     }
-    else {
-        if (job_schedule(from, JOB_SYMLINK, 0, 0, to, NULL))
+    else
+    {
+        if (job_schedule(JOB_SYMLINK, path, 0, 0, to, NULL))
             return -EIO;
     }
 
@@ -403,18 +431,18 @@ int op_link(const char *to, const char *path)
 
 int op_rename(const char *from, const char *to)
 {
-    int res = 0
+    int res = 0;
     char *pf, *pt;
     size_t len_from, len_to;
     int from_is_dir, to_is_dir;
-    int sync, keep;
 
     len_from = strlen(from);
     len_to = strlen(to);
 
-    pf = cache_path(from, len_from);
-    pt = cache_path(to, len_to);
-    if (!pf || !pt) {
+    pf = cache_path2(from, len_from);
+    pt = cache_path2(to, len_to);
+    if (!pf || !pt)
+    {
         free(pf), free(pt);
         return -EIO;
     }
@@ -430,36 +458,31 @@ int op_rename(const char *from, const char *to)
     free(pt);
 
     /* error occured, return it */
-    if (res) {
+    if (res)
+    {
         return -errno;
     }
 
-    /*------*/
-    /* jobs */
-    /*------*/
+    /*---------------------------*/
+    /* delete/rename sync & jobs */
+    /*---------------------------*/
 
-    /* delete all pending jobs for "to" */
     job_delete(to, JOB_ANY);
 
-    /* rename jobs */
-    job_rename(from, to);
-
-
-    /*------*/
-    /* sync */
-    /*------*/
-
-    /* delete syncs for/matching "to" */
-    if (to_is_dir)
-        sync_delete_dir(to);
-    else
-        sync_delete_file(to);
-
-    /* rename sync entry/ies */
     if (from_is_dir)
+    {
+        job_rename_dir(from, to);
+
+        sync_delete_dir(to);
         sync_rename_dir(from, to);
+    }
     else
+    {
+        job_rename_file(from, to);
+
+        sync_delete_file(to);
         sync_rename_file(from, to);
+    }
 
 
     /*------*/
@@ -467,7 +490,8 @@ int op_rename(const char *from, const char *to)
     /*------*/
 
     /* "rename" all OPEN locks */
-    while (has_lock(from, LOCK_OPEN)) {
+    while (has_lock(from, LOCK_OPEN))
+    {
         remove_lock(from, LOCK_OPEN);
         set_lock(to, LOCK_OPEN);
     }
@@ -477,11 +501,15 @@ int op_rename(const char *from, const char *to)
     /* rename on remote */
     /*------------------*/
 
-    if (ONLINE) {
+    if (ONLINE)
+    {
         res = remoteop_rename(from, to);
+        if (!res)
+            sync_set(to);
     }
-    else {
-        if (!job_schedule(JOB_RENAME, from, 0, 0, to, NULL))
+    else
+    {
+        if (job_schedule(JOB_RENAME, from, 0, 0, to, NULL))
             return -EIO;
     }
 
@@ -522,25 +550,31 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
 
     FH_FLAGS(fh) = 0;
 
-    if (ONLINE && !has_lock(path, LOCK_OPEN)) {
+    if (ONLINE && !has_lock(path, LOCK_OPEN))
+    {
         sync = sync_get(path);
 
-        if (sync == -1) {
+        if (sync == -1)
+        {
             free(fh);
             return -EIO;
         }
 
-        if (has_job(path, JOB_PULL)) {
+        if (job_exists(path, JOB_PULL))
+        {
+            /* wait until current instant_pull finished */
             pthread_mutex_lock(&m_instant_pull);
             pthread_mutex_unlock(&m_instant_pull);
-            db_delete_jobs(path, JOB_PULL);
+
+            job_delete(path, JOB_PULL);
 
             if (has_lock(path, LOCK_TRANSFER))
                 transfer_abort();
 
             transfer_instant_pull(path);
         }
-        else if (sync == SYNC_NEW || sync == SYNC_MOD) {
+        else if (sync == SYNC_NEW || sync == SYNC_MOD)
+        {
             /* wait until eventually running instant_pull is finished */
             pthread_mutex_lock(&m_instant_pull);
             pthread_mutex_unlock(&m_instant_pull);
@@ -551,10 +585,12 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
             if (sync == SYNC_NEW || sync == SYNC_MOD)
                 transfer_instant_pull(path);
         }
-        else if (sync == SYNC_CHG) {
+        else if (sync == SYNC_CHG)
+        {
             pc = cache_path2(path, p_len);
             pr = remote_path2(path, p_len);
-            if (!pc || !pr) {
+            if (!pc || !pr)
+            {
                 free(pr), free(pc);
                 return -EIO; 
             }
@@ -573,15 +609,17 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
 
     if (op == OP_OPEN)
         FH_FD(fh) = open(pc, fi->flags);
-    else {
+    else
+    {
         FH_FD(fh) = open(pc, O_WRONLY|O_CREAT|O_TRUNC, mode);
-        schedule_push(path);
+        job_schedule_push(path);
     }
 
     free(pc);
 
     /* open() failed */
-    if (FH_FD(fh) == -1) {
+    if (FH_FD(fh) == -1)
+    {
         free(fh);
         return -errno;
     }
@@ -618,8 +656,9 @@ int op_release(const char *path, struct fuse_file_info *fi)
     res = close(FI_FD(fi));
 
     /* file written -> schedule push */
-    if (FI_FLAGS(fi) & FH_WRITTEN) {
-        schedule_push(path);
+    if (FI_FLAGS(fi) & FH_WRITTEN)
+    {
+        job_schedule_push(path);
     }
     free((int*)fi->fh);
     return res;
@@ -693,9 +732,12 @@ int op_truncate(const char *path, off_t size)
     if (res == -1)
         return -errno;
 
-    if (ONLINE) {
-        if (!has_lock(path, LOCK_OPEN)) {
-            if (has_lock(path, LOCK_TRANSFER)) {
+    if (ONLINE)
+    {
+        if (!has_lock(path, LOCK_OPEN))
+        {
+            if (has_lock(path, LOCK_TRANSFER))
+            {
                 transfer_abort();
                 remove_lock(path, LOCK_TRANSFER);
             }
@@ -703,12 +745,13 @@ int op_truncate(const char *path, off_t size)
             p = remote_path2(path, p_len);
             res = truncate(p, size);
             free(p);
-            if (res == -1 && !has_job(path, JOB_PUSH))
+            if (res == -1 && !job_exists(path, JOB_PUSH))
                 return -errno;
         }
     }
-    else {
-        schedule_push(path);
+    else
+    {
+        job_schedule_push(path);
     }
 
     return 0;
@@ -726,11 +769,15 @@ int op_chown(const char *path, uid_t uid, gid_t gid)
     if (res)
         return -errno;
 
-    if (ONLINE) {
+    if (ONLINE)
+    {
         res = remoteop_chown(path, uid, gid);
+        if (!res)
+            sync_set(path);
     }
-    else {
-        if (!job_schedule(JOB_CHOWN, path, uid, gid, NULL, NULL))
+    else
+    {
+        if (job_schedule(JOB_CHOWN, path, uid, gid, NULL, NULL))
             return -EIO;
     }
 
@@ -749,11 +796,15 @@ int op_chmod(const char *path, mode_t mode)
     if (res)
         return -errno;
 
-    if (ONLINE) {
+    if (ONLINE)
+    {
         res = remoteop_chmod(path, mode);
+        if (!res)
+            sync_set(path);
     }
-    else {
-        if (!job_schedule(JOB_CHMOD, path, mode, 0, NULL, NULL))
+    else
+    {
+        if (job_schedule(JOB_CHMOD, path, mode, 0, NULL, NULL))
             return -EIO;
     }
 
@@ -772,7 +823,8 @@ int op_utimens(const char *path, const struct timespec ts[2])
     if (res == -1)
         return -errno;
 
-    if (ONLINE) {
+    if (ONLINE)
+    {
         p = remote_path2(path, p_len);
         utimensat(-1, p, ts, AT_SYMLINK_NOFOLLOW);
         free(p);
@@ -798,11 +850,35 @@ int op_statfs(const char *path, struct statvfs *buf)
 #if HAVE_SETXATTR
 int op_setxattr(const char *path, const char *name, const char *value, size_t size, int flags)
 {
+    int res;
+    char *p;
 
     if (!(fs2go_options.fs_features & FEAT_XATTR))
         return -ENOTSUP;
 
-    return job(JOB_SETXATTR, path, (jobp_t)size, (jobp_t)flags, name, value);
+    p = cache_path(path);
+    if (!p)
+        return -EIO;
+
+    res = lsetxattr(p, name, value, size, flags);
+    free(p);
+
+    if (res)
+        return -errno;
+
+    if (ONLINE)
+    {
+        res = remoteop_setxattr(path, name, value, size, flags);
+        if (!res)
+            sync_set(path);
+    }
+    else
+    {
+        if (job_schedule(JOB_SETXATTR, path, size, flags, name, value))
+            return -EIO;
+    }
+
+    return res;
 }
 
 int op_getxattr(const char *path, const char *name, char *value, size_t size)

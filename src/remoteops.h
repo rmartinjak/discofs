@@ -6,6 +6,8 @@
 #ifndef FS2GO_REMOTEOPS_H
 #define FS2GO_REMOTEOPS_H
 
+#include "config.h"
+
 #include <stddef.h>
 #include <sys/types.h>
 

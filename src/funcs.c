@@ -71,7 +71,8 @@ char *join_path2(const char *p1, size_t n1, const char *p2, size_t n2)
         *(++p) = '/';
 
     /* ignore leading '/' of p2 */
-    if (*p2 == '/') {
+    if (*p2 == '/')
+    {
         p2++;
         n2--;
     }
@@ -84,7 +85,8 @@ char *join_path2(const char *p1, size_t n1, const char *p2, size_t n2)
 #if HAVE_UTIMENSAT && HAVE_CLOCK_GETTIME
 int timecmp(struct timespec t1, struct timespec t2)
 {
-    if (t1.tv_sec == t2.tv_sec) {
+    if (t1.tv_sec == t2.tv_sec)
+    {
         if (!(fs2go_options.fs_features & FEAT_NS) || t1.tv_nsec == t2.tv_nsec)
             return 0;
         else if (t1.tv_nsec > t2.tv_nsec)
@@ -151,7 +153,8 @@ int is_running(const char *pidfile)
         return 1;
 
     f = fopen(pidfile, "r");
-    if (!f) {
+    if (!f)
+    {
         ERROR("cannot open pid file %s", pidfile);
         PERROR("");
         return 0;
@@ -160,7 +163,8 @@ int is_running(const char *pidfile)
     fclose(f);
 
     pid = (pid_t)strtol(line, &endptr, 10);
-    if (*line == '\0' || (*endptr != '\0' && *endptr != '\n')) {
+    if (*line == '\0' || (*endptr != '\0' && *endptr != '\n'))
+    {
         ERROR("failed getting pid from file %s\n", pidfile);
         return 0;
     }
@@ -178,8 +182,10 @@ int is_mounted(const char *mpoint)
     if (!f)
         return 0;
 
-    while ((mt = getmntent(f)) != NULL) {
-        if (!strcmp(mpoint, mt->mnt_dir)) {
+    while ((mt = getmntent(f)) != NULL)
+    {
+        if (!strcmp(mpoint, mt->mnt_dir))
+        {
             endmntent(f);
             return 1;
         }
@@ -200,13 +206,15 @@ int is_reachable(const char *host)
 
     pid = fork();
 
-    if (pid == 0) {
+    if (pid == 0)
+    {
         close(1);
         close(2);
         execlp("ping", "ping", "-c", PING_COUNT, "-i", PING_INTERVAL, "-w", PING_DEADLINE, host, NULL);
     }
 
-    else {
+    else
+    {
         waitpid(pid, &status, 0);
         res = WEXITSTATUS(status);
     }
@@ -236,7 +244,8 @@ int copy_rec(const char *from, const char *to)
         return -1;
 
     dirp = opendir(from);
-    if (!dirp) {
+    if (!dirp)
+    {
         return -1;
     }
     bufsize = dirent_buf_size(dirp);
@@ -246,7 +255,8 @@ int copy_rec(const char *from, const char *to)
     to_len = strlen(to);
 
     DEBUG("calling readdir_r()\n");
-    while((res = readdir_r(dirp, buf, &ent)) == 0 && ent) {
+    while((res = readdir_r(dirp, buf, &ent)) == 0 && ent)
+    {
         if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0)
             continue;
 
@@ -257,14 +267,16 @@ int copy_rec(const char *from, const char *to)
 
         subfrom = join_path2(from, from_len, ent->d_name, d_len);
         subto = join_path2(to, to_len, ent->d_name, d_len);
-        if (S_ISDIR(st.st_mode)) {
+        if (S_ISDIR(st.st_mode))
+        {
             res2 = copy_rec(subfrom, subto);
             free(subfrom);
             free(subto);
             if (res2 == -1)
                 return -1;
         }
-        else {
+        else
+        {
             res2 = copy_file(subfrom, subto);
             free(subfrom);
             free(subto);
@@ -273,7 +285,8 @@ int copy_rec(const char *from, const char *to)
         }
     }
     closedir(dirp);
-    if (res) {
+    if (res)
+    {
         errno = res;
         return -1;
     }
@@ -299,7 +312,8 @@ int copy_symlink(const char *from, const char *to)
 
     *(buf + bufsz) = '\0';
 
-    if (readlink(from, buf, bufsz) != bufsz) {
+    if (readlink(from, buf, bufsz) != bufsz)
+    {
         free(buf);
         return -1;
     }
@@ -317,31 +331,37 @@ int copy_file(const char *from, const char *to)
         return -1;
 
     /* SYMLINK */
-    if (S_ISLNK(st.st_mode)) {
+    if (S_ISLNK(st.st_mode))
+    {
         if (copy_symlink(from, to) == -1)
             return -1;
     }
     /* REGULAR FILE */
-    else if (S_ISREG(st.st_mode)) {
+    else if (S_ISREG(st.st_mode))
+    {
         char buf[TRANSFER_SIZE];
         int fdread, fdwrite;
         /* open source file for reading */
         fdread = open(from, O_RDONLY);
 
-        if (fdread == -1) {
+        if (fdread == -1)
+        {
             return -1;
         }
 
         /* open target file for writing */
         fdwrite = open(to, O_WRONLY|O_CREAT|O_TRUNC, 0666);
 
-        if (fdwrite == -1) {
+        if (fdwrite == -1)
+        {
             close(fdread);
             return -1;
         }
 
-        while ((res = read(fdread, buf, sizeof buf)) > 0) {
-            if (write(fdwrite, buf, res) < 0) {
+        while ((res = read(fdread, buf, sizeof buf)) > 0)
+        {
+            if (write(fdwrite, buf, res) < 0)
+            {
                 close(fdread);
                 close(fdwrite);
                 return -1;
@@ -354,7 +374,8 @@ int copy_file(const char *from, const char *to)
             return -1;
     }
     /* everythin else is not supported */
-    else {
+    else
+    {
         errno = ENOTSUP;
         return -1;
     }
@@ -372,23 +393,27 @@ int copy_attrs(const char *from, const char *to)
     if (lstat(from, &st) == -1)
         return -1;
 
-    if (!(fs2go_options.copyattr & COPYATTR_NO_MODE)) {
+    if (!(fs2go_options.copyattr & COPYATTR_NO_MODE))
+    {
         if (chmod(to, st.st_mode) == -1)
             log_error("copy_attrs: setting mode failed");
     }
 
-    if (!(fs2go_options.copyattr & COPYATTR_NO_OWNER)) {
+    if (!(fs2go_options.copyattr & COPYATTR_NO_OWNER))
+    {
         if (lchown(to, st.st_uid, (gid_t)-1) == -1)
             log_error("copy_attrs: setting owner failed");
     }
 
-    if (!(fs2go_options.copyattr & COPYATTR_NO_GROUP)) {
+    if (!(fs2go_options.copyattr & COPYATTR_NO_GROUP))
+    {
         if (lchown(to, (uid_t)-1, st.st_gid) == -1)
             log_error("copy_attrs: setting group failed");
     }
 
 #if HAVE_SETXATTR
-    if ((fs2go_options.fs_features & FEAT_XATTR) && !(fs2go_options.copyattr & COPYATTR_NO_XATTR)) {
+    if ((fs2go_options.fs_features & FEAT_XATTR) && !(fs2go_options.copyattr & COPYATTR_NO_XATTR))
+    {
         if (copy_xattrs(from, to) == -1)
             log_error("copy_attrs: copy_xattrs failed");
     }
@@ -431,7 +456,8 @@ int copy_xattrs(const char *from, const char *to)
         return -1;
 
 
-    if (llistxattr(from, attrlist, bufsz) == -1) {
+    if (llistxattr(from, attrlist, bufsz) == -1)
+    {
         free(attrlist);
         return -1;
     }
@@ -439,13 +465,15 @@ int copy_xattrs(const char *from, const char *to)
     /* determine number of attrs */
     nattr = 0;
     p = attrlist;
-    while (bufsz--) {
+    while (bufsz--)
+    {
         if (*(p++) == '\0')
             ++nattr;
     }
 
     p = attrlist;
-    while (nattr--) {
+    while (nattr--)
+    {
         valsz = lgetxattr(from, p, NULL, 0);
         if (valsz == -1)
             return -1;
@@ -473,7 +501,8 @@ int is_nonexist(const char *path)
 {
     struct stat st;
 
-    if (lstat(path, &st) == -1 && errno == ENOENT) {
+    if (lstat(path, &st) == -1 && errno == ENOENT)
+    {
         return 1;
     }
     return 0;
@@ -563,12 +592,14 @@ char *dirname_r(const char *path)
         return NULL;
 
     p = strrchr(out, '/');
-    if (*(p+1) == '\0') {
+    if (*(p+1) == '\0')
+    {
         do
             p--;
         while (p > out && *p != '/');
     }
-    if (p) {
+    if (p)
+    {
         if (p == out)
             p++;
         *p = '\0';
@@ -589,7 +620,8 @@ char *basename_r(const char *path)
         return NULL;
 
     p = strrchr(copy, '/');
-    if (p) {
+    if (p)
+    {
         out = strdup(++p);
         free(copy);
     }
@@ -609,12 +641,14 @@ int mkdir_rec(const char *path)
 
     p = strdup(path);
 
-    if (!p) {
+    if (!p)
+    {
         errno = ENOMEM;
         return -1;
     }
 
-    while (stat(p, &st) == -1) {
+    while (stat(p, &st) == -1)
+    {
         ptmp = dirname_r(p);
         free(p);
         p = ptmp;
@@ -625,20 +659,24 @@ int mkdir_rec(const char *path)
     if (!n)
         return 0;
 
-    while (n--) {
+    while (n--)
+    {
         i = n;
         p = strdup(path);
-        if (!p) {
+        if (!p)
+        {
             errno = ENOMEM;
             return -1;
         }
 
-        while (i--) {
+        while (i--)
+        {
             ptmp = dirname_r(p);
             free(p);
             p = ptmp;
         }
-        if (mkdir(p, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != 0) {
+        if (mkdir(p, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != 0)
+        {
             free(p);
             return -1;
         }
@@ -660,32 +698,38 @@ int rmdir_rec(const char *path)
     struct stat st;
 
     dirp = opendir(path);
-    if (!dirp) {
+    if (!dirp)
+    {
         return -1;
     }
     dbufsize = dirent_buf_size(dirp);
     dbuf = malloc(dbufsize);
 
-    while((res = readdir_r(dirp, dbuf, &ent)) == 0 && ent) {
+    while((res = readdir_r(dirp, dbuf, &ent)) == 0 && ent)
+    {
         if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0)
             continue;
 
         subpath = join_path(path, ent->d_name);
-        if (lstat(subpath, &st) == -1) {
+        if (lstat(subpath, &st) == -1)
+        {
             closedir(dirp);
             free(subpath);
             free(dbuf);
             return -1;
         }
 
-        if (S_ISDIR(st.st_mode)) {
+        if (S_ISDIR(st.st_mode))
+        {
             res = rmdir_rec(subpath);
         }
-        else {
+        else
+        {
             res = unlink(subpath);
         }
         free(subpath);
-        if (res == -1) {
+        if (res == -1)
+        {
             closedir(dirp);
             free(dbuf);
             return -1;
@@ -693,7 +737,8 @@ int rmdir_rec(const char *path)
     }
     closedir(dirp);
     free(dbuf);
-    if (res) {
+    if (res)
+    {
         errno = res;
         return -1;
     }

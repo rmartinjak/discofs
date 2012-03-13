@@ -4,7 +4,7 @@ SRCDIR=src
 OBJDIR=obj
 SUBOBJDIR=$(OBJDIR)/sub
 
-_OBJ = fs2go funcs paths sync job conflict worker transfer db log lock fsops debugops 
+_OBJ = fs2go funcs paths sync job conflict worker transfer db log lock fsops debugops remoteops
 OBJ = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(_OBJ)))
 
 SUBMODULES = datastructs

@@ -77,8 +77,10 @@ int sync_destroy(void);
 /* store changed sync data from "change queue" to db */
 int sync_store(void);
 
+/* create struct sync */
+struct sync *sync_create(const char *path, sync_xtime_t mtime, sync_xtime_t ctime);
 /* free a struct sync */
-void sync_free(struct sync *s);
+void sync_free(void *p);
 
 /* mark file "path" as synchronised */
 int sync_set(const char *path);
@@ -89,8 +91,10 @@ int sync_get_stat(const char *path, struct stat *buf);
 
 /* rename sync entries */
 int sync_rename_dir(const char *from, const char *to);
-int sync_delete_dir(const char *path);
 int sync_rename_file(const char *from, const char *to);
+
+/* delete sync entries */
+int sync_delete_dir(const char *path);
 int sync_delete_file(const char *path);
 
 #endif

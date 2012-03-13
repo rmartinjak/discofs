@@ -9,9 +9,9 @@
 #include "config.h"
 #include "fs2go.h"
 
-#define PRIO_LOW    1
-#define PRIO_MID    2
-#define PRIO_HIGH   3
+#define PRIO_LOW    0
+#define PRIO_MID    1
+#define PRIO_HIGH   2
 
 #define PRIO_LOW_JOBS   (JOB_PUSH | JOB_PULL)
 #define PRIO_HIGH_JOBS  (JOB_UNLINK)
@@ -20,9 +20,9 @@
 #define OP_PRIO_HIGH(op) ((op) & PRIO_HIGH_JOBS)
 #define OP_PRIO_MID(op)  (!(OP_PRIO_HIGH(op) || OP_PRIO_LOW(op)))
 
-#define OP_PRIO(op) ((OP_PRIO_LOW(op)) ? PRIO_LOW : ((OP_PRIO_HIGH) ? PRIO_HIGH : PRIO_MID))
+#define OP_PRIO(op) ((OP_PRIO_LOW(op)) ? PRIO_LOW : ((OP_PRIO_HIGH(op)) ? PRIO_HIGH : PRIO_MID))
 
-#define JOB_ANY         ((unsigned int)-1); 
+#define JOB_ANY         ((unsigned int)-1)
 #define JOB_PULL        (1U << 0)
 #define JOB_PUSH        (1U << 1)
 #define JOB_RENAME      (1U << 2)
@@ -38,8 +38,8 @@
 #define JOB_MAX_ATTEMPTS    5
 #define JOB_DEFER_TIME      10
 
+typedef long job_id;
 typedef unsigned int job_op;
-typedef unsigned int job_id;
 typedef long job_param;
 
 struct job
@@ -47,25 +47,38 @@ struct job
     job_id id;
     job_op op;
     char *path;
+    time_t time;
     unsigned int attempts;
-    job_param nparam1;
-    job_param nparam2;
-    char *sparam1;
-    char *sparam2;
+    job_param n1;
+    job_param n2;
+    char *s1;
+    char *s2;
 };
 
 int job_init(void);
 void job_destroy(void);
-
 int job_store(void);
 
-struct job *job_create(job_op op, const char *path, job_param n1, job_param n2, const char *s1, const char *s2);
-int job_schedule(job_op op, const char *path, job_param n1, job_param n2, const char *s1, const char *s2);
-
+struct job *job_alloc(void);
 void job_free(void *p);
-void job_free2(void *p);
+
+int job_schedule(job_op op, const char *path, job_param n1, job_param n2, const char *s1, const char *s2);
+#define job_schedule_push(path) job_schedule(JOB_PUSH, path, 0, 0, NULL, NULL)
+#define job_schedule_pull(path) job_schedule(JOB_PULL, path, 0, 0, NULL, NULL)
+
+
+struct job *job_get(void);
+void job_reschedule(struct job *j, int defer);
+#define job_reschedule_locked(j) job_reschedule(j, 0)
+#define job_reschedule_failed(j) job_reschedule(j, 1)
+
+
+void job_done(struct job *j);
 
 int job_exists(const char *path, job_op mask);
+
+int job_rename_dir(const char *from, const char *to);
+int job_rename_file(const char *from, const char *to);
 
 int job_delete(const char *path, job_op mask);
 int job_delete_rename_to(const char *path);

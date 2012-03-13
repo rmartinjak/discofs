@@ -27,16 +27,17 @@
 #define CFG_FS_FEATURES "fs_features"
 
 #define TABLE_JOB "job"
-#define SCHEMA_JOB "prio INTEGER," \
+#define SCHEMA_JOB \
+    "rowid INTEGER PRIMARY KEY," \
+    "prio INTEGER," \
     "op INTEGER," \
+    "time INTEGER," \
     "attempts INTEGER," \
-    "time_s INTEGER," \
-    "time_ns INTEGER," \
     "path TEXT," \
-    "param1 INTEGER," \
-    "param2 INTEGER," \
-    "sparam1 TEXT," \
-    "sparam2 TEXT"
+    "n1 INTEGER," \
+    "n2 INTEGER," \
+    "s1 TEXT," \
+    "s2 TEXT"
 
 #define TABLE_SYNC "sync"
 #define SCHEMA_SYNC "path TEXT UNIQUE NOT NULL," \
@@ -60,15 +61,17 @@ int db_cfg_get_int(const char *option, int *buf);
 int db_cfg_get_str(const char *option, char **buf);
 
 
-int db_store_job(const struct job *j);
-int db_defer_job(long long id);
+int db_job_store(const struct job *j);
+int db_job_get(struct job **j);
+int db_job_exists(const char *path, int opmask);
 
-int db_has_job(const char *path, int opmask);
-int db_get_jobs(queue *qu);
+int db_job_delete_id(job_id id);
+int db_job_delete(const char* path, int opmask);
+
+int db_job_delete_rename_to(const char *path);
+
 int db_get_job_by_id(struct job *j, long long id);
 
-int db_delete_jobs(const char* path, int opmask);
-int db_delete_job_id(long long id);
 
 int db_load_sync(sync_load_cb_t callback);
 int db_store_sync(const struct sync *s);
@@ -76,5 +79,14 @@ int db_store_sync(const struct sync *s);
 int db_rename_file(const char *from, const char *to);
 int db_rename_dir(const char *from, const char *to);
 int db_delete_path(const char *path);
+
+
+int db_job_delete_path(const char *path);
+int db_job_rename_file(const char *from, const char *to);
+int db_job_rename_dir(const char *from, const char *to);
+
+int db_sync_delete_path(const char *path);
+int db_sync_rename_file(const char *from, const char *to);
+int db_sync_rename_dir(const char *from, const char *to);
 
 #endif

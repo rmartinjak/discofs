@@ -14,10 +14,10 @@
 #define CONFLICT_DELETED 0
 #define CONFLICT_BACKEDUP 1
 
-/* handle a conflict that occured when trying to perform job j.
+/* handle a conflict that occured when trying to perform a job.
    store either CONFLICT_KEEP_CACHE or CONFLICT_KEEP_REMOTE in
    *keep_which, so the caller knows which file was kept */
-int conflict_handle(const struct job *j, int *keep_which);
+int conflict_handle(const char *path, job_op op, int *keep_which);
 
 /* adds fs2go_options.bprefix and .suffix to file name, or returns NULL if
    neither of them is set */
