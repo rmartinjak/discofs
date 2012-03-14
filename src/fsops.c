@@ -373,7 +373,7 @@ int op_unlink(const char *path)
 
     if (res)
     {
-        if (!(errno == ENOENT && job_exists(path, JOB_PULL)))
+        if (errno != ENOENT)
             return -errno;
     }
 
