@@ -68,7 +68,7 @@ int job_schedule(job_op op, const char *path, job_param n1, job_param n2, const 
 
 
 struct job *job_get(void);
-void job_reschedule(struct job *j, int defer);
+void job_reschedule(struct job *j, int failed);
 #define job_reschedule_locked(j) job_reschedule(j, 0)
 #define job_reschedule_failed(j) job_reschedule(j, 1)
 

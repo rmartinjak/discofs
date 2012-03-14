@@ -170,15 +170,20 @@ int job_schedule(job_op op, const char *path, job_param n1, job_param n2, const 
     return 0;
 }
 
-void job_reschedule(struct job *j, int defer)
+void job_reschedule(struct job *j, int failed)
 {
     if (!j)
         return;
 
-    j->attempts++;
+    if (failed && j->attempts++ > JOB_MAX_ATTEMPTS)
+    {
+        ERROR("number of retries exhausted, giving up\n");
+        db_job_delete_id(j->id);
+        job_free(j);
+        return;
+    }
 
-    if (defer)
-        j->time += JOB_DEFER_TIME;
+    j->time = time(NULL) + JOB_DEFER_TIME;
 
     job_q_enqueue(j);
 }
