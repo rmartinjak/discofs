@@ -275,7 +275,8 @@ int sync_store(void)
             res = db_store_sync(s);
 
     /* continue if queue wasn't empty and inserting was OK */
-    } while (s && res == DB_OK);
+    }
+    while (s && res == DB_OK);
 
     /* return error if inserting failed */
     if (res != DB_OK)
