@@ -75,6 +75,14 @@ int get_state()
 /* set the new state; this has no effect when current state is STATE_EXITING */
 void set_state(int s, int *oldstate)
 {
+    /* put old state in caller-provided pointer */
+    if (oldstate)
+        *oldstate = fs2go_state;
+
+    /* don't change status when exiting */
+    if (fs2go_state == STATE_EXITING)
+        return;
+
     pthread_mutex_lock(&m_fs2go_state);
 
     /* log new state if it differs from old state */
@@ -85,13 +93,7 @@ void set_state(int s, int *oldstate)
     else if (s == STATE_EXITING && s != fs2go_state)
         VERBOSE("changing state to EXITING\n");
 
-    /* put old state in caller-provided pointer */
-    if (oldstate)
-        *oldstate = fs2go_state;
-
-    /* don't change status when exiting */
-    if (fs2go_state != STATE_EXITING)
-        fs2go_state = s;
+    fs2go_state = s;
 
     pthread_mutex_unlock(&m_fs2go_state);
 }
