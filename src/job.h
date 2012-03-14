@@ -9,66 +9,78 @@
 #include "config.h"
 #include "fs2go.h"
 
-#define PRIO_LOW 1
-#define PRIO_MID 2
-#define PRIO_HIGH 3
+#define PRIO_LOW    0
+#define PRIO_MID    1
+#define PRIO_HIGH   2
 
-#define JOB_ANY -1
-#define JOB_PULL        (1 << 0)
-#define JOB_PULLATTR    (1 << 1)
-#define JOB_PUSH        (1 << 2)
-#define JOB_PUSHATTR    (1 << 3)
-#define JOB_RENAME      (1 << 4)
-#define JOB_UNLINK      (1 << 5)
-#define JOB_SYMLINK     (1 << 6)
-#define JOB_MKDIR       (1 << 7)
-#define JOB_RMDIR       (1 << 8)
-#define JOB_CHMOD       (1 << 9)
-#define JOB_CHOWN       (1 << 10)
-#define JOB_SETXATTR    (1 << 11)
+#define PRIO_LOW_JOBS   (JOB_PUSH | JOB_PULL)
+#define PRIO_HIGH_JOBS  (JOB_UNLINK)
 
-#define JOB_MAX_ATTEMPTS 5
-#define JOB_DEFER_TIME 10
+#define OP_PRIO_LOW(op)  ((op) & PRIO_LOW_JOBS)
+#define OP_PRIO_HIGH(op) ((op) & PRIO_HIGH_JOBS)
+#define OP_PRIO_MID(op)  (!(OP_PRIO_HIGH(op) || OP_PRIO_LOW(op)))
 
-typedef long long jobp_t;
+#define OP_PRIO(op) ((OP_PRIO_LOW(op)) ? PRIO_LOW : ((OP_PRIO_HIGH(op)) ? PRIO_HIGH : PRIO_MID))
 
-struct job {
-    long long rowid;
-    int prio;
-    int op;
-    int attempts;
+#define JOB_ANY         ((unsigned int)-1)
+#define JOB_PULL        (1U << 0)
+#define JOB_PUSH        (1U << 1)
+#define JOB_RENAME      (1U << 2)
+#define JOB_UNLINK      (1U << 3)
+#define JOB_SYMLINK     (1U << 4)
+#define JOB_LINK        (1U << 5)
+#define JOB_MKDIR       (1U << 6)
+#define JOB_RMDIR       (1U << 7)
+#define JOB_CHMOD       (1U << 8)
+#define JOB_CHOWN       (1U << 9)
+#define JOB_SETXATTR    (1U << 10)
+
+#define JOB_MAX_ATTEMPTS    5
+#define JOB_DEFER_TIME      10
+
+typedef long job_id;
+typedef unsigned int job_op;
+typedef long job_param;
+
+struct job
+{
+    job_id id;
+    job_op op;
     char *path;
-    jobp_t param1;
-    jobp_t param2;
-    char *sparam1;
-    char *sparam2;
+    time_t time;
+    unsigned int attempts;
+    job_param n1;
+    job_param n2;
+    char *s1;
+    char *s2;
 };
 
-#define JOB_INIT(p) { memset(p, 0, sizeof (struct job)); (p)->path = NULL; (p)->sparam1 = NULL; (p)->sparam2 = NULL; }
-void free_job(void *p);
-void free_job2(void *p);
+int job_init(void);
+void job_destroy(void);
+int job_store(void);
 
-int job_init_queue(void);
+struct job *job_alloc(void);
+void job_free(void *p);
 
-int job_store_queue(void);
+int job_schedule(job_op op, const char *path, job_param n1, job_param n2, const char *s1, const char *s2);
+#define job_schedule_push(path) job_schedule(JOB_PUSH, path, 0, 0, NULL, NULL)
+#define job_schedule_pull(path) job_schedule(JOB_PULL, path, 0, 0, NULL, NULL)
 
-int job(int op, const char *path, jobp_t p1, jobp_t p2, const char *sp1, const char *sp2);
 
-int has_job(const char *path, int opmask);
+struct job *job_get(void);
+void job_reschedule(struct job *j, int defer);
+#define job_reschedule_locked(j) job_reschedule(j, 0)
+#define job_reschedule_failed(j) job_reschedule(j, 1)
 
-int delete_jobs(const char *path, int opmask);
 
-int schedule_job(struct job *j);
-int schedule_pp(const char *path, int op);
-#define schedule_push(p) schedule_pp(p, JOB_PUSH)
-#define schedule_pushattr(p) schedule_pp(p, JOB_PUSHATTR)
-#define schedule_pull(p) schedule_pp(p, JOB_PULL)
-#define schedule_pullattr(p) schedule_pp(p, JOB_PULLATTR)
+void job_done(struct job *j);
 
-int do_job(struct job *j, int do_remote);
-#define do_job_cache(j) do_job(j, 0)
-#define do_job_remote(j) do_job(j, 1)
+int job_exists(const char *path, job_op mask);
 
-int instant_pull(const char *path);
+int job_rename_dir(const char *from, const char *to);
+int job_rename_file(const char *from, const char *to);
+
+int job_delete(const char *path, job_op mask);
+int job_delete_rename_to(const char *path);
 
 #endif

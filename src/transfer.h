@@ -20,4 +20,6 @@ void transfer_rename(const char *to, int rename_partfile);
 
 void transfer_abort(void);
 
+int transfer_instant_pull(const char *path);
+
 #endif

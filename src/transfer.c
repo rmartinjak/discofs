@@ -7,6 +7,7 @@
 
 #include "transfer.h"
 #include "job.h"
+#include "sync.h"
 #include "lock.h"
 #include "worker.h"
 
@@ -18,13 +19,14 @@
 
 extern struct options fs2go_options;
 
+pthread_mutex_t m_instant_pull = PTHREAD_MUTEX_INITIALIZER;
+
 static pthread_mutex_t m_transfer = PTHREAD_MUTEX_INITIALIZER;
 static off_t t_off;
 static char *t_path, *t_read = NULL, *t_write = NULL, *t_write_part = NULL;
 static int t_active = 0, t_op = 0;
 
 static void transfer_free(void);
-
 
 static void transfer_free(void)
 {
@@ -45,7 +47,8 @@ int transfer(const char *from, const char *to)
     char buf[TRANSFER_SIZE];
     int w_flags;
 
-    if (from && to) {
+    if (from && to)
+    {
         set_lock(t_path, LOCK_TRANSFER);
         VERBOSE("beginning transfer: '%s' -> '%s'\n", from, to);
         t_read = strdup(from);
@@ -57,15 +60,18 @@ int transfer(const char *from, const char *to)
         t_off = 0;
         w_flags = O_WRONLY | O_CREAT | O_TRUNC;
     }
-    else if (!t_active) {
+    else if (!t_active)
+    {
         return TRANSFER_FAIL;
     }
-    else {
+    else
+    {
         VERBOSE("resuming transfer: '%s' -> '%s' at %ld\n", t_read, t_write, t_off);
         w_flags = O_WRONLY | O_APPEND;
     }
 
-    if (!t_read || !t_write) {
+    if (!t_read || !t_write)
+    {
         ERROR("t_read or t_write is NULL\n");
         remove_lock(t_path, LOCK_TRANSFER);
         transfer_free();
@@ -90,9 +96,11 @@ int transfer(const char *from, const char *to)
         return TRANSFER_FAIL;
     }
 
-    while (ONLINE && !worker_has_block()) {
+    while (ONLINE && !worker_blocked())
+    {
         readbytes = read(fdread, buf, sizeof buf);
-        if (readbytes < 0 || write(fdwrite, buf, readbytes) < readbytes || fsync(fdwrite)) {
+        if (readbytes < 0 || write(fdwrite, buf, readbytes) < readbytes || fsync(fdwrite))
+        {
 
             if (readbytes < 0)
                 ERROR("failed to read from file\n");
@@ -105,14 +113,16 @@ int transfer(const char *from, const char *to)
         }
 
         /* copy completed, set mode and ownership */
-        if (readbytes < sizeof buf) {
+        if (readbytes < sizeof buf)
+        {
 
             t_active = 0;
 
             CLOSE(fdread);
             CLOSE(fdwrite);
 
-            if (rename(t_write_part, t_write)) {
+            if (rename(t_write_part, t_write))
+            {
                 PERROR("renaming after transfer");
             }
 
@@ -144,24 +154,29 @@ int transfer_begin(const struct job *j)
     char *pread=NULL, *pwrite=NULL;
     size_t p_len = strlen(j->path);
 
-    if (j->op == JOB_PUSH) {
+    if (j->op == JOB_PUSH)
+    {
         pread = cache_path2(j->path, p_len);
         pwrite = remote_path2(j->path, p_len);
     }
-    else if (j->op == JOB_PULL) {
+    else if (j->op == JOB_PULL)
+    {
         pread = remote_path2(j->path, p_len);
         pwrite = cache_path2(j->path, p_len);
     }
 
-    if (!pread || !pwrite) {
+    if (!pread || !pwrite)
+    {
         free(pread);
         free(pwrite);
         errno = ENOMEM;
         return -1;
     }
 
-    if (is_reg(pread)) {
-        if (!is_reg(pwrite) && !is_nonexist(pwrite)) {
+    if (is_reg(pread))
+    {
+        if (!is_reg(pwrite) && !is_nonexist(pwrite))
+        {
             DEBUG("write target is non-regular file: %s\n", pwrite);
             free(t_path);
             free(pread);
@@ -172,7 +187,8 @@ int transfer_begin(const struct job *j)
         t_path = strdup(j->path);
         if (t_path)
             res = transfer(pread, pwrite);
-        else {
+        else
+        {
             errno = ENOMEM;
             return -1;
         }
@@ -181,7 +197,8 @@ int transfer_begin(const struct job *j)
         return res;
     }
     /* if symlink, copy instantly */
-    else if (is_lnk(pread)) {
+    else if (is_lnk(pread))
+    {
         DEBUG("push/pull on symlink\n");
         copy_symlink(pread, pwrite);
         copy_attrs(pread, pwrite);
@@ -190,7 +207,8 @@ int transfer_begin(const struct job *j)
         free(pwrite);
         return TRANSFER_FINISH;
     }
-    else if (is_dir(pread)) {
+    else if (is_dir(pread))
+    {
         DEBUG("push/pull on DIR\n");
         clone_dir(pread, pwrite);
         copy_attrs(pread, pwrite);
@@ -198,7 +216,8 @@ int transfer_begin(const struct job *j)
         free(pwrite);
         return TRANSFER_FINISH;
     }
-    else {
+    else
+    {
         ERROR("cannot read file %s\n", pread);
         free(pread);
         free(pwrite);
@@ -255,11 +274,13 @@ void transfer_rename(const char *to, int rename_partfile)
 
     free(t_read);
     free(t_write);
-    if (t_op == JOB_PUSH) {
+    if (t_op == JOB_PUSH)
+    {
         t_read = cache_path2(to, to_len);
         t_write = remote_path2(to, to_len);
     }
-    else {
+    else
+    {
         t_read = remote_path2(to, to_len);
         t_write = cache_path2(to, to_len);
     }
@@ -268,8 +289,10 @@ void transfer_rename(const char *to, int rename_partfile)
     part_old = t_write_part;
     t_write_part = partfilename(t_write);
 
-    if (rename_partfile) {
-        if (rename(part_old, t_write_part)) {
+    if (rename_partfile)
+    {
+        if (rename(part_old, t_write_part))
+        {
             PERROR("renaming partfile");
             ERROR("%s ->, %s\n", part_old, t_write_part);
             pthread_mutex_unlock(&m_transfer);
@@ -301,3 +324,44 @@ void transfer_abort(void)
     worker_unblock();
 }
 
+/* instantly copy a file from remote to cache */
+int transfer_instant_pull(const char *path)
+{
+    int res;
+    char *pc;
+    char *pr;
+    size_t p_len = strlen(path);
+
+    VERBOSE("instant_pulling %s\n", path);
+
+    pthread_mutex_lock(&m_instant_pull);
+
+    worker_block();
+
+    pr = remote_path2(path, p_len);
+    pc = cache_path2(path, p_len);
+
+    /* copy data */
+    res = copy_file(pr, pc);
+
+    worker_unblock();
+
+    copy_attrs(pr, pc);
+    free(pr);
+    free(pc);
+
+    /* if copying failed, return error and dont set sync */
+    if (res == -1)
+    {
+        ERROR("instant_pull on %s FAILED\n", path);
+        pthread_mutex_unlock(&m_instant_pull);
+        return -1;
+    }
+
+    /* file is in sync now */
+    job_delete(path, JOB_PULL);
+    sync_set(path);
+
+    pthread_mutex_unlock(&m_instant_pull);
+    return 0;
+}

@@ -20,9 +20,7 @@ void worker_sleep(unsigned int seconds);
 
 void worker_block();
 void worker_unblock();
-int worker_has_block();
-
-void scan_remote(queue *q);
+int worker_blocked();
 
 void *worker_statecheck(void *arg);
 void *worker_main(void *arg);

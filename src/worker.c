@@ -10,25 +10,20 @@
 #include "log.h"
 #include "funcs.h"
 #include "transfer.h"
+#include "remoteops.h"
 #include "sync.h"
 #include "lock.h"
 #include "job.h"
-#include "db.h"
 #include "conflict.h"
 #include "bst.h"
 
 #include <stdint.h>
 #include <unistd.h>
-#include <fcntl.h>
 #include <pthread.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <signal.h>
-#if HAVE_CLOCK_GETTIME
-#include <sys/time.h>
-#else
-#include <time.h>
-#endif
+
+extern struct options fs2go_options;
 
 static unsigned long long worker_block_n = 0;
 static pthread_mutex_t m_worker_block = PTHREAD_MUTEX_INITIALIZER;
@@ -36,9 +31,8 @@ static pthread_mutex_t m_worker_block = PTHREAD_MUTEX_INITIALIZER;
 static int worker_wkup = 0;
 static pthread_mutex_t m_worker_wakeup = PTHREAD_MUTEX_INITIALIZER;
 
-/* from fs2go.c */
-extern struct options fs2go_options;
-
+static void worker_scan_remote(void);
+static void worker_scan_dir(queue *q);
 
 /* ====== SLEEP ====== */
 void worker_wakeup()
@@ -54,7 +48,8 @@ void worker_sleep(unsigned int seconds)
     pthread_mutex_lock(&m_worker_wakeup);
     worker_wkup = 0;
     pthread_mutex_unlock(&m_worker_wakeup);
-    while (seconds-- && !worker_wkup && !(EXITING)) {
+    while (seconds-- && !worker_wkup && !(EXITING))
+    {
         sleep(1);
     }
 }
@@ -75,15 +70,28 @@ void worker_unblock()
     pthread_mutex_unlock(&m_worker_block);
 }
 
-int worker_has_block()
+int worker_blocked()
 {
     return (worker_block_n != 0);
 }
 
 /* ====== SCAN REMOTE FS ====== */
-void scan_remote(queue *q)
+static void worker_scan_remote(void)
 {
-    int res;
+    queue *q = q_init();
+
+    q_enqueue(q, strdup("/"));
+
+    VERBOSE("beginning remote scan\n");
+    while (ONLINE && !q_empty(q))
+        worker_scan_dir(q);
+
+    q_free(q, free);
+}
+
+static void worker_scan_dir(queue *q)
+{
+    int res, sync;
     char *srch;
     char *srch_r;
     char *srch_c;
@@ -100,36 +108,36 @@ void scan_remote(queue *q)
         return;
 
     srch = q_dequeue(q);
-    if (!srch) {
-        VERBOSE("beginning remote scan\n");
-        srch = "/";
-    }
 
     srch_len = strlen(srch);
     srch_r = remote_path2(srch, srch_len);
     srch_c = cache_path2(srch, srch_len);
 
     /* directory not in cache -> create it. */
-    if (!is_dir(srch_c)) {
+    if (!is_dir(srch_c))
+    {
         clone_dir(srch_r, srch_c);
     }
 
     dirp = opendir(srch_r);
-    if (dirp) {
+    if (dirp)
+    {
         dbufsize = dirent_buf_size(dirp);
         dbuf = malloc(dbufsize);
     }
     else
         dbuf = NULL;
 
-    if (!dbuf) {
+    if (!dbuf)
+    {
         free(srch_r);
         free(srch);
         free(srch_c);
         return;
     }
 
-    while (ONLINE && dirp && (res = readdir_r(dirp, dbuf, &ent)) == 0 && ent) {
+    while (ONLINE && dirp && (res = readdir_r(dirp, dbuf, &ent)) == 0 && ent)
+    {
         if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0)
             continue;
 
@@ -140,31 +148,33 @@ void scan_remote(queue *q)
         p = join_path2(srch_r, 0, ent->d_name, d_len);
         res = lstat(p, &st);
         free(p);
-        if (res == -1) {
+        if (res == -1)
+        {
             DEBUG("lstat in scan_remote failed\n");
             break;
         }
         p = join_path2(srch, srch_len, ent->d_name, d_len);
 
-        if (S_ISDIR(st.st_mode)) {
+        if (S_ISDIR(st.st_mode))
+        {
             q_enqueue(q, p);
         }
-        else {
-            switch (sync_get(p)) {
-                case SYNC_NEW:
-                case SYNC_MOD:
-                    schedule_pull(p);
-                    break;
-                case SYNC_CHG:
-                    schedule_pullattr(p);
-                    break;
+        else
+        {
+            sync = sync_get(p);
+
+            if (sync == SYNC_NEW || sync == SYNC_MOD)
+            {
+                job_schedule_pull(p);
             }
+
             free(p);
         }
     }
     if (dirp)
         closedir(dirp);
-    else {
+    else
+    {
         DEBUG("open dir %s was closed while reading it\n", srch_r);
         set_state(STATE_OFFLINE, NULL);
     }
@@ -172,30 +182,35 @@ void scan_remote(queue *q)
 
     /* READ CACHE DIR to check for remotely deleted files */
     dirp = opendir(srch_c);
-    if (dirp) {
+    if (dirp)
+    {
         dbufsize = dirent_buf_size(dirp);
         dbuf = malloc(dbufsize);
     }
     else
         dbuf = NULL;
 
-    if (!dbuf) {
+    if (!dbuf)
+    {
         free(srch_r);
         free(srch);
         free(srch_c);
         return;
     }
 
-    while (ONLINE && dirp && (res = readdir_r(dirp, dbuf, &ent)) == 0 && ent) {
+    while (ONLINE && dirp && (res = readdir_r(dirp, dbuf, &ent)) == 0 && ent)
+    {
         if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0)
             continue;
 
-        if (!bst_contains(found_tree, djb2(ent->d_name, SIZE_MAX))) {
+        if (!bst_contains(found_tree, djb2(ent->d_name, SIZE_MAX)))
+        {
             p = join_path2(srch, srch_len, ent->d_name, 0);
             if (!p)
                 break;
 
-            if (!has_lock(p, LOCK_OPEN) && !has_job(p, JOB_PUSH)) {
+            if (!job_exists(p, LOCK_OPEN) && !job_exists(p, JOB_PUSH))
+            {
                 VERBOSE("removing missing file %s/%s from cache\n", (strcmp(srch, "/")) ? srch : "", ent->d_name);
                 delete_or_backup(p, CONFLICT_KEEP_REMOTE);
             }
@@ -206,20 +221,51 @@ void scan_remote(queue *q)
     bst_free(found_tree, NULL);
     free(srch_c);
     free(srch_r);
-    if (strcmp(srch, "/") != 0)
-        free(srch);
+    free(srch);
     if (dirp)
         closedir(dirp);
     free(dbuf);
 }
 
+static int worker_perform(struct job *j)
+{
+    if (!j)
+        return -1;
+
+    switch (j->op)
+    {
+        case JOB_RENAME:
+            return remoteop_rename(j->path, j->s1);
+        case JOB_UNLINK:
+            return remoteop_unlink(j->path);
+        case JOB_SYMLINK:
+            return remoteop_symlink(j->s1, j->path);
+        case JOB_LINK:
+            return remoteop_link(j->s1, j->path);
+        case JOB_MKDIR:
+            return remoteop_mkdir(j->path, j->n1);
+        case JOB_RMDIR:
+            return remoteop_rmdir(j->path);
+        case JOB_CHOWN:
+            return remoteop_chown(j->path, j->n1, j->n2);
+        case JOB_CHMOD:
+            return remoteop_chmod(j->path, j->n1);
+#if HAVE_SETXATTR
+        case JOB_SETXATTR:
+            return remoteop_setxattr(j->path, j->s1, j->s2, j->n1, j->n2);
+#endif
+    }
+
+    return -1;
+}
 
 /* ====== WORKER THREADS ====== */
 void *worker_statecheck(void *arg)
 {
     int oldstate = STATE_OFFLINE;
 
-    while (oldstate != STATE_EXITING) {
+    while (oldstate != STATE_EXITING)
+    {
         sleep(SLEEP_SHORT);
 
         /* check and set state */
@@ -232,7 +278,8 @@ void *worker_statecheck(void *arg)
             if (oldstate == STATE_OFFLINE)
                 worker_wakeup();
         }
-        else {
+        else
+        {
             set_state(STATE_OFFLINE, &oldstate);
         }
     }
@@ -242,172 +289,132 @@ void *worker_statecheck(void *arg)
 
 void *worker_main(void *arg)
 {
-#define ABORT_CURRENT() { current = 0; \
-    remove_lock(j_current.path, LOCK_TRANSFER); \
-    free_job(&j_current); \
-    transfer_abort(); }
-    int state, transfer_result;
+    int res;
+    struct job *j = NULL;
 
-    queue *jobs = q_init();
-    queue *search = q_init();
-
-    struct job *j;
-
-    long long current = 0;
-    struct job j_current;
-    JOB_INIT(&j_current);
-
-    char *pread=NULL, *pwrite=NULL;
-    size_t p_len;
-
-    /* "main" loop.
-       - if online:
-       - job in db and file not locked: perform job
-       - else scan remote fs for changed files
-       - sleep
-     */
-    while ((state = get_state()) != STATE_EXITING) {
-
+    while (!EXITING)
+    {
         /* flush job scheduling queue to db */
-        job_store_queue();
+        job_store();
 
         /* flush sync change queue to db */
         sync_store();
 
-        if (state == STATE_ONLINE) {
-            if (worker_has_block()) {
+        if (ONLINE)
+        {
+            /* sleep if blocked */
+            if (worker_blocked())
+            {
                 worker_sleep(SLEEP_LONG);
                 continue;
             }
 
-            /* if a transfer job is in progress, try to resume it */
-            if (current) {
-                transfer_result = transfer(NULL, NULL);
+            /* if a transfer job is in progress, try resume it */
+            if (j)
+            {
+                res = transfer(NULL, NULL);
 
-                switch (transfer_result) {
-                    case TRANSFER_FAIL:
-                        ABORT_CURRENT();
-                        break;
-                    case TRANSFER_FINISH:
-                        remove_lock(j_current.path, LOCK_TRANSFER);
-                        sync_set(j_current.path);
-                        db_delete_job_id(current);
-                        current = 0;
-                        j_current.rowid = 0;
-                        free_job(&j_current);
-                        break;
+                /* everything OK -> next iteration of main loop */
+                if (res == TRANSFER_OK)
+                    continue;
+
+                /* error occured */
+                if (res == TRANSFER_FAIL)
+                {
+                    remove_lock(j->path, LOCK_TRANSFER);
+                    job_reschedule_failed(j);
                 }
-
-                continue;
+                /* transfer finished */
+                else
+                {
+                    remove_lock(j->path, LOCK_TRANSFER);
+                    job_done(j);
+                }
+                j = NULL;
             }
 
-            /* no current job, get a new one */
-            db_get_jobs(jobs);
 
-            /* no jobs in db */
-            if (q_empty(jobs)) {
-                /* continue looking for jobs in top item on "search" queue,
-                   if the queue is empty, sleep a while
-                   (scan_remote will start in remote fs's root if the queue is empty)
-                 */
-                if (q_empty(search))
-                    worker_sleep(fs2go_options.scan_interval);
+            /*---------------*/
+            /* get a new job */
+            /*---------------*/
 
-                scan_remote(search);
-
-                continue;
-            }
-
-            /* get job from queue */
-            j = q_dequeue(jobs);
+            j = job_get();
 
             /* skip locked files */
-            while (j && (j->op & (JOB_PUSH|JOB_PULL)) && has_lock(j->path, LOCK_OPEN)) {
+            while (j && (j->op & (JOB_PUSH|JOB_PULL)) && has_lock(j->path, LOCK_OPEN))
+            {
                 DEBUG("%s is locked, NEXT\n", j->path);
-                free_job2(j);
-                j = q_dequeue(jobs);
+                job_reschedule_locked(j);
             }
-            if (!j) {
-                worker_sleep(SLEEP_LONG);
+
+            /* no jobs -> scan remote fs for changes*/
+            if (!j)
+            {
+                worker_sleep(fs2go_options.scan_interval);
+                worker_scan_remote();
                 continue;
             }
 
-            p_len = strlen(j->path);
-            switch (j->op) {
-                case JOB_PUSHATTR:
-                    pread = cache_path2(j->path, p_len);
-                    pwrite = remote_path2(j->path, p_len);
-                case JOB_PULLATTR:
-                    if (j->op != JOB_PUSHATTR) {
-                        pread = remote_path2(j->path, p_len);
-                        pwrite = cache_path2(j->path, p_len);
-                    }
-                    copy_attrs(pread, pwrite);
-                    sync_set(j->path);
-                    db_delete_job_id(j->rowid);
-                    free(pread);
-                    free(pwrite);
-                    break;
-
-                case JOB_PUSH:
-                    if (sync_get(j->path) & (SYNC_MOD|SYNC_NEW)) {
+            if (j->op == JOB_PUSH || j->op == JOB_PULL)
+            {
+                /* check PUSH job for conflict */
+                if (j->op == JOB_PUSH)
+                {
+                    if (sync_get(j->path) & (SYNC_MOD|SYNC_NEW))
+                    {
                         DEBUG("conflict\n");
-                        conflict_handle(j, NULL);
-                        db_delete_job_id(j->rowid);
-                        break;
+                        conflict_handle(j->path, j->op, NULL);
+                        job_done(j);
+                        j = NULL;
+                        continue;
                     }
-                case JOB_PULL:
-                    transfer_result = transfer_begin(j);
+                }
 
-                    if (transfer_result == TRANSFER_OK) {
-                        current = j->rowid;
-                        JOB_INIT(&j_current);
-                        j_current.rowid = j->rowid;
-                        j_current.op = j->op;
-                        j_current.path = strdup(j->path);
-                    }
-                    else {
-                        if (transfer_result == TRANSFER_FINISH) {
-                            sync_set(j->path);
-                            db_delete_job_id(j->rowid);
-                        }
-                        else {
-                            ERROR("transfering '%s' failed\n", j->path);
-                            if (j->attempts < JOB_MAX_ATTEMPTS)
-                                db_defer_job(j->rowid);
-                            else {
-                                VERBOSE("number of retries exhausted, giving up\n");
-                                db_delete_job_id(j->rowid);
-                            }
-                        }
+                res = transfer_begin(j);
 
-                        current = 0;
-                        if (j_current.rowid)
-                            free_job(&j_current);
-                    }
-                    break;
+                if (res == TRANSFER_FINISH)
+                {
+                    job_done(j);
+                    j = NULL;
+                }
+                else if (res == TRANSFER_FAIL)
+                {
+                    ERROR("transfering '%s' failed\n", j->path);
+                    job_reschedule_failed(j);
+                    j = NULL;
+                }
 
-                default:
-                    if (do_job_remote(j) != 0) {
-                        log_error("performing job in worker_main");
-                        VERBOSE("path: %s\n", j->path);
-                    }
-                    db_delete_job_id(j->rowid);
+                /* if result is TRANSFER_OK, keep j */
             }
+            /* neither PUSH nor PULL */
+            else
+            {
+                res = worker_perform(j);
 
-            free_job2(j);
-            q_clear(jobs, free_job2);
+                if (res)
+                    job_reschedule_failed(j);
+                else 
+                    job_done(j);
+
+                j = NULL;
+            }
         }
+
         /* OFFLINE */
-        else {
+        else
+        {
             worker_sleep(SLEEP_LONG);
         }
+
     }
 
     VERBOSE("exiting job thread\n");
-    if (current) {
-        ABORT_CURRENT();
+    if (j)
+    {
+        remove_lock(j->path, LOCK_TRANSFER);
+        transfer_abort();
+        job_reschedule_locked(j);
+        j = NULL;
     }
-    return NULL;
-#undef ABORT_CURRENT
+return NULL;
 }

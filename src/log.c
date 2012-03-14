@@ -58,16 +58,17 @@ void log_print(int level, const char *fmt, ...)
 
     va_start(ap, fmt);
 
-    if (level <= log_maxlvl) {
+    if (level <= log_maxlvl)
+    {
         pthread_mutex_lock(&m_log_print);
         f = NULL;
 
-        if (log_filename) {
+        if (log_filename)
+        {
             f = fopen(log_filename, "a");
         }
-        if (!f) {
+        if (!f)
             f = stderr;
-        }
 
         now = time(NULL);
         ctim = strdup(ctime(&now));
@@ -79,9 +80,8 @@ void log_print(int level, const char *fmt, ...)
 
         vfprintf(f, fmt, ap);
 
-        if (f != stderr) {
+        if (f != stderr)
             fclose(f);
-        }
 
         free(ctim);
         pthread_mutex_unlock(&m_log_print);

@@ -4,7 +4,7 @@ SRCDIR=src
 OBJDIR=obj
 SUBOBJDIR=$(OBJDIR)/sub
 
-_OBJ = fs2go funcs paths sync job conflict worker transfer db log lock fsops debugops 
+_OBJ = fs2go funcs paths sync job conflict worker transfer db log lock fsops debugops remoteops
 OBJ = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(_OBJ)))
 
 SUBMODULES = datastructs
@@ -26,12 +26,12 @@ $(OBJDIR) :
 $(SUBOBJDIR) : $(OBJDIR)
 	@mkdir $(SUBOBJDIR)
 
-$(OBJDIR)/datastructs.a :
+$(OBJDIR)/datastructs.a : force
 	@make $(MAKEFLAGS) -C $(SRCDIR)/datastructs DESTDIR=$(realpath $(OBJDIR)) archive
 
 $(OBJDIR)/%.o : $(SRCDIR)/%.c
 	@echo CC -c $<
-	@$(CC) $(CPPFLAGS) $(CFLAGS) $(SUBINCLUDES) -c -o $@ $<
+	@$(CC) $(FUSE_VERSION) $(CPPFLAGS) $(CFLAGS) $(SUBINCLUDES) -c -o $@ $<
 
 fs2go : $(OBJDIR) $(OBJ) $(SUBOBJ)
 	@echo CC -o $@
@@ -67,4 +67,4 @@ uninstall :
 	@echo removing manual page from ${DESTDIR}${MANPREFIX}/man1
 	@rm -f ${DESTDIR}${MANPREFIX}/man1/fs2go.1
 
-.PHONY: clean install options
+.PHONY: clean install uninstall options force

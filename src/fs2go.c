@@ -75,6 +75,14 @@ int get_state()
 /* set the new state; this has no effect when current state is STATE_EXITING */
 void set_state(int s, int *oldstate)
 {
+    /* put old state in caller-provided pointer */
+    if (oldstate)
+        *oldstate = fs2go_state;
+
+    /* don't change status when exiting */
+    if (fs2go_state == STATE_EXITING)
+        return;
+
     pthread_mutex_lock(&m_fs2go_state);
 
     /* log new state if it differs from old state */
@@ -85,13 +93,7 @@ void set_state(int s, int *oldstate)
     else if (s == STATE_EXITING && s != fs2go_state)
         VERBOSE("changing state to EXITING\n");
 
-    /* put old state in caller-provided pointer */
-    if (oldstate)
-        *oldstate = fs2go_state;
-
-    /* don't change status when exiting */
-    if (fs2go_state != STATE_EXITING)
-        fs2go_state = s;
+    fs2go_state = s;
 
     pthread_mutex_unlock(&m_fs2go_state);
 }
@@ -266,11 +268,13 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
             /*--------------------*/
             /* remote mount point */
             /*--------------------*/
-            if (!fs2go_options.remote_root) {
+            if (!fs2go_options.remote_root)
+            {
 
                 /* transform to absolute path by appending the current
                    working directory if necessary */
-                if (*arg != '/') {
+                if (*arg != '/')
+                {
 
                     /* allocate a huge buffer */
                     if ((p = malloc(PATH_MAX+1)) == NULL)
@@ -283,7 +287,8 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
                     strcat(p, "/");
                     strcat(p, arg);
                 }
-                else {
+                else
+                {
                     /* only create a copy */
                     if ((p = strdup(arg)) == NULL)
                         FATAL("memory allocation failed\n");
@@ -294,13 +299,15 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
                     p[strlen(p)-1] = '\0';
 
                 /* verify if it's a directory */
-                if (!is_dir(p)) {
+                if (!is_dir(p))
+                {
                     fprintf(stderr, "remote mount point \"%s\" is not a directory\n", p);
                     exit(EXIT_FAILURE);
                 }
 
                 /* set fsname for a more descriptive output of "mount" */
-                if ((p2 = malloc((strlen("-ofsname=") + strlen(p) + 1)))) {
+                if ((p2 = malloc((strlen("-ofsname=") + strlen(p) + 1))))
+                {
                     strcpy(p2, "-ofsname=");
                     strcat(p2, p);
                     fuse_opt_add_arg(outargs, p2);
@@ -325,7 +332,8 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
             /*-------------------*/
 
             /* second one is "our" mount point */
-            else if (!fs2go_options.fs2go_mp) {
+            else if (!fs2go_options.fs2go_mp)
+            {
                 fs2go_options.fs2go_mp = strdup(arg);
                 fuse_opt_add_arg(outargs, arg);
                 return 0;
@@ -403,7 +411,8 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
         case FS2GO_OPT_GID:
             val = arg + strlen("gid=");
             fs2go_options.gid = (gid_t)strtol(val, &endptr, 10);
-            if (*endptr != '\0') {
+            if (*endptr != '\0')
+            {
                 if (!(gr = getgrnam(val)))
                     FATAL("could not find group \"%s\"\n", val);
                 fs2go_options.uid = gr->gr_gid;
@@ -444,7 +453,8 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
                 fs2go_options.loglevel = LOG_FSOP;
             else if (!strcmp(val, "debug"))
                 fs2go_options.loglevel = LOG_DEBUG;
-            else {
+            else
+            {
                 print_usage();
                 exit(EXIT_FAILURE);
             }
@@ -464,7 +474,8 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
                 fs2go_options.conflict = CONFLICT_THEIRS;
             else if (!strcmp(val, "mine") || !strcmp(val, "m"))
                 fs2go_options.conflict = CONFLICT_MINE;
-            else {
+            else
+            {
                 print_usage();
                 exit(EXIT_FAILURE);
             }
@@ -483,7 +494,9 @@ static int test_fs_features(int *f)
 
     /* create test file */
     p = remote_path(TESTFILE1);
-    if (mknod(p, S_IFREG | S_IRUSR | S_IWUSR, 0)) {
+
+    if (mknod(p, S_IFREG | S_IRUSR | S_IWUSR, 0))
+    {
         perror("failed to create feature test file");
         return -1;
     }
@@ -499,7 +512,8 @@ static int test_fs_features(int *f)
     set_mtime(p, mtime);
 
     /* get stat */
-    if (stat(p, &st)) {
+    if (stat(p, &st))
+    {
         perror("failed to stat feature test file");
         return -1;
     }
@@ -633,12 +647,15 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
 
     /* after option parsing, remote mount point must be set */
-    if (!REMOTE_ROOT) {
+    if (!REMOTE_ROOT)
+    {
         fprintf(stderr, "no remote filesystem given\n");
         return EXIT_FAILURE;
     }
+
     /* a mount point for fs2go must also be set */
-    if (!fs2go_options.fs2go_mp) {
+    if (!fs2go_options.fs2go_mp)
+    {
         fprintf(stderr, "no mount point given\n");
         return EXIT_FAILURE;
     }
@@ -650,16 +667,20 @@ int main(int argc, char **argv)
 
     /* set GID first since permissions might not be
        sufficient if UID was set beforehand */
-    if (fs2go_options.gid) {
+    if (fs2go_options.gid)
+    {
         VERBOSE("setting gid to %d\n", fs2go_options.gid);
-        if (setgid(fs2go_options.gid)) {
+        if (setgid(fs2go_options.gid))
+        {
             perror("setting gid");
             return EXIT_FAILURE;
         }
     }
-    if (fs2go_options.uid) {
+    if (fs2go_options.uid)
+    {
         VERBOSE("setting uid to %d\n", fs2go_options.uid);
-        if (setuid(fs2go_options.uid)) {
+        if (setuid(fs2go_options.uid))
+        {
             perror("setting uid");
             return EXIT_FAILURE;
         }
@@ -686,10 +707,10 @@ int main(int argc, char **argv)
     if (!fs2go_options.data_root)
         fs2go_options.data_root = paths_data_root(REMOTE_ROOT);
 
-    if (!is_dir(fs2go_options.data_root)) {
-        if (mkdir_rec(fs2go_options.data_root)) {
+    if (!is_dir(fs2go_options.data_root))
+    {
+        if (mkdir_rec(fs2go_options.data_root))
             FATAL("failed to create data directory %s\n", fs2go_options.data_root);
-        }
     }
 
 
@@ -704,16 +725,17 @@ int main(int argc, char **argv)
     CACHE_ROOT_LEN = strlen(CACHE_ROOT);
 
     /* delete cache if "clear" specified */
-    if (fs2go_options.clear) {
+    if (fs2go_options.clear)
+    {
         VERBOSE("deleting cache\n");
         rmdir_rec(CACHE_ROOT);
     }
 
     /* create cache root if needed */
-    if (!is_dir(CACHE_ROOT)) {
-        if (mkdir(CACHE_ROOT, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != 0) {
+    if (!is_dir(CACHE_ROOT))
+    {
+        if (mkdir(CACHE_ROOT, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != 0)
             FATAL("failed to create cache directory %s\n", CACHE_ROOT);
-        }
     }
 
 
@@ -728,11 +750,14 @@ int main(int argc, char **argv)
     db_init(db_file, fs2go_options.clear);
 
     /* try to load filesystem features from DB */
-    if (db_cfg_get_int(CFG_FS_FEATURES, &fs2go_options.fs_features)) {
+    if (db_cfg_get_int(CFG_FS_FEATURES, &fs2go_options.fs_features))
+    {
         
         /* if loading failed, try to determine them */
-        if (is_mounted(REMOTE_ROOT) && is_reachable(fs2go_options.host)) {
-            if (test_fs_features(&fs2go_options.fs_features)) {
+        if (is_mounted(REMOTE_ROOT) && is_reachable(fs2go_options.host))
+        {
+            if (test_fs_features(&fs2go_options.fs_features))
+            {
                 ERROR("failed to test remote fs features\n");
                 fs2go_options.fs_features = 0;
             }
@@ -741,7 +766,8 @@ int main(int argc, char **argv)
                 db_cfg_set_int(CFG_FS_FEATURES, fs2go_options.fs_features);
         }
         /* nag and assume that no features available (but don't save that) */
-        else {
+        else
+        {
             ERROR("could not determine remote fs features");
             fs2go_options.fs_features = 0;
         }
@@ -753,7 +779,7 @@ int main(int argc, char **argv)
     /*---------------------------*/
     if (sync_init())
         FATAL("error initializing sync");
-    if (job_init_queue())
+    if (job_init())
         FATAL("error initializing job queue");
 
 
@@ -773,9 +799,8 @@ int main(int argc, char **argv)
     /* exit */
     /*------*/
 
-    /* store queued jobs */
-    VERBOSE("storing jobs\n");
-    job_store_queue();
+    /* store and free job data */
+    job_destroy();
 
     /* store and free sync data */
     sync_destroy();

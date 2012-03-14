@@ -26,7 +26,9 @@ static char *get_home_dir(void)
     struct passwd *pwd;
 
     ret = getenv("HOME");
-    if (!ret || *ret != '/') {
+
+    if (!ret || *ret != '/')
+    {
         uid = getuid();
         pwd = getpwuid(uid);
         ret = pwd->pw_dir;
@@ -47,7 +49,8 @@ char *paths_data_root(const char *remote)
     *tmp = '\0';
     hash = malloc(30);
 
-    if (!tmp || !hash) {
+    if (!tmp || !hash)
+    {
         FATAL("memory allocation failed\n");
     }
 
@@ -55,14 +58,16 @@ char *paths_data_root(const char *remote)
 
     /* use $XDG_DATA_HOME */
     root = getenv("XDG_DATA_HOME");
-    if (!root || *root != '/') {
+    if (!root || *root != '/')
+    {
         /* else use ~/.local/share */
         home = get_home_dir();
         root = join_path(home, ".local/share" );
         strcat(tmp, root);
         free(root);
     }
-    else {
+    else
+    {
         strcat(tmp, root);
     }
 

@@ -153,6 +153,11 @@ MANPREFIX = $manprefix
 VERSION = $PROG_VERSION
 EOF
 
+for v in $MAKE_VARS
+do
+	echo $v >> $OUT_MK
+done
+
 
 if [ -n "$PROG_NAME" ]; then
 	define PROG_NAME \"$PROG_NAME\"

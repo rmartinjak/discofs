@@ -34,7 +34,7 @@ int op_mknod(const char *path, mode_t mode, dev_t rdev);
 int op_mkdir(const char *path, mode_t mode);
 int op_rmdir(const char *path);
 int op_unlink(const char *path);
-int op_link(const char *from, const char *to);
+int op_link(const char *to, const char *path);
 int op_symlink(const char *to, const char *from);
 int op_rename(const char *from, const char *to);
 int op_releasedir(const char* path, struct fuse_file_info *fi);

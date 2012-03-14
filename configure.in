@@ -6,7 +6,7 @@ OUT_MK="config.mk"
 
 CC_CANDIDATES="cc gcc"
 
-CPPFLAGS="-DFUSE_USE_VERSION=26 -DDEBUG_FS_OPS"
+CPPFLAGS="-DDEBUG_FS_OPS -DDEBUG_SQL"
 CFLAGS="-g"
 LDFLAGS=""
 LIBS="-lrt"
@@ -20,3 +20,5 @@ CHECK_HEADERS="attr/xattr.h"
 
 REQUIRE_FUNCS=""
 CHECK_FUNCS="utimensat clock_gettime setxattr vfprintf fpathconf dirfd"
+
+MAKE_VARS="FUSE_VERSION=-DFUSE_USE_VERSION=26"
