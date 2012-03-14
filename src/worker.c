@@ -78,15 +78,19 @@ int worker_blocked()
 /* ====== SCAN REMOTE FS ====== */
 static void worker_scan_remote(void)
 {
-    queue *q = q_init();
+    static queue *scan_q = NULL;
 
-    q_enqueue(q, strdup("/"));
+    if (!scan_q)
+        scan_q = q_init();
 
-    VERBOSE("beginning remote scan\n");
-    while (ONLINE && !q_empty(q))
-        worker_scan_dir(q);
+    if (q_empty(scan_q))
+    {
+        worker_sleep(fs2go_options.scan_interval);
+        VERBOSE("beginning remote scan\n");
+        q_enqueue(scan_q, strdup("/"));
+    }
 
-    q_free(q, free);
+    worker_scan_dir(scan_q);
 }
 
 static void worker_scan_dir(queue *q)
@@ -108,6 +112,8 @@ static void worker_scan_dir(queue *q)
         return;
 
     srch = q_dequeue(q);
+
+    DEBUG("scanning dir %s\n", srch);
 
     srch_len = strlen(srch);
     srch_r = remote_path2(srch, srch_len);
@@ -350,7 +356,6 @@ void *worker_main(void *arg)
             /* no jobs -> scan remote fs for changes*/
             if (!j)
             {
-                worker_sleep(fs2go_options.scan_interval);
                 worker_scan_remote();
                 continue;
             }
