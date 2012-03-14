@@ -83,15 +83,15 @@ static void worker_scan_remote(void)
     q_enqueue(q, strdup("/"));
 
     VERBOSE("beginning remote scan\n");
-    while (!q_empty(q))
+    while (ONLINE && !q_empty(q))
         worker_scan_dir(q);
 
-    q_free(q, NULL);
+    q_free(q, free);
 }
 
 static void worker_scan_dir(queue *q)
 {
-    int res;
+    int res, sync;
     char *srch;
     char *srch_r;
     char *srch_c;
@@ -161,17 +161,13 @@ static void worker_scan_dir(queue *q)
         }
         else
         {
-            switch (sync_get(p)) {
-                case SYNC_NEW:
-                case SYNC_MOD:
-                    job_schedule_pull(p);
-                    break;
-                /*
-                case SYNC_CHG:
-                    schedule_pullattr(p);
-                    */
-                    break;
+            sync = sync_get(p);
+
+            if (sync == SYNC_NEW || sync == SYNC_MOD)
+            {
+                job_schedule_pull(p);
             }
+
             free(p);
         }
     }
