@@ -311,6 +311,7 @@ void sync_free(void *p)
 
 int sync_set(const char *path)
 {
+    int res;
     char *p;                    /* path to remote file/dir */
     sync_xtime_t mtime, ctime;  /* mtime and ctime of remote file/dir to set */
     struct stat st;             /* stat buffer */
@@ -320,37 +321,41 @@ int sync_set(const char *path)
     if (!ONLINE)
         return -1;
 
-    /* mtime is NOW */
-    GETTIME(mtime);
-
-    /* ctime will be kept, so retrieve it via lstat() */
+    /* retrieve mtime and ctime */
     p = remote_path(path);
-    if (lstat(p, &st) == -1)
+    res = lstat(p, &st);
+    free(p);
+
+    if (res)
     {
         PERROR("lstat() in sync_set");
-        free(p);
         return -1;
     }
+
+    mtime = ST_MTIME(st);
     ctime = ST_CTIME(st);
-    free(p);
 
     /* insert in sync ht */
     pthread_mutex_lock(&m_sync_ht);
+
     VERBOSE("setting sync for %s\n", path);
     s = sync_ht_set(path, mtime, ctime);
+
     pthread_mutex_unlock(&m_sync_ht);
 
     /* if ht entry set successfully, add item to update queue */
     if (s)
     {
         pthread_mutex_lock(&m_sync_queue);
+
         q_enqueue(sync_queue, s);
+
         pthread_mutex_unlock(&m_sync_queue);
     }
     /* or log error and return -1 */
     else
     {
-        ERROR("sync_set failed!?\n");
+        ERROR("sync_set failed\n");
         return -1;
     }
 
