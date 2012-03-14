@@ -67,4 +67,4 @@ uninstall :
 	@echo removing manual page from ${DESTDIR}${MANPREFIX}/man1
 	@rm -f ${DESTDIR}${MANPREFIX}/man1/fs2go.1
 
-.PHONY: clean install options force
+.PHONY: clean install uninstall options force
