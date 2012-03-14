@@ -355,7 +355,7 @@ void *worker_main(void *arg)
                 continue;
             }
 
-            if (j->op == JOB_PUSH || JOB_PULL)
+            if (j->op == JOB_PUSH || j->op == JOB_PULL)
             {
                 /* check PUSH job for conflict */
                 if (j->op == JOB_PUSH)
