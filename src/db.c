@@ -210,19 +210,22 @@ int db_cfg_set_str(char *option, const char *val)
 int db_cfg_get_int(const char *option, int *buf)
 {
     VARS;
+    int sql_res;
 
     db_open();
     PREPARE("SELECT nval FROM " TABLE_CFG " WHERE option=?;");
     BIND_TEXT(option);
 
-    if (STEP() != SQLITE_ROW)
+    sql_res = STEP();
+
+    if (sql_res == SQLITE_ROW)
+    {
+        *buf = COL_INT();
+    }
+    else if (sql_res == SQLITE_ERROR)
     {
         ERRMSG("db_cfg_get_int");
         res = DB_ERROR;
-    }
-    else
-    {
-        *buf = COL_INT();
     }
 
     FINALIZE();
@@ -233,19 +236,22 @@ int db_cfg_get_int(const char *option, int *buf)
 int db_cfg_get_str(const char *option, char **buf)
 {
     VARS;
+    int sql_res;
 
     db_open();
     PREPARE("SELECT tval FROM " TABLE_CFG " WHERE option=?;");
     BIND_TEXT(option);
 
-    if (STEP() != SQLITE_ROW)
+    sql_res = STEP();
+
+    if (sql_res == SQLITE_ROW)
+    {
+        *buf = COL_TEXT();
+    }
+    else if (sql_res == SQLITE_ERROR)
     {
         ERRMSG("db_cfg_get_str");
         res = DB_ERROR;
-    }
-    else
-    {
-        *buf = COL_TEXT();
     }
 
     FINALIZE();
