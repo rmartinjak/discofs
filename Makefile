@@ -26,7 +26,7 @@ $(OBJDIR) :
 $(SUBOBJDIR) : $(OBJDIR)
 	@mkdir $(SUBOBJDIR)
 
-$(OBJDIR)/datastructs.a :
+$(OBJDIR)/datastructs.a : force
 	@make $(MAKEFLAGS) -C $(SRCDIR)/datastructs DESTDIR=$(realpath $(OBJDIR)) archive
 
 $(OBJDIR)/%.o : $(SRCDIR)/%.c
@@ -67,4 +67,4 @@ uninstall :
 	@echo removing manual page from ${DESTDIR}${MANPREFIX}/man1
 	@rm -f ${DESTDIR}${MANPREFIX}/man1/fs2go.1
 
-.PHONY: clean install options
+.PHONY: clean install options force
