@@ -31,7 +31,7 @@ $(OBJDIR)/datastructs.a : force
 
 $(OBJDIR)/%.o : $(SRCDIR)/%.c
 	@echo CC -c $<
-	@$(CC) $(CPPFLAGS) $(CFLAGS) $(SUBINCLUDES) -c -o $@ $<
+	@$(CC) $(FUSE_VERSION) $(CPPFLAGS) $(CFLAGS) $(SUBINCLUDES) -c -o $@ $<
 
 fs2go : $(OBJDIR) $(OBJ) $(SUBOBJ)
 	@echo CC -o $@
