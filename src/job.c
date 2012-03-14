@@ -187,6 +187,8 @@ struct job *job_get(void)
 {
    struct job *j;
 
+   job_store();
+
    db_job_get(&j);
 
    return j;
