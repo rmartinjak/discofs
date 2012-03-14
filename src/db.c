@@ -27,7 +27,13 @@
 #define VARS int res=DB_OK, bindpos=1, colpos=0; sqlite3_stmt *stmt
 
 #define PREPARE(q) EXITNOK(sqlite3_prepare_v2(db, q, -1, &stmt, NULL))
+
+#ifdef DEBUG_SQL
+#define STEP() (DEBUG("SQL: %s\n", sqlite3_sql(stmt)), sqlite3_step(stmt))
+#else
 #define STEP() sqlite3_step(stmt)
+#endif
+
 #define RESET() { sqlite3_reset(stmt); bindpos=1; colpos=0; }
 #define FINALIZE() { sqlite3_finalize(stmt); bindpos=1; colpos=0; }
 
