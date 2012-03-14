@@ -318,7 +318,7 @@ int db_job_get(struct job **j)
 
     db_open();
 
-    PREPARE(SELECT_JOB "ORDER BY prio DESC, time_s ASC WHERE time_s<? LIMIT 1;");
+    PREPARE(SELECT_JOB "WHERE time <? ORDER BY prio DESC, time ASC LIMIT 1;");
     BIND_TIME_T(now);
 
     sql_res = STEP();
