@@ -131,8 +131,16 @@ void job_free(void *p)
 
 int job_schedule(job_op op, const char *path, job_param n1, job_param n2, const char *s1, const char *s2)
 {
-    struct job *j = job_alloc();
+    struct job *j;
 
+    /* don't schedule new PUSH/PULL if one already exists */
+    if (op == JOB_PUSH || op == JOB_PULL)
+    {
+        if (job_exists(path, op))
+            return 0;
+    }
+
+    j = job_alloc();
     if (!j)
         return -1;
 
