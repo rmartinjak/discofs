@@ -372,7 +372,10 @@ int op_unlink(const char *path)
     free(p);
 
     if (res)
-        return -errno;
+    {
+        if (!(errno == ENOENT && job_exists(path, JOB_PULL)))
+            return -errno;
+    }
 
     job_delete(path, JOB_ANY);
     job_delete_rename_to(path);
