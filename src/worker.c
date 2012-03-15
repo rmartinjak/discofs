@@ -336,6 +336,7 @@ void *worker_main(void *arg)
                     remove_lock(j->path, LOCK_TRANSFER);
                     job_done(j);
                 }
+
                 j = NULL;
             }
 
@@ -351,6 +352,7 @@ void *worker_main(void *arg)
             {
                 DEBUG("%s is locked, NEXT\n", j->path);
                 job_reschedule_locked(j);
+                j = job_get();
             }
 
             /* no jobs -> scan remote fs for changes*/
