@@ -47,6 +47,8 @@ int set_lock(const char *path, int type)
     hash <<= LOCK_TYPE_BITS;
     hash |= type;
 
+    DEBUG("setting lock %s on %s\n", (type == LOCK_OPEN) ? "LOCK_OPEN" : "LOCK_TRANSFER", path);
+
     pthread_mutex_lock(&m_lock_tree);
 
     if (type == LOCK_OPEN)
@@ -69,6 +71,8 @@ int remove_lock(const char *path, int type)
 
     hash <<= LOCK_TYPE_BITS;
     hash |= type;
+
+    DEBUG("removing lock %s on %s\n", (type == LOCK_OPEN) ? "LOCK_OPEN" : "LOCK_TRANSFER", path);
 
     pthread_mutex_lock(&m_lock_tree);
     res = bst_remove(lock_tree, hash, NULL);
