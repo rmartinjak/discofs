@@ -424,6 +424,8 @@ int sync_rename_dir(const char *from, const char *to)
     size_t from_len, to_len;       /* string lengths */
     queue *q = q_init();           /* queue for hashtables to "rename" */
 
+    sync_store();
+
     from_len = strlen(from);
     to_len = strlen(to);
 
@@ -504,6 +506,8 @@ int sync_rename_file(const char *from, const char *to)
     struct sync *s;
     size_t n;
 
+    sync_store();
+
     n = strrchr(from, '/') - from;
 
     /* find ht according to dirname */
@@ -548,6 +552,8 @@ int sync_delete_dir(const char *path)
 {
     hashtable *ht;
 
+    sync_store();
+
     pthread_mutex_lock(&m_sync_ht);
 
     /* remove basename ht from dirname ht */
@@ -581,6 +587,8 @@ int sync_delete_file(const char *path)
     hashtable *ht;
     struct sync *s;
     size_t n;
+
+    sync_store();
 
     n = strrchr(path, '/') - path;
 
