@@ -573,9 +573,6 @@ int sync_delete_dir(const char *path)
         ht_free_f(ht, NULL, sync_free);
     }
 
-    /* free the ht */
-    free(ht);
-
     if (db_sync_delete_path(path) != DB_OK)
         return -1;
 
