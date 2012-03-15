@@ -15,7 +15,7 @@
 #include "db.h"
 #include "paths.h"
 
-#ifdef DEBUG_FS_OPS
+#if DEBUG_FS_OPS
 #include "debugops.h"
 #else
 #include "fsops.h"
@@ -560,7 +560,7 @@ void sig_handler(int signo)
 
 /* operations struct which will be passed to fuse_main() */
 
-#ifdef DEBUG_FS_OPS
+#if DEBUG_FS_OPS
 #define OPER(n) .n = debug_op_ ## n
 #else
 #define OPER(n) .n = op_ ## n

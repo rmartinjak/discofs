@@ -73,7 +73,7 @@ int copy_file(const char *from, const char *to);
 int copy_attrs(const char *from, const char *to);
 int clone_dir(const char *from, const char *to);
 
-#ifdef HAVE_SETXATTR
+#if HAVE_SETXATTR
 int copy_xattrs(const char *from, const char *to);
 #endif
 

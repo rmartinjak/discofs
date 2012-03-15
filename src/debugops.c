@@ -292,7 +292,7 @@ int debug_op_statfs(const char *path, struct statvfs *buf)
     return res;
 }
 
-#ifdef HAVE_SETXATTR
+#if HAVE_SETXATTR
 int debug_op_setxattr(const char *path, const char *name, const char *value, size_t size, int flags)
 {
     int id, res;

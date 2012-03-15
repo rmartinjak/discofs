@@ -52,7 +52,7 @@ int op_chmod(const char *path, mode_t mode);
 int op_utimens(const char *path, const struct timespec ts[2]);
 int op_statfs(const char *path, struct statvfs *buf);
 
-#ifdef HAVE_SETXATTR
+#if HAVE_SETXATTR
 int op_setxattr(const char *path, const char *name, const char *value, size_t size, int flags);
 int op_getxattr(const char *path, const char *name, char *value, size_t size);
 int op_listxattr(const char *path, char *list, size_t size);

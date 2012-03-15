@@ -42,7 +42,7 @@ int debug_op_chmod(const char *path, mode_t mode);
 int debug_op_utimens(const char *path, const struct timespec ts[2]);
 int debug_op_statfs(const char *path, struct statvfs *buf);
 
-#ifdef HAVE_SETXATTR
+#if HAVE_SETXATTR
 int debug_op_setxattr(const char *path, const char *name, const char *value, size_t size, int flags);
 int debug_op_getxattr(const char *path, const char *name, char *value, size_t size);
 int debug_op_listxattr(const char *path, char *list, size_t size);

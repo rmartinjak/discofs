@@ -28,7 +28,7 @@
 
 #define PREPARE(q) EXITNOK(sqlite3_prepare_v2(db, q, -1, &stmt, NULL))
 
-#ifdef DEBUG_SQL
+#if DEBUG_SQL
 #define STEP() (DEBUG("SQL: %s\n", sqlite3_sql(stmt)), sqlite3_step(stmt))
 #else
 #define STEP() sqlite3_step(stmt)
