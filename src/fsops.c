@@ -507,8 +507,13 @@ int op_rename(const char *from, const char *to)
     if (ONLINE)
     {
         res = remoteop_rename(from, to);
+
         if (!res)
             sync_set(to);
+
+        /* ignore ENOENT */
+        else if (errno == ENOENT)
+            res = 0;
     }
     else
     {
