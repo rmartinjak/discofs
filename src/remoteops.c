@@ -223,7 +223,7 @@ int remoteop_chown(const char *path, uid_t uid, gid_t gid)
     if (!p)
         return -EIO;
 
-    res = lchown(p, uid, gid);
+    res = chown(p, uid, gid);
     free(p);
 
     if (res)
@@ -244,7 +244,7 @@ int remoteop_chmod(const char *path, mode_t mode)
     if (!p)
         return -EIO;
 
-    res = lchmod(p, mode);
+    res = chmod(p, mode);
     free (p);
 
     if (res)

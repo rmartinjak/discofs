@@ -766,7 +766,7 @@ int op_chown(const char *path, uid_t uid, gid_t gid)
     char *p;
 
     p = cache_path(path);
-    res = lchown(p, uid, gid);
+    res = chown(p, uid, gid);
     free(p);
 
     if (res)
@@ -793,7 +793,7 @@ int op_chmod(const char *path, mode_t mode)
     char *p;
 
     p = cache_path(path);
-    res = lchmod(p, mode);
+    res = chmod(p, mode);
     free(p);
 
     if (res)
