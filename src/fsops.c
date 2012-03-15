@@ -609,8 +609,6 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
         }
     }
 
-    set_lock(path, LOCK_OPEN);
-
     pc = cache_path2(path, p_len);
     if (!pc)
         return -EIO; 
@@ -631,6 +629,8 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
         free(fh);
         return -errno;
     }
+
+    set_lock(path, LOCK_OPEN);
 
     fi->fh = (uint64_t)fh;
     return 0;
