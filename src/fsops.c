@@ -314,17 +314,17 @@ int op_mkdir(const char *path, mode_t mode)
 
     if (ONLINE)
     {
-        res = remoteop_rmdir(path);
+        res = remoteop_mkdir(path, mode);
         if (!res)
+        {
             sync_set(path);
-    }
-    else
-    {
-        if (job_schedule(JOB_MKDIR, path, mode, 0, NULL, NULL))
-            return -EIO;
+            return 0;
+        }
     }
 
-    return res;
+    job_schedule(JOB_MKDIR, path, mode, 0, NULL, NULL);
+
+    return 0;
 }
 
 int op_rmdir(const char *path)
@@ -348,14 +348,13 @@ int op_rmdir(const char *path)
     if (ONLINE)
     {
         res = remoteop_rmdir(path);
-    }
-    else
-    {
-        if (job_schedule(JOB_RMDIR, path, 0, 0, NULL, NULL))
-            return -EIO;
+        if (!res)
+            return 0;
     }
 
-    return res;
+    job_schedule(JOB_RMDIR, path, 0, 0, NULL, NULL);
+
+    return 0;
 }
 
 int op_unlink(const char *path)
@@ -385,15 +384,12 @@ int op_unlink(const char *path)
     if (ONLINE)
     {
         res = remoteop_unlink(path);
-    }
-    else
-    {
-        if (job_schedule(JOB_UNLINK, path, 0, 0, NULL, NULL))
-            return -EIO;
+        if (!res)
+            return 0;
     }
 
-    if (res)
-        return -errno;
+    job_schedule(JOB_UNLINK, path, 0, 0, NULL, NULL);
+
     return 0;
 }
 
@@ -414,16 +410,14 @@ int op_symlink(const char *to, const char *path)
     {
         res = remoteop_symlink(to, path);
         if (!res)
+        {
             sync_set(path);
-    }
-    else
-    {
-        if (job_schedule(JOB_SYMLINK, path, 0, 0, to, NULL))
-            return -EIO;
+            return 0;
+        }
     }
 
-    if (res)
-        return -errno;
+    job_schedule(JOB_SYMLINK, path, 0, 0, to, NULL);
+
     return 0;
 }
 
@@ -508,20 +502,16 @@ int op_rename(const char *from, const char *to)
     {
         res = remoteop_rename(from, to);
 
-        if (!res)
+        if (!res || errno = ENOENT)
+        {
             sync_set(to);
-
-        /* ignore ENOENT */
-        else if (errno == ENOENT)
-            res = 0;
-    }
-    else
-    {
-        if (job_schedule(JOB_RENAME, from, 0, 0, to, NULL))
-            return -EIO;
+            return 0;
+        }
     }
 
-    return res ;
+    job_schedule(JOB_RENAME, from, 0, 0, to, NULL);
+
+    return 0;
 }
 
 int op_releasedir(const char* path, struct fuse_file_info *fi)
@@ -781,15 +771,15 @@ int op_chown(const char *path, uid_t uid, gid_t gid)
     {
         res = remoteop_chown(path, uid, gid);
         if (!res)
+        {
             sync_set(path);
-    }
-    else
-    {
-        if (job_schedule(JOB_CHOWN, path, uid, gid, NULL, NULL))
-            return -EIO;
+            return 0;
+        }
     }
 
-    return res;
+    job_schedule(JOB_CHOWN, path, uid, gid, NULL, NULL);
+
+    return 0;
 }
 
 int op_chmod(const char *path, mode_t mode)
@@ -808,15 +798,15 @@ int op_chmod(const char *path, mode_t mode)
     {
         res = remoteop_chmod(path, mode);
         if (!res)
+        {
             sync_set(path);
-    }
-    else
-    {
-        if (job_schedule(JOB_CHMOD, path, mode, 0, NULL, NULL))
-            return -EIO;
+            return 0;
+        }
     }
 
-    return res;
+    job_schedule(JOB_CHMOD, path, mode, 0, NULL, NULL);
+
+    return 0;
 }
 
 int op_utimens(const char *path, const struct timespec ts[2])
@@ -878,15 +868,15 @@ int op_setxattr(const char *path, const char *name, const char *value, size_t si
     {
         res = remoteop_setxattr(path, name, value, size, flags);
         if (!res)
+        {
             sync_set(path);
-    }
-    else
-    {
-        if (job_schedule(JOB_SETXATTR, path, size, flags, name, value))
-            return -EIO;
+            return 0;
+        }
     }
 
-    return res;
+    job_schedule(JOB_SETXATTR, path, size, flags, name, value);
+
+    return 0;
 }
 
 int op_getxattr(const char *path, const char *name, char *value, size_t size)
