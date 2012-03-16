@@ -652,13 +652,21 @@ int op_flush(const char *path, struct fuse_file_info *fi)
 int op_release(const char *path, struct fuse_file_info *fi)
 {
     int res;
+    char *p;
+    struct stat st;
     remove_lock(path, LOCK_OPEN);
     res = close(FI_FD(fi));
 
     /* file written -> schedule push */
     if (FI_FLAGS(fi) & FH_WRITTEN)
     {
-        job_schedule_push(path);
+        p = cache_path(path);
+
+        /* check first if file still exists */
+        if (!lstat(p, &st))
+            job_schedule_push(path);
+
+        free(p);
     }
     free((int*)fi->fh);
     return res;
