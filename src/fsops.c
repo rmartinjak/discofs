@@ -502,7 +502,7 @@ int op_rename(const char *from, const char *to)
     {
         res = remoteop_rename(from, to);
 
-        if (!res || errno = ENOENT)
+        if (!res || errno == ENOENT)
         {
             sync_set(to);
             return 0;
