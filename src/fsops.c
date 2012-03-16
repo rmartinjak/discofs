@@ -607,8 +607,10 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
         FH_FD(fh) = open(pc, fi->flags);
     else
     {
-        FH_FD(fh) = open(pc, O_WRONLY|O_CREAT|O_TRUNC, mode);
-        job_schedule_push(path);
+        FH_FD(fh) = open(pc, fi->flags, mode);
+
+        /* set "WRITTEN" flag so a job will be scheduled after closing */
+        FH_FLAGS(fh) |= FH_WRITTEN;
     }
 
     free(pc);
