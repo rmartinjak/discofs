@@ -170,18 +170,32 @@ int job_schedule(job_op op, const char *path, job_param n1, job_param n2, const 
     return 0;
 }
 
-void job_reschedule(struct job *j, int failed)
+void job_return(struct job *j, int reason)
 {
     if (!j)
         return;
 
-    if (failed && j->attempts++ > JOB_MAX_ATTEMPTS)
+    if (reason == JOB_DONE)
     {
-        ERROR("number of retries exhausted, giving up\n");
+        sync_set(j->path);
         db_job_delete_id(j->id);
         job_free(j);
         return;
     }
+
+    if (reason == JOB_FAILED)
+    {
+        j->attempts++;
+        if (j->attempts > JOB_MAX_ATTEMPTS)
+        {
+            ERROR("number of retries exhausted, giving up\n");
+            db_job_delete_id(j->id);
+            job_free(j);
+            return;
+        }
+    }
+
+    /* JOB_LOCKED or JOB_FAILED and attempt limit not reached */
 
     j->time = time(NULL) + JOB_DEFER_TIME;
 
@@ -197,16 +211,6 @@ struct job *job_get(void)
    db_job_get(&j);
 
    return j;
-}
-
-void job_done(struct job *j)
-{
-    if (!j)
-        return;
-
-    sync_set(j->path);
-    db_job_delete_id(j->id);
-    job_free(j);
 }
 
 int job_exists(const char *path, job_op mask)
