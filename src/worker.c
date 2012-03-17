@@ -324,19 +324,9 @@ void *worker_main(void *arg)
                 if (res == TRANSFER_OK)
                     continue;
 
-                /* error occured */
-                if (res == TRANSFER_FAIL)
-                {
-                    remove_lock(j->path, LOCK_TRANSFER);
-                    job_reschedule_failed(j);
-                }
-                /* transfer finished */
-                else
-                {
-                    remove_lock(j->path, LOCK_TRANSFER);
-                    job_done(j);
-                }
-
+                /* transfer finished or error */
+                remove_lock(j->path, LOCK_TRANSFER);
+                job_return(j, (res == TRANSFER_FINISH) ? JOB_DONE : JOB_FAILED);
                 j = NULL;
             }
 
@@ -351,7 +341,7 @@ void *worker_main(void *arg)
             while (j && (j->op & (JOB_PUSH|JOB_PULL)) && has_lock(j->path, LOCK_OPEN))
             {
                 DEBUG("%s is locked, NEXT\n", j->path);
-                job_reschedule_locked(j);
+                job_return(j, JOB_LOCKED);
                 j = job_get();
             }
 
@@ -371,7 +361,7 @@ void *worker_main(void *arg)
                     {
                         DEBUG("conflict\n");
                         conflict_handle(j->path, j->op, NULL);
-                        job_done(j);
+                        job_return(j, JOB_DONE);
                         j = NULL;
                         continue;
                     }
@@ -381,13 +371,13 @@ void *worker_main(void *arg)
 
                 if (res == TRANSFER_FINISH)
                 {
-                    job_done(j);
+                    job_return(j, JOB_DONE);
                     j = NULL;
                 }
                 else if (res == TRANSFER_FAIL)
                 {
                     ERROR("transfering '%s' failed\n", j->path);
-                    job_reschedule_failed(j);
+                    job_return(j, JOB_FAILED);
                     j = NULL;
                 }
 
@@ -397,12 +387,7 @@ void *worker_main(void *arg)
             else
             {
                 res = worker_perform(j);
-
-                if (res)
-                    job_reschedule_failed(j);
-                else 
-                    job_done(j);
-
+                job_return(j, (!res) ? JOB_DONE : JOB_FAILED);
                 j = NULL;
             }
         }
@@ -420,7 +405,7 @@ void *worker_main(void *arg)
     {
         remove_lock(j->path, LOCK_TRANSFER);
         transfer_abort();
-        job_reschedule_locked(j);
+        job_return(j, JOB_LOCKED);
         j = NULL;
     }
 return NULL;
