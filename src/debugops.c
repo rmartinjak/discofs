@@ -27,7 +27,7 @@ void *debug_op_init(struct fuse_conn_info *conn)
 void debug_op_destroy(void *p)
 {
     op_destroy(p);
-};
+}
 
 int debug_op_getattr(const char *path, struct stat *buf)
 {
