@@ -676,6 +676,9 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
+    /* add "use_ino" to display inodes in stat(1)*/
+    fuse_opt_add_arg(&args, "-ouse_ino");
+
 
     /*---------------*/
     /* set UID / GID */
