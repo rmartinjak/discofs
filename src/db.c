@@ -10,11 +10,13 @@
 #include "funcs.h"
 #include "queue.h"
 #include "job.h"
+#include "sync.h"
 
 #include <errno.h>
 #include <stdio.h>
 #include <pthread.h>
 #include <limits.h>
+#include <sys/types.h>
 
 #define ERRMSG(msg) ERROR(msg ": %s\n", sqlite3_errmsg(db))
 
@@ -93,6 +95,7 @@ int db_init(const char *path, int clear)
     CREATE_TABLE(TABLE_CFG, SCHEMA_CFG);
     CREATE_TABLE(TABLE_JOB, SCHEMA_JOB);
     CREATE_TABLE(TABLE_SYNC, SCHEMA_SYNC);
+    CREATE_TABLE(TABLE_HARDLINK, SCHEMA_HARDLINK);
 
 #undef NEW_TABLE
 #undef CREATE_TABLE
@@ -197,17 +200,16 @@ int db_cfg_get_int(const char *option, int *buf)
 
     if (sql_res == SQLITE_ROW)
         *buf = sqlite3_column_int(stmt, 0);
-
     else if (sql_res != SQLITE_DONE)
     {
         ERRMSG("db_cfg_get_int");
         res = DB_ERROR;
     }
+    else
+        res = DB_NOTFOUND;
 
     sqlite3_finalize(stmt);
-
     db_close();
-
     return res;
 }
 
@@ -231,11 +233,11 @@ int db_cfg_get_str(const char *option, char **buf)
         ERRMSG("db_cfg_get_str");
         res = DB_ERROR;
     }
+    else
+        res = DB_NOTFOUND;
 
     sqlite3_finalize(stmt);
-
     db_close();
-
     return res;
 }
 
@@ -311,6 +313,7 @@ int db_job_get(struct job **j)
     sqlite3_bind_int64(stmt, 1, now);
 
     sql_res = sqlite3_step(stmt);
+
     if (sql_res == SQLITE_ROW)
     {
         p = job_alloc();
@@ -346,7 +349,6 @@ int db_job_get(struct job **j)
     }
 
     sqlite3_finalize(stmt);
-
     db_close();
     return res;
 }
@@ -373,7 +375,6 @@ int db_job_exists(const char *path, int opmask)
 
     sqlite3_finalize(stmt);
     db_close();
-
     return res;
 }
 
@@ -412,6 +413,7 @@ int db_job_delete_id(job_id id)
     sqlite3_stmt *stmt;
 
     db_open();
+
     PREPARE("DELETE FROM " TABLE_JOB " WHERE rowid=?;", &stmt);
     sqlite3_bind_int64(stmt, 1, id);
 
@@ -537,6 +539,82 @@ int db_store_sync(const struct sync *s)
 }
 
 
+/************/
+/* HARDLINK */
+/************/
+
+int db_hardlink_get(ino_t inode, queue *q)
+{
+    int res = DB_OK, sql_res;
+    sqlite3_stmt *stmt;
+    char *path;
+
+    db_open();
+
+    PREPARE("SELECT path FROM " TABLE_HARDLINK " WHERE inode=?;", &stmt);
+    sqlite3_bind_int64(stmt, 1, inode);
+
+    while ((sql_res = sqlite3_step(stmt)) == SQLITE_ROW)
+    {
+        path = column_text(stmt, 0);
+        if (path)
+            q_enqueue(q, path);
+    }
+
+    if (sql_res != SQLITE_DONE)
+    {
+        ERRMSG("db_hardlink_get");
+        res = DB_ERROR;
+    }
+
+    sqlite3_finalize(stmt);
+    db_close();
+    return res;
+}
+
+int db_hardlink_add(const char *path, ino_t inode)
+{
+    int res = DB_OK;
+    sqlite3_stmt *stmt;
+
+    db_open();
+
+    PREPARE("INSERT OR REPLACE INTO " TABLE_HARDLINK " (path, inode) VALUES (?, ?);", &stmt);
+    sqlite3_bind_text (stmt, 1, path, -1, SQLITE_STATIC);
+    sqlite3_bind_int64(stmt, 2, inode);
+
+    if (sqlite3_step(stmt) != SQLITE_DONE)
+    {
+        ERRMSG("db_hardlink_add");
+        res = DB_ERROR;
+    }
+
+    sqlite3_finalize(stmt);
+    db_close();
+    return res;
+}
+
+int db_hardlink_remove(const char *path)
+{
+    int res = DB_OK;
+    sqlite3_stmt *stmt;
+
+    db_open();
+
+    PREPARE("DELETE FROM " TABLE_HARDLINK " WHERE path=?;", &stmt);
+    sqlite3_bind_text (stmt, 1, path, -1, SQLITE_STATIC);
+
+    if (sqlite3_step(stmt) != SQLITE_DONE)
+    {
+        ERRMSG("db_hardlink_remove");
+        res = DB_ERROR;
+    }
+
+    sqlite3_finalize(stmt);
+    db_close();
+    return res;
+}
+
 /***********************/
 /* DELETE/RENAME PATHS */
 /***********************/
@@ -559,7 +637,6 @@ int db_ ## name ## _delete_path(const char *path)                           \
     }                                                                       \
                                                                             \
     sqlite3_finalize(stmt);                                                 \
-                                                                            \
     db_close();                                                             \
     return res;                                                             \
 }
@@ -581,9 +658,8 @@ int db_ ## name ## _rename_file(const char *from, const char *to)           \
         ERRMSG("db_" #name "_rename_file");                                 \
         res = DB_ERROR;                                                     \
     }                                                                       \
+                                                                            \
     sqlite3_finalize(stmt);                                                 \
-                                                                            \
-                                                                            \
     db_close();                                                             \
     return res;                                                             \
 }
@@ -656,7 +732,6 @@ int db_ ## name ## _rename_dir(const char *from, const char *to)            \
     }                                                                       \
                                                                             \
     sqlite3_finalize(stmt);                                                 \
-                                                                            \
     q_free(q, free);                                                        \
     return res;                                                             \
 }
@@ -668,3 +743,4 @@ DB_x_RENAME_DIR (n, t, c)
 
 DB_x_(job, TABLE_JOB, "path")
 DB_x_(sync, TABLE_SYNC, "path")
+DB_x_(hardlink, TABLE_HARDLINK, "path")

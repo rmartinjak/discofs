@@ -177,7 +177,7 @@ void job_return(struct job *j, int reason)
 
     if (reason == JOB_DONE)
     {
-        sync_set(j->path);
+        sync_set(j->path, 0);
         db_job_delete_id(j->id);
         job_free(j);
         return;

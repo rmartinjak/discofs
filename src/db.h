@@ -11,9 +11,9 @@
 #include "queue.h"
 #include "job.h"
 #include "sync.h"
-#include "hashtable.h"
 
 #include <sqlite3.h>
+#include <sys/types.h>
 
 
 #define DB_OK 0
@@ -27,25 +27,30 @@
 #define CFG_FS_FEATURES "fs_features"
 
 #define TABLE_JOB "job"
-#define SCHEMA_JOB \
-    "rowid INTEGER PRIMARY KEY," \
-    "prio INTEGER," \
-    "op INTEGER," \
-    "time INTEGER," \
-    "attempts INTEGER," \
-    "path TEXT," \
-    "n1 INTEGER," \
-    "n2 INTEGER," \
-    "s1 TEXT," \
+#define SCHEMA_JOB                  \
+    "rowid INTEGER PRIMARY KEY,"    \
+    "prio INTEGER,"                 \
+    "op INTEGER,"                   \
+    "time INTEGER,"                 \
+    "attempts INTEGER,"             \
+    "path TEXT,"                    \
+    "n1 INTEGER,"                   \
+    "n2 INTEGER,"                   \
+    "s1 TEXT,"                      \
     "s2 TEXT"
 
 #define TABLE_SYNC "sync"
-#define SCHEMA_SYNC "path TEXT UNIQUE NOT NULL," \
-    "mtime_s INTEGER," \
-    "mtime_ns INTEGER," \
-    "ctime_s INTEGER," \
+#define SCHEMA_SYNC                 \
+    "path TEXT UNIQUE NOT NULL,"    \
+    "mtime_s INTEGER,"              \
+    "mtime_ns INTEGER,"             \
+    "ctime_s INTEGER,"              \
     "ctime_ns INTEGER"
 
+#define TABLE_HARDLINK "hardlink"
+#define SCHEMA_HARDLINK             \
+    "path TEXT UNIQUE NOT NULL,"    \
+    "inode INTEGER"
 
 void db_open(void);
 void db_close(void);
@@ -67,18 +72,15 @@ int db_job_exists(const char *path, int opmask);
 
 int db_job_delete_id(job_id id);
 int db_job_delete(const char* path, int opmask);
-
 int db_job_delete_rename_to(const char *path);
-
-int db_get_job_by_id(struct job *j, long long id);
 
 
 int db_load_sync(sync_load_cb_t callback);
 int db_store_sync(const struct sync *s);
 
-int db_rename_file(const char *from, const char *to);
-int db_rename_dir(const char *from, const char *to);
-int db_delete_path(const char *path);
+int db_hardlink_get(ino_t inode, queue *q);
+int db_hardlink_add(const char *path, ino_t inode);
+int db_hardlink_remove(const char *path);
 
 
 int db_job_delete_path(const char *path);
@@ -88,5 +90,9 @@ int db_job_rename_dir(const char *from, const char *to);
 int db_sync_delete_path(const char *path);
 int db_sync_rename_file(const char *from, const char *to);
 int db_sync_rename_dir(const char *from, const char *to);
+
+int db_hardlink_delete_path(const char *path);
+int db_hardlink_rename_file(const char *from, const char *to);
+int db_hardlink_rename_dir(const char *from, const char *to);
 
 #endif

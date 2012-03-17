@@ -10,6 +10,7 @@
 #include "log.h"
 #include "funcs.h"
 #include "hashtable.h"
+#include "hardlink.h"
 #include "db.h"
 
 #include <stdint.h>
@@ -292,7 +293,7 @@ struct sync *sync_create(const char *path, sync_xtime_t mtime, sync_xtime_t ctim
     if (s)
     {
         s->path = strdup(path);
-        
+
         if (!s->path)
         {
             free(s);
@@ -310,7 +311,7 @@ void sync_free(void *p)
     free(p);
 }
 
-int sync_set(const char *path)
+int sync_set(const char *path, int flags)
 {
     int res;
     char *p;                    /* path to remote file/dir */
@@ -331,6 +332,13 @@ int sync_set(const char *path)
     {
         PERROR("lstat() in sync_set");
         return -1;
+    }
+
+    if (st.st_nlink > 1 && !(flags & SYNC_NOHARDLINKS) && (fs2go_options.fs_features & FEAT_HARDLINKS))
+    {
+        /* hardlink_sync_set will set sync for all paths sharing the same
+           inode, including "path" */
+        return hardlink_sync_set(st.st_ino);
     }
 
     mtime = ST_MTIME(st);
@@ -380,10 +388,10 @@ int sync_get_stat(const char *path, struct stat *buf)
 
     res = lstat(p, &st);
     free(p);
+
     /* no such file */
     if (res == -1)
     {
-        DEBUG("file not found remote: %s\n", path);
         return SYNC_NOT_FOUND;
     }
 

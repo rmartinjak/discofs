@@ -16,7 +16,7 @@ int transfer(const char *from, const char *to);
 int transfer_begin(const struct job *j);
 
 void transfer_rename_dir(const char *from, const char *to);
-void transfer_rename(const char *to, int rename_partfile);
+void transfer_rename(const char *to);
 
 void transfer_abort(void);
 

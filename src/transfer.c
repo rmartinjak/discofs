@@ -3,9 +3,8 @@
  * see LICENSE for full license (BSD 2-Clause)
  */
 
-#include "config.h"
-
 #include "transfer.h"
+
 #include "job.h"
 #include "sync.h"
 #include "lock.h"
@@ -23,7 +22,7 @@ pthread_mutex_t m_instant_pull = PTHREAD_MUTEX_INITIALIZER;
 
 static pthread_mutex_t m_transfer = PTHREAD_MUTEX_INITIALIZER;
 static off_t t_off;
-static char *t_path, *t_read = NULL, *t_write = NULL, *t_write_part = NULL;
+static char *t_path, *t_read = NULL, *t_write = NULL;
 static int t_active = 0, t_op = 0;
 
 static void transfer_free(void);
@@ -34,7 +33,6 @@ static void transfer_free(void)
     FREE(t_path);
     FREE(t_read);
     FREE(t_write);
-    FREE(t_write_part);
 #undef FREE
 }
 
@@ -53,7 +51,6 @@ int transfer(const char *from, const char *to)
         VERBOSE("beginning transfer: '%s' -> '%s'\n", from, to);
         t_read = strdup(from);
         t_write = strdup(to);
-        t_write_part = partfilename(t_write);
 
         t_active = 1;
 
@@ -88,9 +85,9 @@ int transfer(const char *from, const char *to)
         return TRANSFER_FAIL;
     }
 
-    if ((fdwrite = open(t_write_part, w_flags, 0666)) == -1
+    if ((fdwrite = open(t_write, w_flags, 0666)) == -1
             || lseek(fdwrite, t_off, SEEK_SET) == -1) {
-        log_error(t_write_part);
+        log_error(t_write);
         pthread_mutex_unlock(&m_transfer);
         transfer_abort();
         return TRANSFER_FAIL;
@@ -120,11 +117,6 @@ int transfer(const char *from, const char *to)
 
             CLOSE(fdread);
             CLOSE(fdwrite);
-
-            if (rename(t_write_part, t_write))
-            {
-                PERROR("renaming after transfer");
-            }
 
             copy_attrs(t_read, t_write);
 
@@ -247,14 +239,13 @@ void transfer_rename_dir(const char *from, const char *to)
 
     t_path_new = join_path(to, p);
 
-    transfer_rename(t_path_new, 0);
+    transfer_rename(t_path_new);
 
     free(t_path_new);
 }
 
-void transfer_rename(const char *to, int rename_partfile)
+void transfer_rename(const char *to)
 {
-    char *part_old;
     size_t to_len;
 
     if (!t_active)
@@ -285,23 +276,6 @@ void transfer_rename(const char *to, int rename_partfile)
         t_write = cache_path2(to, to_len);
     }
 
-    /* rename part file */
-    part_old = t_write_part;
-    t_write_part = partfilename(t_write);
-
-    if (rename_partfile)
-    {
-        if (rename(part_old, t_write_part))
-        {
-            PERROR("renaming partfile");
-            ERROR("%s ->, %s\n", part_old, t_write_part);
-            pthread_mutex_unlock(&m_transfer);
-            transfer_abort();
-            pthread_mutex_lock(&m_transfer);
-        }
-    }
-    free(part_old);
-
     pthread_mutex_unlock(&m_transfer);
     worker_unblock();
 }
@@ -317,7 +291,6 @@ void transfer_abort(void)
     t_active = 0;
     remove_lock(t_path, LOCK_TRANSFER);
 
-    unlink(t_write_part);
     transfer_free();
 
     pthread_mutex_unlock(&m_transfer);
@@ -360,7 +333,7 @@ int transfer_instant_pull(const char *path)
 
     /* file is in sync now */
     job_delete(path, JOB_PULL);
-    sync_set(path);
+    sync_set(path, 0);
 
     pthread_mutex_unlock(&m_instant_pull);
     return 0;

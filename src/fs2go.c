@@ -185,6 +185,7 @@ static void log_options(int loglevel, struct options opt)
 
     log_print(loglevel, "remote fs features:\n");
     log_print(loglevel, "nanosecond timestamps: %s\n", YESNO((fs2go_options.fs_features & FEAT_NS)));
+    log_print(loglevel, "hardlinks: %s\n", YESNO((fs2go_options.fs_features & FEAT_HARDLINKS)));
 #if HAVE_SETXATTR
     log_print(loglevel, "extended attributes: %s\n", YESNO((fs2go_options.fs_features & FEAT_XATTR)));
 #endif
@@ -489,11 +490,15 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
 static int test_fs_features(int *f)
 {
 #define TESTFILE1 ".__fs2go_test_1__"
-    char *p;
+#define TESTFILE2 ".__fs2go_test_2__"
+    char *p, *p2;
+    struct stat st, st2;
+
     VERBOSE("testing remote fs features\n");
 
     /* create test file */
     p = remote_path(TESTFILE1);
+    p2 = remote_path(TESTFILE2);
 
     if (mknod(p, S_IFREG | S_IRUSR | S_IWUSR, 0))
     {
@@ -501,10 +506,9 @@ static int test_fs_features(int *f)
         return -1;
     }
 
-    /* test if timestamps support nanosecond presicion */
 #if HAVE_UTIMENSAT && HAVE_CLOCK_GETTIME
+    /* test if timestamps support nanosecond presicion */
     struct timespec mtime;
-    struct stat st;
 
     /* set mtime of file to 0, 1337 */
     mtime.tv_sec = 0;
@@ -529,18 +533,30 @@ static int test_fs_features(int *f)
         *f |= FEAT_XATTR;
 #endif
 
-    /* test if hard links are supported
-       we currently don't support them ourselves :7
-     *f |= FEAT_HARDLINKS;
-     */
+    /* test if hard links are supported */
+    if (link(p, p2) == 0)
+    {
+        lstat(p, &st);
+        lstat(p2, &st2);
 
-    /* remove test file */
+        if (st.st_ino == st2.st_ino)
+            *f |= FEAT_HARDLINKS;
+
+        unlink(p2);
+    }
+    else
+        perror("creating hardlink:\n");
+
+    /* remove test files */
     unlink(p);
+    unlink(p2);
 
     free(p);
+    free(p2);
 
     return 0;
 #undef TESTFILE1
+#undef TESTFILE2
 }
 
 /* signal handler (prototyp inside main()) */
@@ -548,7 +564,7 @@ void sig_handler(int signo)
 {
     switch (signo) {
         /* sighup blocks the working thread for 10 seconds. this gives the
-           user the opportunity to unmount the remote fs */ 
+           user the opportunity to unmount the remote fs */
         case SIGHUP:
             VERBOSE("received SIGHUP, blocking worker for 10 seconds\n");
             worker_block();
@@ -622,16 +638,16 @@ int main(int argc, char **argv)
     /*------------------------*/
     /* install signal handler */
     /*------------------------*/
-    
+
     /* set handling function */
     sig.sa_handler = sig_handler;
 
     /* set (no) flags */
-    sig.sa_flags = 0; 
+    sig.sa_flags = 0;
 
     /* empty signal mask */
     sigemptyset(&sig.sa_mask);
-    
+
     /* add signals to catch */
     sigaddset(&sig.sa_mask, SIGHUP);
 
@@ -752,7 +768,7 @@ int main(int argc, char **argv)
     /* try to load filesystem features from DB */
     if (db_cfg_get_int(CFG_FS_FEATURES, &fs2go_options.fs_features))
     {
-        
+
         /* if loading failed, try to determine them */
         if (is_mounted(REMOTE_ROOT) && is_reachable(fs2go_options.host))
         {

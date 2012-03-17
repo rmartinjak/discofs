@@ -43,6 +43,8 @@
 #define FEAT_XATTR 2
 #define FEAT_HARDLINKS 4
 
+#define FS_FEAT(f) (fs2go_options.fs_features & FEAT_##f)
+
 
 /*---------------------*/
 /* attribute copy mask */

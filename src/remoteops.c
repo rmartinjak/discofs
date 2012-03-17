@@ -8,6 +8,7 @@
 
 #include "fs2go.h"
 #include "sync.h"
+#include "hardlink.h"
 #include "lock.h"
 #include "conflict.h"
 #include "transfer.h"
@@ -45,7 +46,7 @@ int remoteop_rename(const char *from, const char *to)
     else if (has_lock(from, LOCK_TRANSFER))
     {
 
-        transfer_rename(to, 1);
+        transfer_rename(to);
 
         /* rename transfer lock */
         remove_lock(from, LOCK_TRANSFER);
@@ -82,7 +83,7 @@ int remoteop_rename(const char *from, const char *to)
         free(pt);
     }
     /* pt is NULL if a conflict occured, the remote file is kept
-       and no backup prefix/suffix was set. this means the file/dir 
+       and no backup prefix/suffix was set. this means the file/dir
        should be removed, not renamed */
     else
     {
@@ -110,10 +111,6 @@ int remoteop_unlink(const char *path)
         remove_lock(path, LOCK_TRANSFER);
     }
 
-    /*
-       if file opened, prevent scheduling of PUSH job somehow
-     */
-
     sync = sync_get(path);
 
     /* this would be a conflict! don't delete but pull */
@@ -122,8 +119,6 @@ int remoteop_unlink(const char *path)
         job_schedule_pull(path);
         return 0;
     }
-
-    sync_delete_file(path);
 
     if (sync == SYNC_NOT_FOUND)
     {
@@ -139,6 +134,10 @@ int remoteop_unlink(const char *path)
 
     if (res)
         return -errno;
+
+    sync_delete_file(path);
+    hardlink_remove(path);
+
     return 0;
 }
 
@@ -162,7 +161,32 @@ int remoteop_symlink(const char *to, const char *path)
 
 int remoteop_link(const char *to, const char *path)
 {
-    return -ENOTSUP;
+    int res;
+    char *pp, *pt;
+    struct stat st;
+
+    pp = remote_path(path);
+    pt = remote_path(to);
+    if (!pp || !pt)
+    {
+        free(pp);
+        free(pt);
+        return -EIO;
+    }
+
+    res = link(pt, pp);
+    lstat(pp, &st);
+
+    free(pp);
+    free(pt);
+
+    if (res)
+        return -errno;
+
+    hardlink_add(path, st.st_ino);
+    hardlink_add(to, st.st_ino);
+
+    return 0;
 }
 
 int remoteop_mkdir(const char *path, mode_t mode)

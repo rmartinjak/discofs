@@ -46,6 +46,13 @@ struct sync
 typedef struct sync * (*sync_load_cb_t) (const char*, sync_xtime_t, sync_xtime_t);
 
 
+/*----------------------*/
+/* flags for set_sync() */
+/*----------------------*/
+
+#define SYNC_NOHARDLINKS    (1 << 0)
+
+
 /*-----------------------------*/
 /* return values of get_sync() */
 /*-----------------------------*/
@@ -83,7 +90,7 @@ struct sync *sync_create(const char *path, sync_xtime_t mtime, sync_xtime_t ctim
 void sync_free(void *p);
 
 /* mark file "path" as synchronised */
-int sync_set(const char *path);
+int sync_set(const char *path, int flags);
 
 /* retrieve sync status (put lstat() info in buf) */
 #define sync_get(p) sync_get_stat(p, NULL)

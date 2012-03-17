@@ -12,6 +12,7 @@
 #include "funcs.h"
 #include "sync.h"
 #include "job.h"
+#include "hardlink.h"
 #include "lock.h"
 #include "worker.h"
 #include "transfer.h"
@@ -284,7 +285,7 @@ int op_mknod(const char *path, mode_t mode, dev_t rdev)
         free(p);
         if (res != 0)
             return -errno;
-        sync_set(path);
+        sync_set(path, 0);
     }
     else
     {
@@ -317,7 +318,7 @@ int op_mkdir(const char *path, mode_t mode)
         res = remoteop_mkdir(path, mode);
         if (!res)
         {
-            sync_set(path);
+            sync_set(path, 0);
             return 0;
         }
     }
@@ -397,7 +398,7 @@ int op_symlink(const char *to, const char *path)
 {
     int res;
     char *p;
-    
+
     p = cache_path(path);
 
     res = symlink(to, p);
@@ -405,13 +406,13 @@ int op_symlink(const char *to, const char *path)
 
     if (res)
         return -errno;
-    
+
     if (ONLINE)
     {
         res = remoteop_symlink(to, path);
         if (!res)
         {
-            sync_set(path);
+            sync_set(path, 0);
             return 0;
         }
     }
@@ -423,7 +424,35 @@ int op_symlink(const char *to, const char *path)
 
 int op_link(const char *to, const char *path)
 {
-    return -ENOTSUP;
+    int res;
+    char *pp, *pt;
+
+    if (!(fs2go_options.fs_features & FEAT_HARDLINKS))
+        return -ENOTSUP;
+
+    pp = cache_path(path);
+    pt = cache_path(to);
+
+    res = link(pt, pp);
+    free(pp);
+    free(pt);
+
+    if (res)
+        return -errno;
+
+    if (ONLINE)
+    {
+        res = remoteop_link(to, path);
+        if (!res)
+        {
+            sync_set(path, 0);
+            return 0;
+        }
+    }
+
+    job_schedule(JOB_LINK, path, 0, 0, to, NULL);
+
+    return 0;
 }
 
 int op_rename(const char *from, const char *to)
@@ -469,6 +498,7 @@ int op_rename(const char *from, const char *to)
     if (from_is_dir)
     {
         job_rename_dir(from, to);
+        hardlink_rename_dir(from, to);
 
         sync_delete_dir(to);
         sync_rename_dir(from, to);
@@ -504,7 +534,7 @@ int op_rename(const char *from, const char *to)
 
         if (!res || errno == ENOENT)
         {
-            sync_set(to);
+            sync_set(to, 0);
             return 0;
         }
     }
@@ -590,7 +620,7 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
             if (!pc || !pr)
             {
                 free(pr), free(pc);
-                return -EIO; 
+                return -EIO;
             }
 
             copy_attrs(pr, pc);
@@ -601,7 +631,7 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
 
     pc = cache_path2(path, p_len);
     if (!pc)
-        return -EIO; 
+        return -EIO;
 
     if (op == OP_OPEN)
         FH_FD(fh) = open(pc, fi->flags);
@@ -719,7 +749,7 @@ int op_write(const char *path, const char *buf, size_t size, off_t offset, struc
     int res;
 
     res = pwrite(FI_FD(fi), (void *)buf, size, offset);
-    
+
     if (res == -1)
         return -errno;
 
@@ -782,7 +812,7 @@ int op_chown(const char *path, uid_t uid, gid_t gid)
         res = remoteop_chown(path, uid, gid);
         if (!res)
         {
-            sync_set(path);
+            sync_set(path, 0);
             return 0;
         }
     }
@@ -809,7 +839,7 @@ int op_chmod(const char *path, mode_t mode)
         res = remoteop_chmod(path, mode);
         if (!res)
         {
-            sync_set(path);
+            sync_set(path, 0);
             return 0;
         }
     }
@@ -879,7 +909,7 @@ int op_setxattr(const char *path, const char *name, const char *value, size_t si
         res = remoteop_setxattr(path, name, value, size, flags);
         if (!res)
         {
-            sync_set(path);
+            sync_set(path, 0);
             return 0;
         }
     }

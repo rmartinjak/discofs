@@ -190,7 +190,7 @@ int debug_op_open(const char *path, struct fuse_file_info *fi)
     FSOP("[%d] open(%s, %o)\n", id, path, fi->flags);
     breakpoint();
     res = op_open(path, fi);
-    FSOP("[%d] open(%s) returns %d (fd: %d)\n", id, path, res, FI_FD(fi));
+    FSOP("[%d] open(%s) returns %d\n", id, path, res);
     return res;
 }
 
@@ -201,7 +201,7 @@ int debug_op_create(const char *path, mode_t mode, struct fuse_file_info *fi)
     FSOP("[%d] create(%s, %o, %o)\n", id, path, mode, fi->flags);
     breakpoint();
     res = op_create(path, mode, fi);
-    FSOP("[%d] create(%s, %o) returns %d (fd: %d)\n", id, path, mode, res, FI_FD(fi));
+    FSOP("[%d] create(%s, %o) returns %d\n", id, path, mode, res);
     return res;
 }
 
