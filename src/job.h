@@ -14,7 +14,7 @@
 #define PRIO_HIGH   2
 
 #define PRIO_LOW_JOBS   (JOB_PUSH | JOB_PULL)
-#define PRIO_HIGH_JOBS  (JOB_UNLINK)
+#define PRIO_HIGH_JOBS  (JOB_UNLINK | JOB_CREATE)
 
 #define OP_PRIO_LOW(op)  ((op) & PRIO_LOW_JOBS)
 #define OP_PRIO_HIGH(op) ((op) & PRIO_HIGH_JOBS)
@@ -34,6 +34,7 @@
 #define JOB_CHMOD       (1U << 8)
 #define JOB_CHOWN       (1U << 9)
 #define JOB_SETXATTR    (1U << 10)
+#define JOB_CREATE      (1U << 11)
 
 #define JOB_DONE    0
 #define JOB_FAILED  1

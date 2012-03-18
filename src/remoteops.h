@@ -13,6 +13,8 @@
 
 int remoteop_rename(const char *from, const char *to);
 
+int remoteop_create(const char *path, mode_t mode);
+
 int remoteop_unlink(const char *path);
 
 int remoteop_symlink(const char *to, const char *path);

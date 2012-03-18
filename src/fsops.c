@@ -620,12 +620,7 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
     if (op == OP_OPEN)
         FH_FD(fh) = open(pc, fi->flags);
     else
-    {
         FH_FD(fh) = open(pc, fi->flags, mode);
-
-        /* set "WRITTEN" flag so a job will be scheduled after closing */
-        FH_FLAGS(fh) |= FH_WRITTEN;
-    }
 
     free(pc);
 
@@ -634,6 +629,11 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
     {
         free(fh);
         return -errno;
+    }
+
+    if (op == OP_CREATE && (!ONLINE || remoteop_create(path, mode)))
+    {
+        job_schedule(JOB_CREATE, path, mode, 0, NULL, NULL);
     }
 
     set_lock(path, LOCK_OPEN);

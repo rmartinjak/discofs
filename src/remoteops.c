@@ -100,6 +100,23 @@ int remoteop_rename(const char *from, const char *to)
     return 0;
 }
 
+int remoteop_create(const char *path, mode_t mode)
+{
+    int res;
+    char *p;
+
+    p = remote_path(path);
+
+    res = mknod(p, S_IFREG|mode, 0);
+
+    free(p);
+
+    if (res)
+        return -res;
+
+    return 0;
+}
+
 int remoteop_unlink(const char *path)
 {
     int res, sync;
