@@ -74,14 +74,14 @@ int op_getattr(const char *path, struct stat *buf)
     err = errno;
     free(p);
 
-    if (res == -1 && ONLINE)
+    if (res && errno == ENOENT && ONLINE)
     {
         p = remote_path2(path, p_len);
         res = lstat(p, buf);
         free(p);
     }
 
-    if (res == -1)
+    if (res)
         return -err;
     return 0;
 }
@@ -100,41 +100,25 @@ int op_fgetattr(const char *path, struct stat *buf, struct fuse_file_info *fi)
 int op_access(const char *path, int mode)
 {
     int res;
-    char *p, *pc, *pr;
+    int err;
+    char *p;
     size_t p_len = strlen(path);
 
-    pc = cache_path2(path, p_len);
-    pr = remote_path2(path, p_len);
-
-    if (ONLINE && !has_lock(path, LOCK_OPEN) && strcmp(path, "/") != 0)
-    {
-        p = pr;
-
-        /* doesn't exit remote: */
-        if (sync_get(path) == SYNC_NOT_FOUND)
-        {
-            if (has_lock(path, LOCK_TRANSFER) || job_exists(path, JOB_PUSH))
-                p = pc;
-            else
-            {
-                free(pc);
-                free(pr);
-                return -ENOENT;
-            }
-        }
-    }
-    else
-    {
-        p = pc;
-    }
+    p = cache_path2(path, p_len);
 
     res = access(p, mode);
+    err = errno;
+    free(p);
 
-    free(pc);
-    free(pr);
+    if (res && errno == ENOENT && ONLINE)
+    {
+        p = remote_path2(path, p_len);
+        res = access(p, mode);
+        free(p);
+    }
 
-    if (res == -1)
-        return -errno;
+    if (res)
+        return -err;
     return 0;
 }
 
