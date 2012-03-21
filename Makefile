@@ -1,55 +1,56 @@
 include config.mk
 
-SRCDIR=src
-OBJDIR=obj
-SUBOBJDIR=$(OBJDIR)/sub
+SRCDIR = src
+OBJDIR = obj
 
-_OBJ = fs2go funcs paths sync job hardlink conflict worker transfer db log lock fsops debugops remoteops
-OBJ = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(_OBJ)))
+OBJNAMES = fs2go funcs paths sync job hardlink conflict worker transfer db log lock fsops debugops remoteops
+OBJ = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(OBJNAMES)))
 
 SUBMODULES = datastructs
 SUBOBJ = $(addprefix $(OBJDIR)/,$(addsuffix .a,$(SUBMODULES)))
-
 SUBINCLUDES = -Isrc/datastructs/src
 
 INCLUDES += $(SUBINCLUDES)
 
 export CC CPPFLAGS CFLAGS LDFLAGS LIBS
 
-default : options fs2go
+default : all
 
-# directories
+all : options $(OBJDIR) fs2go
 
 $(OBJDIR) :
-	@mkdir $(OBJDIR)
+	@mkdir $@
 
-$(SUBOBJDIR) : $(OBJDIR)
-	@mkdir $(SUBOBJDIR)
 
-$(OBJDIR)/datastructs.a : force
-	@make $(MAKEFLAGS) -C $(SRCDIR)/datastructs DESTDIR=$(realpath $(OBJDIR)) archive
+$(OBJDIR)/datastructs.a : recurse
+	$(MAKE) $(MAKEFLAGS) -C $(SRCDIR)/datastructs DESTDIR=$(realpath $(OBJDIR)) archive
+
 
 $(OBJDIR)/%.o : $(SRCDIR)/%.c
 	@echo CC -c $<
-	@$(CC) $(FUSE_VERSION) $(CPPFLAGS) $(CFLAGS) $(SUBINCLUDES) -c -o $@ $<
+	@$(CC) $(FUSE_VERSION) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) -c -o $@ $<
 
-fs2go : $(OBJDIR) $(OBJ) $(SUBOBJ)
+
+fs2go : $(OBJ) $(SUBOBJ)
 	@echo CC -o $@
-	@$(CC) -o fs2go $(OBJ) $(SUBOBJ) $(CFLAGS) $(LDFLAGS) $(LIBS)
+	@$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(LIBS)
+
 
 clean :
 	@echo cleaning
 	@rm -f fs2go
 	@rm -rf $(OBJDIR)
 
+
 options :
 	@echo "CC       =" $(CC)
 	@echo "CPPFLAGS =" $(CPPFLAGS)
 	@echo "CFLAGS   =" $(CFLAGS)
-	@echo "INCLUDES =" $(INCLUDES) $(SUBINCLUDES)
+	@echo "INCLUDES =" $(INCLUDES)
 	@echo "LDFLAGS  =" $(LDFLAGS)
 	@echo "LIBS     =" $(LIBS)
 	@echo
+
 
 install :
 	@echo installing executable to ${DESTDIR}${PREFIX}/bin
@@ -61,10 +62,12 @@ install :
 	@install -m 644 fs2go.1 ${DESTDIR}${MANPREFIX}/man1/fs2go.1
 	@sed -i "s/VERSION/${VERSION}/g" ${DESTDIR}${MANPREFIX}/man1/fs2go.1
 
+
 uninstall :
 	@echo removing executable file from ${DESTDIR}${PREFIX}/bin
 	@rm -f ${DESTDIR}${PREFIX}/bin/fs2go
 	@echo removing manual page from ${DESTDIR}${MANPREFIX}/man1
 	@rm -f ${DESTDIR}${MANPREFIX}/man1/fs2go.1
 
-.PHONY: clean install uninstall options force
+
+.PHONY: clean install uninstall options recurse
