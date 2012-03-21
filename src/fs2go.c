@@ -119,7 +119,23 @@ static void print_usage()
         " bprefix=<prefix>\n"
         " bsuffix=<suffix>      backup prefix/suffix (see the manual for more information)\n"
         " clear                 delete database and cache before mounting\n"
-        " loglevel=<level>      logging level, possible values: none, error, info, verbose, debug, fsop\n"
+        " loglevel=<level>      logging level, possible values: none"
+        #ifdef LOG_ENABLE_ERROR
+        ", error"
+        #endif
+        #ifdef LOG_ENABLE_INFO
+        ", info"
+        #endif
+        #ifdef LOG_ENABLE_VERBOSE
+        ", verbose"
+        #endif
+        #ifdef LOG_ENABLE_DEBUG
+        ", debug"
+        #endif
+        #ifdef LOG_ENABLE_FSOP
+        ", fsop"
+        #endif
+        "\n"
         "                       each including its predecessors. default is 'none'\n"
         " logfile=<file>        logging output file. default ist stderr\n"
         "\n"
