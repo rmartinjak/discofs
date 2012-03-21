@@ -19,6 +19,9 @@
 /* DEFINITIONS */
 /*=============*/
 
+/* make options available for everybody including fs2go.h */
+extern struct options fs2go_options;
+
 #define CACHE_ROOT fs2go_options.cache_root
 #define CACHE_ROOT_LEN fs2go_options.cache_root_len
 #define REMOTE_ROOT fs2go_options.remote_root

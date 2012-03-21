@@ -17,8 +17,6 @@
 /* DEFINITIONS */
 /*=============*/
 
-extern struct options fs2go_options;
-
 /* job queue */
 static queue *job_q = NULL;
 static pthread_mutex_t m_job_q = PTHREAD_MUTEX_INITIALIZER;

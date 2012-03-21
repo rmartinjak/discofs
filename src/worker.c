@@ -24,7 +24,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-extern struct options fs2go_options;
 
 static unsigned long long worker_block_n = 0;
 static pthread_mutex_t m_worker_block = PTHREAD_MUTEX_INITIALIZER;

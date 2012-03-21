@@ -34,7 +34,6 @@
 #include <utime.h>
 #endif
 
-extern struct options fs2go_options;
 
 /* djb2, a simple string hashing function */
 unsigned long djb2(const char *str, size_t n)

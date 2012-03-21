@@ -16,7 +16,6 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-extern struct options fs2go_options;
 
 int conflict_handle(const char *path, job_op op, int *keep_which)
 {

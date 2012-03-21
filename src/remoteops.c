@@ -21,7 +21,6 @@
 #include <attr/xattr.h>
 #endif
 
-extern struct options fs2go_options;
 
 int remoteop_rename(const char *from, const char *to)
 {

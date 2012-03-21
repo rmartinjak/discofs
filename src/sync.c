@@ -26,9 +26,6 @@
 /* DEFINITIONS */
 /*=============*/
 
-/* options */
-extern struct options fs2go_options;
-
 /* queue for changed sync entries + mutex */
 static queue *sync_queue;
 static pthread_mutex_t m_sync_queue = PTHREAD_MUTEX_INITIALIZER;

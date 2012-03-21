@@ -17,7 +17,6 @@
 #include <fcntl.h>
 #include <pthread.h>
 
-extern struct options fs2go_options;
 
 pthread_mutex_t m_instant_pull = PTHREAD_MUTEX_INITIALIZER;
 
