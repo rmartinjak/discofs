@@ -7,6 +7,7 @@
 #include "worker.h"
 
 #include "fs2go.h"
+#include "state.h"
 #include "log.h"
 #include "funcs.h"
 #include "transfer.h"
@@ -182,7 +183,7 @@ static void worker_scan_dir(queue *q)
     else
     {
         DEBUG("open dir %s was closed while reading it\n", srch_r);
-        set_state(STATE_OFFLINE, NULL);
+        state_set(STATE_OFFLINE, NULL);
     }
     free(dbuf);
 
@@ -281,14 +282,14 @@ void *worker_statecheck(void *arg)
                 && is_reachable(fs2go_options.host)
                 && is_mounted(fs2go_options.remote_root)) {
 
-            set_state(STATE_ONLINE, &oldstate);
+            state_set(STATE_ONLINE, &oldstate);
 
             if (oldstate == STATE_OFFLINE)
                 worker_wakeup();
         }
         else
         {
-            set_state(STATE_OFFLINE, &oldstate);
+            state_set(STATE_OFFLINE, &oldstate);
         }
     }
 

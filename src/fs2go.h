@@ -19,15 +19,6 @@
 /* DEFINITIONS */
 /*=============*/
 
-#define STATE_ONLINE 0
-#define STATE_OFFLINE 1
-#define STATE_EXITING 2
-
-#define ONLINE (get_state() == STATE_ONLINE)
-#define OFFLINE (get_state() == STATE_OFFLINE)
-#define EXITING (get_state() == STATE_EXITING)
-
-
 #define CACHE_ROOT fs2go_options.cache_root
 #define CACHE_ROOT_LEN fs2go_options.cache_root_len
 #define REMOTE_ROOT fs2go_options.remote_root
@@ -138,13 +129,5 @@ enum fs2go_opt_keys
     FS2GO_OPT_SSHFS,
     FS2GO_OPT_NFS,
 };
-
-
-/*====================*/
-/* EXPORTED FUNCTIONS */
-/*====================*/
-
-int get_state();
-void set_state(int s, int *oldstate);
 
 #endif

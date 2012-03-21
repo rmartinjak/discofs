@@ -7,6 +7,7 @@
 #include "fsops.h"
 
 #include "fs2go.h"
+#include "state.h"
 #include "remoteops.h"
 #include "log.h"
 #include "funcs.h"
@@ -52,7 +53,7 @@ void *op_init(struct fuse_conn_info *conn)
 
 void op_destroy(void *p)
 {
-    set_state(STATE_EXITING, NULL);
+    state_set(STATE_EXITING, NULL);
 
     DEBUG("joining state check thread\n");
     pthread_join(t_state, NULL);

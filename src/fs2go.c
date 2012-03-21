@@ -29,7 +29,6 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <pthread.h>
 #include <string.h>
 #include <signal.h>
 #include <limits.h>
@@ -39,12 +38,6 @@
 #if HAVE_SETXATTR
 #include <attr/xattr.h>
 #endif
-
-/* the current state. can be STATE_ONLINE, STATE_OFFLINE or STATE_EXITING */
-static int fs2go_state = STATE_OFFLINE;
-
-/* mutex for getting/setting the state */
-static pthread_mutex_t m_fs2go_state = PTHREAD_MUTEX_INITIALIZER;
 
 /* mount options (specified i.e. with "-o name,name=value..." */
 struct options fs2go_options = OPTIONS_INIT;
@@ -56,47 +49,7 @@ static void print_version();
 static void log_options(int loglevel, struct options opt);
 static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args *outargs);
 static int test_fs_features(int *f);
-
-
-/* returns the current state */
-int get_state()
-{
-    int s;
-
-    pthread_mutex_lock(&m_fs2go_state);
-
-    s = fs2go_state;
-
-    pthread_mutex_unlock(&m_fs2go_state);
-
-    return s;
-}
-
-/* set the new state; this has no effect when current state is STATE_EXITING */
-void set_state(int s, int *oldstate)
-{
-    /* put old state in caller-provided pointer */
-    if (oldstate)
-        *oldstate = fs2go_state;
-
-    /* don't change status when exiting */
-    if (fs2go_state == STATE_EXITING)
-        return;
-
-    pthread_mutex_lock(&m_fs2go_state);
-
-    /* log new state if it differs from old state */
-    if (s == STATE_ONLINE && s != fs2go_state)
-        VERBOSE("changing state to ONLINE\n");
-    else if (s == STATE_OFFLINE && s != fs2go_state)
-        VERBOSE("changing state to OFFLINE\n");
-    else if (s == STATE_EXITING && s != fs2go_state)
-        VERBOSE("changing state to EXITING\n");
-
-    fs2go_state = s;
-
-    pthread_mutex_unlock(&m_fs2go_state);
-}
+static void sig_handler(int signo);
 
 static void print_usage()
 {
@@ -575,14 +528,14 @@ static int test_fs_features(int *f)
 #undef TESTFILE2
 }
 
-/* signal handler (prototyp inside main()) */
-void sig_handler(int signo)
+/* signal handler */
+static void sig_handler(int signo)
 {
     switch (signo) {
         /* sighup blocks the working thread for 10 seconds. this gives the
            user the opportunity to unmount the remote fs */
         case SIGHUP:
-            VERBOSE("received SIGHUP, blocking worker for 10 seconds\n");
+            INFO("received SIGHUP, blocking worker for 10 seconds\n");
             worker_block();
             sleep(10);
             worker_unblock();
@@ -641,7 +594,6 @@ int main(int argc, char **argv)
     int ret;
 
     /* for signal handling */
-    void sig_handler(int signo);
     struct sigaction sig;
 
     /* argument handling */

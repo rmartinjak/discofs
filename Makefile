@@ -3,7 +3,7 @@ include config.mk
 SRCDIR = src
 OBJDIR = obj
 
-OBJNAMES = fs2go funcs paths sync job hardlink conflict worker transfer db log lock fsops debugops remoteops
+OBJNAMES = fs2go state funcs paths sync job hardlink conflict worker transfer db log lock fsops debugops remoteops
 OBJ = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(OBJNAMES)))
 
 SUBMODULES = datastructs

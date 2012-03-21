@@ -5,6 +5,7 @@
 
 #include "transfer.h"
 
+#include "state.h"
 #include "job.h"
 #include "sync.h"
 #include "lock.h"

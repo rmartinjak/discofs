@@ -7,6 +7,7 @@
 #include "sync.h"
 
 #include "fs2go.h"
+#include "state.h"
 #include "log.h"
 #include "funcs.h"
 #include "hashtable.h"

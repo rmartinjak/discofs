@@ -7,7 +7,9 @@
 #define FS2GO_FUNCS_H
 
 #include "config.h"
+
 #include "fs2go.h"
+#include "state.h"
 
 #include <stdlib.h>
 #include <stdio.h>
