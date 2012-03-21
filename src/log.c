@@ -17,28 +17,36 @@
 static pthread_mutex_t m_log_print = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t m_log_error = PTHREAD_MUTEX_INITIALIZER;
 
-static int log_maxlvl = LOG_NONE;
 static char *log_lvlstr[] = { "", "ERROR", "INFO", "VERBOSE", "DEBUG", "FSOP" };
 
-static char *log_filename = NULL;
+static int loglvl = LOG_NONE;
+static FILE *logf = NULL;
 
 
 void log_init(int level, const char *file)
 {
-    log_maxlvl = level;
+    loglvl = level;
 
-    if (file)
-        log_filename = strdup(file);
+    if (!file)
+        logf = stderr;
+    else {
+        if ((logf = fopen(file, "a")) == NULL)
+        {
+            perror("error opening log file");
+            fprintf(stderr, "%s\n", "falling back to standard error");
+            logf = stderr;
+        }
+    }
 
     log_print(LOG_VERBOSE, "Logging initialized with level %d\n", level);
 }
 
 void log_destroy()
 {
-    log_maxlvl = LOG_NONE;
+    loglvl = LOG_NONE;
 
-    if (log_filename)
-        free(log_filename);
+    if (logf != stderr)
+        fclose(logf);
 }
 
 void log_error(const char *s)
@@ -51,24 +59,15 @@ void log_error(const char *s)
 #if HAVE_VFPRINTF
 void log_print(int level, const char *fmt, ...)
 {
-    FILE *f;
     time_t now;
     char *ctim;
     va_list ap;
 
     va_start(ap, fmt);
 
-    if (level <= log_maxlvl)
+    if (level <= loglvl)
     {
         pthread_mutex_lock(&m_log_print);
-        f = NULL;
-
-        if (log_filename)
-        {
-            f = fopen(log_filename, "a");
-        }
-        if (!f)
-            f = stderr;
 
         now = time(NULL);
         ctim = strdup(ctime(&now));
@@ -76,16 +75,14 @@ void log_print(int level, const char *fmt, ...)
         /* remove \n */
         *(ctim + strlen(ctim)-1) = '0';
 
-        fprintf(f, "%s %s: ", ctim, log_lvlstr[level]);
+        fprintf(logf, "%s %s: ", ctim, log_lvlstr[level]);
 
-        vfprintf(f, fmt, ap);
-
-        if (f != stderr)
-            fclose(f);
+        vfprintf(logf, fmt, ap);
 
         free(ctim);
         pthread_mutex_unlock(&m_log_print);
     }
+
     va_end(ap);
 }
 #else
