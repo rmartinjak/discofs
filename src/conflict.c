@@ -104,11 +104,16 @@ int conflict_handle(const char *path, job_op op, int *keep_which)
             }
             free(newpath);
         }
-        /* PUSH job -> pull the file from remote */
-        else
+        else if (op == JOB_PUSH || op == JOB_PULL)
             job_schedule_pull(path);
 
         free(p);
+    }
+    /* keep cache file */
+    else
+    {
+        if (op == JOB_PUSH || op == JOB_PULL)
+           job_schedule_push(path);
     }
 
     return 0;
