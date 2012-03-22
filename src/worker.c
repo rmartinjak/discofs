@@ -171,7 +171,10 @@ static void worker_scan_dir(queue *q)
 
             if (sync == SYNC_NEW || sync == SYNC_MOD)
             {
-                job_schedule_pull(p);
+                if (!job_exists(p, JOB_PUSH))
+                    job_schedule_pull(p);
+                else
+                    conflict_handle(p, JOB_PUSH, NULL);
             }
 
             free(p);
