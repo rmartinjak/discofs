@@ -631,9 +631,12 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
         return -errno;
     }
 
-    if (op == OP_CREATE && (!ONLINE || remoteop_create(path, mode)))
+    if (op == OP_CREATE)
     {
-        job_schedule(JOB_CREATE, path, mode, 0, NULL, NULL);
+        if (ONLINE && !remoteop_create(path, mode))
+            sync_set(path, 0);
+        else
+            job_schedule(JOB_CREATE, path, mode, 0, NULL, NULL);
     }
 
     set_lock(path, LOCK_OPEN);
