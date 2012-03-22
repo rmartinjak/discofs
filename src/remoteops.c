@@ -17,6 +17,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <fcntl.h>
 #if HAVE_SETXATTR
 #include <attr/xattr.h>
 #endif
@@ -99,20 +100,21 @@ int remoteop_rename(const char *from, const char *to)
     return 0;
 }
 
-int remoteop_create(const char *path, mode_t mode)
+int remoteop_create(const char *path, int flags, mode_t mode)
 {
-    int res;
+    int fd;
     char *p;
 
     p = remote_path(path);
 
-    res = mknod(p, S_IFREG|mode, 0);
+    fd = open(p, flags, mode);
 
     free(p);
 
-    if (res)
-        return -res;
+    if (fd < 0)
+        return -errno;
 
+    close(fd);
     return 0;
 }
 

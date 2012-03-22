@@ -243,7 +243,7 @@ static int worker_perform(struct job *j)
         case JOB_RENAME:
             return remoteop_rename(j->path, j->s1);
         case JOB_CREATE:
-            return remoteop_create(j->path, j->n1);
+            return remoteop_create(j->path, j->n1, j->n2);
         case JOB_UNLINK:
             return remoteop_unlink(j->path);
         case JOB_SYMLINK:
