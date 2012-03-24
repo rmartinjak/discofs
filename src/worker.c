@@ -113,8 +113,6 @@ static void worker_scan_dir(queue *q)
 
     srch = q_dequeue(q);
 
-    DEBUG("scanning dir %s\n", srch);
-
     srch_len = strlen(srch);
     srch_r = remote_path2(srch, srch_len);
     srch_c = cache_path2(srch, srch_len);
@@ -372,6 +370,7 @@ void *worker_main(void *arg)
                     }
                 }
 
+                VERBOSE("beginning %s on %s\n", job_opstr(j->op), j->path);
                 res = transfer_begin(j);
 
                 if (res == TRANSFER_FINISH)
@@ -391,6 +390,7 @@ void *worker_main(void *arg)
             /* neither PUSH nor PULL */
             else
             {
+                VERBOSE("performing %s on %s\n", job_opstr(j->op), j->path);
                 res = worker_perform(j);
                 job_return(j, (!res) ? JOB_DONE : JOB_FAILED);
                 j = NULL;

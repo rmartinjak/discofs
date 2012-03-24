@@ -209,6 +209,11 @@ void job_return(struct job *j, int reason)
     if (!j)
         return;
 
+    VERBOSE("job %s on %s returned: %s\n", job_opstr(j->op), j->path,
+            (reason == JOB_DONE) ? "done" :
+            ((reason == JOB_FAILED) ? "failed" : "file is locked")
+         );
+
     if (reason == JOB_DONE)
     {
         sync_set(j->path, 0);

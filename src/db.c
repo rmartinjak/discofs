@@ -257,7 +257,7 @@ int db_job_store(const struct job *j)
         return DB_ERROR;
     }
 
-    DEBUG("storing job for %s\n", j->path);
+    DEBUG("storing %s on %s in db\n", job_opstr(j->op), j->path);
 
     db_open();
 
