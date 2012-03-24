@@ -30,8 +30,6 @@
 #define PARTFILE_PREFIX ".fs2go."
 #define PARTFILE_SUFFIX ".part"
 
-#define MTAB "/proc/mounts"
-
 #define CALLOC(p, n, s) p = calloc(n, s); if (!p) FATAL("memory allocation failed\n")
 
 #define STRDUP(dest, src) { if (!(dest = strdup(src))) \

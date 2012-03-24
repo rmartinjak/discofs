@@ -171,26 +171,29 @@ int is_running(const char *pidfile)
     return (kill(pid, 0) == 0);
 }
 
-/* check if fs is mounted (/proc/mounts on linux) */
+/* check if fs is mounted by comparing st_dev with st_dev of parent dir */
 int is_mounted(const char *mpoint)
 {
-    FILE *f;
-    struct mntent *mt;
+    int res;
+    struct stat st;
+    char *parent;
+    dev_t dev;
 
-    f = setmntent(MTAB, "r");
-    if (!f)
+    res = lstat(mpoint, &st);
+    if (res)
+        return 0;
+    dev = st.st_dev;
+
+    parent = dirname_r(mpoint);
+    if (!parent)
         return 0;
 
-    while ((mt = getmntent(f)) != NULL)
-    {
-        if (!strcmp(mpoint, mt->mnt_dir))
-        {
-            endmntent(f);
-            return 1;
-        }
-    }
-    endmntent(f);
-    return 0;
+    res = lstat(parent, &st);
+    free(parent);
+    if (res)
+        return 0;
+
+    return (dev != st.st_dev);
 }
 
 /* check if host is reachable */
