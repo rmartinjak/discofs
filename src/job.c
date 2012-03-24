@@ -17,6 +17,9 @@
 /* DEFINITIONS */
 /*=============*/
 
+#define JOB_STR_BUF_N   5
+#define JOB_STR_BUF_SZ  1024
+
 /* job queue */
 static queue *job_q = NULL;
 static pthread_mutex_t m_job_q = PTHREAD_MUTEX_INITIALIZER;
@@ -124,6 +127,39 @@ void job_free(void *p)
     free(j->s1);
     free(j->s2);
     free(j);
+}
+
+char *job_opstr(job_op mask)
+{
+    static char buf[JOB_STR_BUF_N][JOB_STR_BUF_SZ];
+    static int  n = 0;
+    n = (n + 1) % JOB_STR_BUF_N;
+
+    buf[n][0] = '\0';
+
+    if (mask == JOB_ANY)
+        strcat(buf[n], "JOB_ANY|");
+    else
+    {
+        #define OPSTR(op) if (mask & op) strcat(buf[n], #op "|")
+        OPSTR(JOB_PULL);
+        OPSTR(JOB_PUSH);
+        OPSTR(JOB_RENAME);
+        OPSTR(JOB_UNLINK);
+        OPSTR(JOB_SYMLINK);
+        OPSTR(JOB_LINK);
+        OPSTR(JOB_MKDIR);
+        OPSTR(JOB_RMDIR);
+        OPSTR(JOB_CHMOD);
+        OPSTR(JOB_CHOWN);
+        OPSTR(JOB_SETXATTR);
+        OPSTR(JOB_CREATE);
+        #undef OPSTR
+    }
+
+    buf [n] [strlen(buf[n]) - 1] = '\0';
+
+    return buf[n];
 }
 
 

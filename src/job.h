@@ -36,6 +36,7 @@
 #define JOB_SETXATTR    (1U << 10)
 #define JOB_CREATE      (1U << 11)
 
+/* "reason" values for job_return() */
 #define JOB_DONE    0
 #define JOB_FAILED  1
 #define JOB_LOCKED  2
@@ -66,6 +67,7 @@ int job_store(void);
 
 struct job *job_alloc(void);
 void job_free(void *p);
+char *job_opstr(job_op mask);
 
 int job_schedule(job_op op, const char *path, job_param n1, job_param n2, const char *s1, const char *s2);
 #define job_schedule_push(path) job_schedule(JOB_PUSH, path, 0, 0, NULL, NULL)
