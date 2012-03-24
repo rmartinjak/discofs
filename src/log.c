@@ -79,6 +79,8 @@ void log_print(int level, const char *fmt, ...)
 
         vfprintf(logf, fmt, ap);
 
+        fflush(logf);
+
         free(ctim);
         pthread_mutex_unlock(&m_log_print);
     }
