@@ -286,7 +286,7 @@ int sync_store(void)
 
 struct sync *sync_create(const char *path, sync_xtime_t mtime, sync_xtime_t ctime)
 {
-    struct sync *s = malloc(sizeof (struct sync));
+    struct sync *s = malloc(sizeof *s);
 
     if (s)
     {

@@ -104,7 +104,7 @@ int job_store(void)
 
 struct job *job_alloc(void)
 {
-    struct job *j = malloc(sizeof (struct job));
+    struct job *j = malloc(sizeof *j);
 
     if (j)
     {

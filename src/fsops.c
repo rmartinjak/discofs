@@ -143,7 +143,7 @@ int op_opendir(const char *path, struct fuse_file_info *fi)
     DIR **d;
     size_t p_len = strlen(path);
 
-    dirp = malloc(2 * sizeof (DIR *));
+    dirp = malloc(2 * sizeof *dirp);
     if (!dirp)
         return -EIO;
 
