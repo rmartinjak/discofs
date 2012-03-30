@@ -59,7 +59,7 @@ int transfer(const char *from, const char *to)
     }
     else if (!t_active)
     {
-        return TRANSFER_FAIL;
+        return TRANSFER_FINISH;
     }
     else
     {
@@ -289,6 +289,7 @@ void transfer_abort(void)
     pthread_mutex_lock(&m_transfer);
 
     t_active = 0;
+
     remove_lock(t_path, LOCK_TRANSFER);
 
     transfer_free();
@@ -324,7 +325,7 @@ int transfer_instant_pull(const char *path)
     free(pc);
 
     /* if copying failed, return error and dont set sync */
-    if (res == -1)
+    if (res)
     {
         ERROR("instant_pull on %s FAILED\n", path);
         pthread_mutex_unlock(&m_instant_pull);
