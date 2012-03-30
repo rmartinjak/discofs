@@ -315,8 +315,18 @@ int transfer_instant_pull(const char *path)
     pr = remote_path2(path, p_len);
     pc = cache_path2(path, p_len);
 
-    /* copy data */
-    res = copy_file(pr, pc);
+    if (t_active && strcmp(path, t_path) == 0)
+    {
+        do
+        {
+            res = transfer(NULL, NULL);
+        }
+        while (res == TRANSFER_OK);
+
+        res = (res == TRANSFER_FINISH) ? 0 : 1;
+    }
+    else
+        res = copy_file(pr, pc);
 
     worker_unblock();
 
