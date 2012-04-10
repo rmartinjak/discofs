@@ -50,6 +50,57 @@ int hardlink_add(const char *path, ino_t inode)
     return res;
 }
 
+int hardlink_create(const char *path, ino_t inode)
+{
+    int res;
+    char *p, *oldpath, *newpath;
+    struct stat st;
+    queue *q;
+
+    newpath = cache_path(path);
+    q = q_init();
+
+    if (!newpath || !q || db_hardlink_get(inode, q) != DB_OK)
+    {
+        free(newpath);
+        q_free(q, free);
+        return -1;
+    }
+
+    /* try all stored names (usually the first attempt should succeed) */
+    while ((p = q_dequeue(q)))
+    {
+        oldpath = cache_path(p);
+        if (!oldpath || lstat(oldpath, &st))
+        {
+            free(newpath);
+            q_free(q, free);
+            return -1;
+        }
+
+        res = link(oldpath, newpath);
+
+        free(oldpath);
+        free(p);
+
+        if (!res)
+        {
+            free(newpath);
+            q_free(q, free);
+            hardlink_add(path, inode);
+            return 0;
+        }
+        else
+        {
+            PERROR("link() in hardlink_create");
+        }
+    }
+
+    free(newpath);
+    q_free(q, NULL);
+    return -1;
+}
+
 int hardlink_remove(const char *path)
 {
     int res;

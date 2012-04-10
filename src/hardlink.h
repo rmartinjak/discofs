@@ -9,6 +9,8 @@
 #include <sys/types.h>
 
 int hardlink_add(const char *path, ino_t inode);
+int hardlink_create(const char *path, ino_t inode);
+
 int hardlink_remove(const char *path);
 int hardlink_sync_set(ino_t inode);
 

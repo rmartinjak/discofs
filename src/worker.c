@@ -16,6 +16,7 @@
 #include "lock.h"
 #include "job.h"
 #include "conflict.h"
+#include "hardlink.h"
 #include "bst.h"
 
 #include <stdint.h>
@@ -23,6 +24,12 @@
 #include <pthread.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+
+struct new_hardlink
+{
+    ino_t inode;
+    char *path;
+};
 
 
 static unsigned long long worker_block_n = 0;
@@ -32,7 +39,7 @@ static int worker_wkup = 0;
 static pthread_mutex_t m_worker_wakeup = PTHREAD_MUTEX_INITIALIZER;
 
 static void worker_scan_remote(void);
-static void worker_scan_dir(queue *q);
+static void worker_scan_dir(queue *scan_q, queue *new_hardlink_q);
 
 /* ====== SLEEP ====== */
 void worker_wakeup()
@@ -79,21 +86,36 @@ int worker_blocked()
 static void worker_scan_remote(void)
 {
     static queue *scan_q = NULL;
+    static queue *new_hardlink_q = NULL;
+    struct new_hardlink *hl;
 
     if (!scan_q)
         scan_q = q_init();
+    if (!new_hardlink_q)
+        new_hardlink_q = q_init();
 
+    /* if scan_q is empty, the whole remote directory tree was scanned */
     if (q_empty(scan_q))
     {
+        /* create collected new hardlinks */
+        while ((hl = q_dequeue(new_hardlink_q)))
+        {
+            if (hardlink_create(hl->path, hl->inode))
+                ERROR("can't create hardlink %s\n", hl->path);
+            free(hl->path);
+            free(hl);
+        }
+
+        /* sleep and begin new scan */
         worker_sleep(fs2go_options.scan_interval);
         VERBOSE("beginning remote scan\n");
         q_enqueue(scan_q, strdup("/"));
     }
 
-    worker_scan_dir(scan_q);
+    worker_scan_dir(scan_q, new_hardlink_q);
 }
 
-static void worker_scan_dir(queue *q)
+static void worker_scan_dir(queue *scan_q, queue *new_hardlink_q)
 {
     int res, sync;
     char *srch;
@@ -111,7 +133,7 @@ static void worker_scan_dir(queue *q)
     if (!ONLINE)
         return;
 
-    srch = q_dequeue(q);
+    srch = q_dequeue(scan_q);
 
     srch_len = strlen(srch);
     srch_r = remote_path2(srch, srch_len);
@@ -149,6 +171,7 @@ static void worker_scan_dir(queue *q)
 
         d_len = strlen(ent->d_name);
 
+        /* remote path */
         p = join_path2(srch_r, 0, ent->d_name, d_len);
         res = lstat(p, &st);
         free(p);
@@ -157,17 +180,33 @@ static void worker_scan_dir(queue *q)
             DEBUG("lstat in scan_remote failed\n");
             break;
         }
+
+        /* fs2go path */
         p = join_path2(srch, srch_len, ent->d_name, d_len);
 
         if (S_ISDIR(st.st_mode))
         {
-            q_enqueue(q, p);
+            q_enqueue(scan_q, p);
         }
         else
         {
             sync = sync_get(p);
 
-            if (sync == SYNC_NEW || sync == SYNC_MOD)
+            if (sync == SYNC_NEW && st.st_nlink >= 2)
+            {
+                struct new_hardlink *hl = malloc(sizeof *hl);
+                if (!hl || !(hl->path = strdup(p)))
+                {
+                    free(hl);
+                    ERROR("memory allocation failed\n");
+                }
+                else
+                {
+                    hl->inode = st.st_ino;
+                    q_enqueue(new_hardlink_q, hl);
+                }
+            }
+            else if (sync == SYNC_MOD || sync == SYNC_NEW)
             {
                 if (!job_exists(p, JOB_PUSH))
                     job_schedule_pull(p);
