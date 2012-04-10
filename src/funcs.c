@@ -161,7 +161,7 @@ int is_running(const char *pidfile)
     fgets(line, sizeof line, f);
     fclose(f);
 
-    pid = (pid_t)strtol(line, &endptr, 10);
+    pid = strtol(line, &endptr, 10);
     if (*line == '\0' || (*endptr != '\0' && *endptr != '\n'))
     {
         ERROR("failed getting pid from file %s\n", pidfile);

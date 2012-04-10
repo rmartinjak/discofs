@@ -350,7 +350,7 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
             val = arg + strlen("uid=");
 
             /* try to convert uid to number */
-            fs2go_options.uid = (uid_t)strtol(val, &endptr, 10);
+            fs2go_options.uid = strtol(val, &endptr, 10);
 
 
             /* get passwd entry for given uid */
@@ -380,7 +380,7 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
         /*-----*/
         case FS2GO_OPT_GID:
             val = arg + strlen("gid=");
-            fs2go_options.gid = (gid_t)strtol(val, &endptr, 10);
+            fs2go_options.gid = strtol(val, &endptr, 10);
             if (*endptr != '\0')
             {
                 if (!(gr = getgrnam(val)))

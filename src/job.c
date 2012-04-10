@@ -69,6 +69,7 @@ void job_destroy(void)
     q_free(job_q, NULL);
 }
 
+/* store jobs in db */
 int job_store(void)
 {
     int res = DB_OK;
@@ -118,7 +119,7 @@ struct job *job_alloc(void)
 
 void job_free(void *p)
 {
-    struct job *j = (struct job *)p;
+    struct job *j = p;
 
     if (!j)
         return;
