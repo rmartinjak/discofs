@@ -462,6 +462,7 @@ static int test_fs_features(int *f)
 #define TESTFILE2 ".__fs2go_test_2__"
     char *p, *p2;
     struct stat st, st2;
+    struct timespec times[2];
 
     VERBOSE("testing remote fs features\n");
 
@@ -477,12 +478,11 @@ static int test_fs_features(int *f)
 
 #if HAVE_UTIMENSAT && HAVE_CLOCK_GETTIME
     /* test if timestamps support nanosecond presicion */
-    struct timespec mtime;
 
-    /* set mtime of file to 0, 1337 */
-    mtime.tv_sec = 0;
-    mtime.tv_nsec = 1337;
-    set_mtime(p, mtime);
+    /* set atime of file to 0, 1337 */
+    times[0].tv_sec = 0;
+    times[0].tv_nsec = 1337;
+    utimensat(-1, p, times, AT_SYMLINK_NOFOLLOW);
 
     /* get stat */
     if (stat(p, &st))
@@ -492,7 +492,7 @@ static int test_fs_features(int *f)
     }
 
     /* check if nanoseconds were actually being set */
-    if (st.st_mtim.tv_nsec == mtime.tv_nsec)
+    if (st.st_mtim.tv_nsec == times[0].tv_nsec)
         *f |= FEAT_NS;
 #endif
 

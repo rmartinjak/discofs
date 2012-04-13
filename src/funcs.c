@@ -81,65 +81,6 @@ char *join_path2(const char *p1, size_t n1, const char *p2, size_t n2)
 }
 
 /* compare time */
-#if HAVE_UTIMENSAT && HAVE_CLOCK_GETTIME
-int timecmp(struct timespec t1, struct timespec t2)
-{
-    if (t1.tv_sec == t2.tv_sec)
-    {
-        if (!(fs2go_options.fs_features & FEAT_NS) || t1.tv_nsec == t2.tv_nsec)
-            return 0;
-        else if (t1.tv_nsec > t2.tv_nsec)
-            return 1;
-        else
-            return -1;
-    }
-    else if (t1.tv_sec > t2.tv_sec)
-        return 1;
-    else
-        return -1;
-}
-
-/* set mtime of a file */
-int set_mtime(const char *path, struct timespec mt)
-{
-    struct stat st;
-    struct timespec times[2];
-
-    times[1] = mt;
-
-    if (lstat(path, &st) == -1)
-        return -1;
-
-    times[0] = st.st_atim;
-
-    return utimensat(-1, path, times, AT_SYMLINK_NOFOLLOW);
-}
-
-#else
-int timecmp(time_t t1, time_t t2)
-{
-    if (t1 == t2)
-        return 0;
-    else if (t1 > t2)
-        return 1;
-    else
-        return -1;
-}
-
-int set_mtime(const char *path, time_t mt)
-{
-    struct stat st;
-    struct utimbuf times;
-
-    times.modtime = mt;
-
-    if (stat(path, &st) == -1)
-        return -1;
-    times.actime = st.st_atime;
-
-    return utime(path, &times);
-}
-#endif
 
 int is_running(const char *pidfile)
 {
@@ -477,17 +418,18 @@ int copy_xattrs(const char *from, const char *to)
     while (nattr--)
     {
         valsz = lgetxattr(from, p, NULL, 0);
-        if (valsz == -1)
+        if (valsz == -1 || !(val = malloc(valsz)))
+        {
+            free(attrlist);
             return -1;
+        }
 
-        CALLOC(val, valsz, sizeof (char));
         if (lgetxattr(from, p, val, valsz) == -1
                 || lsetxattr(to, p, val, valsz, 0) == -1) {
             free(val);
             free(attrlist);
             return -1;
         }
-
 
         free(val);
 

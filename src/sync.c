@@ -223,6 +223,23 @@ static int sync_ht_get(const char *path, struct sync *s)
 /* EXPORTED FUNCTIONS */
 /*====================*/
 
+int sync_timecmp(sync_xtime_t t1, sync_xtime_t t2)
+{
+#if HAVE_UTIMENSAT && HAVE_CLOCK_GETTIME
+    if (t1.tv_sec == t2.tv_sec)
+    {
+        if (!(fs2go_options.fs_features & FEAT_NS))
+            return 0;
+        else
+            return t1.tv_nsec - t2.tv_nsec;
+    }
+    else
+        return t1.tv_sec - t2.tv_sec;
+#else
+    return t1 - t2;
+#endif
+}
+
 int sync_init(void)
 {
     int res;
@@ -412,10 +429,10 @@ int sync_get_stat(const char *path, struct stat *buf)
     sync = SYNC_SYNC;
 
     /* not a dir and mtime is newer than in sync ht -> file was modified */
-    if (!S_ISDIR(st.st_mode) && timecmp(ST_MTIME(st), s.mtime) > 0)
+    if (!S_ISDIR(st.st_mode) && sync_timecmp(ST_MTIME(st), s.mtime) > 0)
         sync = SYNC_MOD;
     /* ctime newer -> file/dir was changed */
-    else if (timecmp(ST_CTIME(st), s.ctime) > 0)
+    else if (sync_timecmp(ST_CTIME(st), s.ctime) > 0)
         sync = SYNC_CHG;
 
     return sync;

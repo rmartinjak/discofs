@@ -27,13 +27,6 @@
 #define PING_INTERVAL "0.2"
 #define PING_DEADLINE "2"
 
-#define PARTFILE_PREFIX ".fs2go."
-#define PARTFILE_SUFFIX ".part"
-
-#define CALLOC(p, n, s) p = calloc(n, s); if (!p) FATAL("memory allocation failed\n")
-
-#define STRDUP(dest, src) { if (!(dest = strdup(src))) \
-    FATAL("memory allocation failed\n") }
 
 unsigned long djb2(const char *str, size_t n);
 
@@ -48,20 +41,6 @@ char *join_path2(const char *p1, size_t n1, const char *p2, size_t n2);
 
 #define get_path2(p, n) (ONLINE) ? remote_path2(p, n) : cache_path2(p, n)
 #define get_path(p) get_path2(p, 0)
-
-#if HAVE_UTIMENSAT && HAVE_CLOCK_GETTIME
-int timecmp(struct timespec t1, struct timespec t2);
-int set_mtime(const char *path, struct timespec mt);
-#define ST_MTIME(st) st.st_mtim
-#define ST_CTIME(st) st.st_ctim
-#define GETTIME(t) clock_gettime(CLOCK_REALTIME, &(t))
-#else
-int timecmp(time_t t1, time_t t2);
-int set_mtime(const char *path, time_t mt);
-#define ST_MTIME(st) st.st_mtime
-#define ST_CTIME(st) st.st_ctime
-#define GETTIME(t) t = time(NULL)
-#endif
 
 int is_running(const char *pidfile);
 int is_mounted(const char *mpoint);
@@ -83,9 +62,6 @@ int is_lnk(const char *path);
 int is_dir(const char *path);
 
 char *affix_filename(const char *path, const char *prefix, const char *suffix);
-
-#define partfilename(p) affix_filename(p, PARTFILE_PREFIX, PARTFILE_SUFFIX)
-#define is_partfile(p) (fnmatch(PARTFILE_PREFIX "*" PARTFILE_SUFFIX, p, 0) == 0)
 
 char *basename_r(const char *path);
 char *dirname_r(const char *path);

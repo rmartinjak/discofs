@@ -23,8 +23,12 @@
 
 #if HAVE_UTIMENSAT && HAVE_CLOCK_GETTIME
 typedef struct timespec sync_xtime_t;
+#define ST_MTIME(st) st.st_mtim
+#define ST_CTIME(st) st.st_ctim
 #else
 typedef time_t sync_xtime_t;
+#define ST_MTIME(st) st.st_mtime
+#define ST_CTIME(st) st.st_ctime
 #endif
 
 
@@ -76,6 +80,8 @@ typedef struct sync * (*sync_load_cb_t) (const char*, sync_xtime_t, sync_xtime_t
 /*====================*/
 /* EXPORTED FUNCTIONS */
 /*====================*/
+
+int sync_timecmp(sync_xtime_t t1, sync_xtime_t t2);
 
 /* initialize/destroy needed data structures */
 int sync_init(void);

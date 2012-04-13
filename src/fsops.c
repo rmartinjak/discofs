@@ -217,10 +217,6 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
             if (!ent)
                 continue;
 
-            /* hide partfile */
-            if (is_partfile(ent->d_name))
-                continue;
-
             hash = djb2(ent->d_name, SIZE_MAX);
 
             if (bst_contains(tree, hash))

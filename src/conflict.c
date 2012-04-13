@@ -46,7 +46,7 @@ int conflict_handle(const char *path, job_op op, int *keep_which)
             return -1;
 
         /* compare mtime */
-        cmp = timecmp(ST_MTIME(st_c), ST_MTIME(st_r));
+        cmp = sync_timecmp(ST_MTIME(st_c), ST_MTIME(st_r));
 
         /* keep newer file */
         keep = (cmp < 0) ? CONFLICT_KEEP_REMOTE : CONFLICT_KEEP_CACHE;
