@@ -14,7 +14,7 @@
 #define PRIO_HIGH   2
 
 #define PRIO_LOW_JOBS   (JOB_PUSH | JOB_PULL)
-#define PRIO_HIGH_JOBS  (JOB_UNLINK | JOB_CREATE)
+#define PRIO_HIGH_JOBS  (JOB_UNLINK | JOB_CREATE | JOB_MKDIR)
 
 #define OP_PRIO_LOW(op)  ((op) & PRIO_LOW_JOBS)
 #define OP_PRIO_HIGH(op) ((op) & PRIO_HIGH_JOBS)
