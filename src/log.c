@@ -38,10 +38,10 @@ void log_init(int level, const char *file)
         }
     }
 
-    log_print(LOG_VERBOSE, "Logging initialized with level %d\n", level);
+    log_print(LOG_VERBOSE, "", "", "Logging initialized with level %s\n", log_lvlstr[level]);
 }
 
-void log_destroy()
+void log_destroy(void)
 {
     loglvl = LOG_NONE;
 
@@ -49,15 +49,15 @@ void log_destroy()
         fclose(logf);
 }
 
-void log_error(const char *s)
+void log_error(const char *where, const char *func, const char *s)
 {
     pthread_mutex_lock(&m_log_error);
-    log_print(LOG_ERROR, "%s: %s\n", s, strerror(errno));
+    log_print(LOG_ERROR, where, func, "%s: %s\n", s, strerror(errno));
     pthread_mutex_unlock(&m_log_error);
 }
 
 #if HAVE_VFPRINTF
-void log_print(int level, const char *fmt, ...)
+void log_print(int level, const char *where, const char *func, const char *fmt, ...)
 {
     time_t now;
     char *ctim;
@@ -75,7 +75,7 @@ void log_print(int level, const char *fmt, ...)
         /* remove \n */
         *(ctim + strlen(ctim)-1) = '0';
 
-        fprintf(logf, "%s %s: ", ctim, log_lvlstr[level]);
+        fprintf(logf, "%s %s: %s %s\t", ctim, log_lvlstr[level], where, func);
 
         vfprintf(logf, fmt, ap);
 
@@ -88,7 +88,7 @@ void log_print(int level, const char *fmt, ...)
     va_end(ap);
 }
 #else
-void log_print(int level, const char *fmt, ...)
+void log_print(int level, const char *where, const char *func, const char *fmt, ...)
 {
     return;
 }

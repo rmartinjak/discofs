@@ -119,18 +119,18 @@ static void log_options(int loglevel, struct options opt)
 {
     const char *tmp;
 #define YESNO(x) (x) ? "yes" : "no"
-    log_print(loglevel, "fs2go options:\n");
-    log_print(loglevel, "mount point: %s\n", opt.fs2go_mp);
-    log_print(loglevel, "remote fs: %s\n", opt.remote_root);
-    log_print(loglevel, "cache root: %s\n", opt.cache_root);
-    log_print(loglevel, "debug: %s\n", YESNO(opt.clear));
-    log_print(loglevel, "remote host: %s\n", opt.host);
-    log_print(loglevel, "uid: %d\n", opt.uid);
-    log_print(loglevel, "gid: %d\n", opt.gid);
-    log_print(loglevel, "pid file: %s\n", opt.pid_file);
-    log_print(loglevel, "backup prefix: %s\n", opt.backup_prefix);
-    log_print(loglevel, "backup suffix: %s\n", opt.backup_suffix);
-    log_print(loglevel, "clear: %s\n", YESNO(opt.clear));
+    LOG_PRINT(loglevel, "fs2go options:\n");
+    LOG_PRINT(loglevel, "mount point: %s\n", opt.fs2go_mp);
+    LOG_PRINT(loglevel, "remote fs: %s\n", opt.remote_root);
+    LOG_PRINT(loglevel, "cache root: %s\n", opt.cache_root);
+    LOG_PRINT(loglevel, "debug: %s\n", YESNO(opt.clear));
+    LOG_PRINT(loglevel, "remote host: %s\n", opt.host);
+    LOG_PRINT(loglevel, "uid: %d\n", opt.uid);
+    LOG_PRINT(loglevel, "gid: %d\n", opt.gid);
+    LOG_PRINT(loglevel, "pid file: %s\n", opt.pid_file);
+    LOG_PRINT(loglevel, "backup prefix: %s\n", opt.backup_prefix);
+    LOG_PRINT(loglevel, "backup suffix: %s\n", opt.backup_suffix);
+    LOG_PRINT(loglevel, "clear: %s\n", YESNO(opt.clear));
 
     switch (opt.conflict) {
         case CONFLICT_NEWER:
@@ -143,20 +143,20 @@ static void log_options(int loglevel, struct options opt)
             tmp = "mine";
             break;
     }
-    log_print(loglevel, "conflict: %s\n", tmp);
+    LOG_PRINT(loglevel, "conflict: %s\n", tmp);
 
-    log_print(loglevel, "no-mode: %s\n", YESNO((opt.copyattr & COPYATTR_NO_MODE)));
-    log_print(loglevel, "no-owner: %s\n", YESNO((opt.copyattr & COPYATTR_NO_OWNER)));
-    log_print(loglevel, "no-group: %s\n", YESNO((opt.copyattr & COPYATTR_NO_GROUP)));
+    LOG_PRINT(loglevel, "no-mode: %s\n", YESNO((opt.copyattr & COPYATTR_NO_MODE)));
+    LOG_PRINT(loglevel, "no-owner: %s\n", YESNO((opt.copyattr & COPYATTR_NO_OWNER)));
+    LOG_PRINT(loglevel, "no-group: %s\n", YESNO((opt.copyattr & COPYATTR_NO_GROUP)));
 #if HAVE_SETXATTR
-    log_print(loglevel, "no-xattr: %s\n", YESNO((opt.copyattr & COPYATTR_NO_XATTR)));
+    LOG_PRINT(loglevel, "no-xattr: %s\n", YESNO((opt.copyattr & COPYATTR_NO_XATTR)));
 #endif
 
-    log_print(loglevel, "remote fs features:\n");
-    log_print(loglevel, "nanosecond timestamps: %s\n", YESNO((fs2go_options.fs_features & FEAT_NS)));
-    log_print(loglevel, "hardlinks: %s\n", YESNO((fs2go_options.fs_features & FEAT_HARDLINKS)));
+    LOG_PRINT(loglevel, "remote fs features:\n");
+    LOG_PRINT(loglevel, "nanosecond timestamps: %s\n", YESNO((fs2go_options.fs_features & FEAT_NS)));
+    LOG_PRINT(loglevel, "hardlinks: %s\n", YESNO((fs2go_options.fs_features & FEAT_HARDLINKS)));
 #if HAVE_SETXATTR
-    log_print(loglevel, "extended attributes: %s\n", YESNO((fs2go_options.fs_features & FEAT_XATTR)));
+    LOG_PRINT(loglevel, "extended attributes: %s\n", YESNO((fs2go_options.fs_features & FEAT_XATTR)));
 #endif
 }
 

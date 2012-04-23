@@ -19,10 +19,15 @@ enum log_levels
 };
 
 
+
 #if defined(LOG_ENABLE_WHERE) || defined(LOG_ENABLE_DEBUG)
-#define WHERE __FILE__ ":" STR(__LINE__) "\t"
+#define WHERE __FILE__ ":" STR(__LINE__)
+#define LOG_PRINT(level, ...) log_print(level, WHERE, __func__, __VA_ARGS__)
+#define LOG_ERROR(msg) log_error(WHERE, __func__, msg)
 #else
-#define WHERE
+#define WHERE ""
+#define LOG_PRINT(level, ...) log_print(level, "", "", __VA_ARGS__)
+#define LOG_ERROR(msg) log_error("", "", msg)
 #endif
 
 
@@ -32,7 +37,7 @@ enum log_levels
 
 #ifdef LOG_ENABLE_FSOP
 #define LOG_ENABLE_DEBUG
-#define FSOP(...) log_print(LOG_FSOP, __VA_ARGS__)
+#define FSOP(...) LOG_PRINT(LOG_FSOP, __VA_ARGS__)
 #else
 #define FSOP(...)
 #endif
@@ -40,7 +45,7 @@ enum log_levels
 
 #ifdef LOG_ENABLE_DEBUG
 #define LOG_ENABLE_VERBOSE
-#define DEBUG(...) log_print(LOG_DEBUG, WHERE __VA_ARGS__)
+#define DEBUG(...) LOG_PRINT(LOG_DEBUG, __VA_ARGS__)
 #define DEBUGTIME(call)                                                     \
 {                                                                           \
     struct timespec before, after; long long td;                            \
@@ -59,7 +64,7 @@ enum log_levels
 
 #ifdef LOG_ENABLE_VERBOSE
 #define LOG_ENABLE_INFO
-#define VERBOSE(...) log_print(LOG_VERBOSE, WHERE __VA_ARGS__)
+#define VERBOSE(...) LOG_PRINT(LOG_VERBOSE, __VA_ARGS__)
 #else
 #define VERBOSE(...)
 #endif
@@ -67,15 +72,18 @@ enum log_levels
 
 #ifdef LOG_ENABLE_INFO
 #define LOG_ENABLE_ERROR
-#define INFO(...) log_print(LOG_INFO, WHERE __VA_ARGS__)
+#define INFO(...) LOG_PRINT(LOG_INFO, __VA_ARGS__)
 #else
 #define INFO(...)
 #endif
 
 
 #ifdef LOG_ENABLE_ERROR
-#define ERROR(...) log_print(LOG_ERROR, WHERE __VA_ARGS__)
-#define PERROR(msg) log_error(WHERE msg)
+#define ERROR(...) LOG_PRINT(LOG_ERROR, __VA_ARGS__)
+#if defined(LOG_ENABLE_WHERE) || defined(LOG_ENABLE_DEBUG)
+#define PERROR(msg) log_error(WHERE, __func__, msg)
+#else
+#endif
 #else
 #define ERROR(...)
 #define PERROR(msg)
@@ -84,7 +92,7 @@ enum log_levels
 
 void log_init(int level, const char *path);
 void log_destroy(void);
-void log_error(const char *s);
-void log_print(int level, const char *fmt, ...);
+void log_error(const char *where, const char *func, const char *s);
+void log_print(int level, const char *where, const char *func, const char *fmt, ...);
 
 #endif

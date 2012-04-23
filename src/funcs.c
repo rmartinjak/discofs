@@ -339,26 +339,26 @@ int copy_attrs(const char *from, const char *to)
     if (!(fs2go_options.copyattr & COPYATTR_NO_MODE))
     {
         if (chmod(to, st.st_mode) == -1)
-            log_error("copy_attrs: setting mode failed");
+            LOG_ERROR("copy_attrs: setting mode failed");
     }
 
     if (!(fs2go_options.copyattr & COPYATTR_NO_OWNER))
     {
         if (lchown(to, st.st_uid, (gid_t)-1) == -1)
-            log_error("copy_attrs: setting owner failed");
+            LOG_ERROR("copy_attrs: setting owner failed");
     }
 
     if (!(fs2go_options.copyattr & COPYATTR_NO_GROUP))
     {
         if (lchown(to, (uid_t)-1, st.st_gid) == -1)
-            log_error("copy_attrs: setting group failed");
+            LOG_ERROR("copy_attrs: setting group failed");
     }
 
 #if HAVE_SETXATTR
     if ((fs2go_options.fs_features & FEAT_XATTR) && !(fs2go_options.copyattr & COPYATTR_NO_XATTR))
     {
         if (copy_xattrs(from, to) == -1)
-            log_error("copy_attrs: copy_xattrs failed");
+            LOG_ERROR("copy_attrs: copy_xattrs failed");
     }
 #endif
 
