@@ -17,3 +17,6 @@ For more details and usage see the manual.
 
 Contact: 
 Robin Martinjak <rob@rmartinjak.de>
+
+Note:
+to clone this repo use 'git clone --recusive <URI>'
