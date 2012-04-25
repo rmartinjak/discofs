@@ -59,7 +59,7 @@ static int sync_cmp(const void *p1, const void *p2, const void *n);
 static void sync_ht_free(void);
 
 /* set sync entry */
-static struct sync* sync_ht_set(const char *path, sync_xtime_t mtime, sync_xtime_t ctime);
+static struct sync *sync_ht_set(const char *path, sync_xtime_t mtime, sync_xtime_t ctime);
 
 /* retrieve sync entry */
 static int sync_ht_get(const char *path, struct sync *s);
@@ -122,19 +122,16 @@ static void sync_ht_free(void)
 
 static struct sync *sync_ht_set(const char *path, sync_xtime_t mtime, sync_xtime_t ctime)
 {
-    /* found/created sync data */
     struct sync *s = NULL;
-
-    /* found/created basename ht */
     hashtable *ht;
-
-    /* dirname & basename */
     char *dir, *base;
-
-    /* length of dirname (without trailing '/')*/
     size_t n;
 
-    /* we can safely assume that path always contains a / */
+    /* the first character of path must be a '/' */
+    if (*path != '/')
+        return NULL;
+
+    /* determine length of dirname (without trailing '/') */
     n = strrchr(path, '/') - path;
 
     /* get basename ht */
@@ -148,14 +145,15 @@ static struct sync *sync_ht_set(const char *path, sync_xtime_t mtime, sync_xtime
         dir = malloc(n+1);
         if (!dir)
         {
-            errno = ENOMEM; return NULL;
+            errno = ENOMEM;
+            return NULL;
         }
 
         dir[n] = '\0';
         memcpy(dir, path, n);
 
         if (ht_insert(sync_ht, dir, ht) == HT_ERROR)
-            PERROR("inserting ht to sync_ht");
+            ERROR("inserting into sync_ht\n");
 
         s = NULL;
     }
@@ -179,7 +177,7 @@ static struct sync *sync_ht_set(const char *path, sync_xtime_t mtime, sync_xtime
 
         if (ht_insert(ht, base, s) != HT_OK)
         {
-            PERROR("inserting ht to sync_ht");
+            ERROR("error inserting into sync_ht\n");
             sync_free(s);
             return NULL;
         }
