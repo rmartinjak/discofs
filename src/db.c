@@ -485,13 +485,7 @@ int db_load_sync(sync_load_cb_t callback)
         ctime sqlite3_column_int64(stmt, 2);
 #endif
 
-        if (callback(path, mtime, ctime) == NULL)
-        {
-            PERROR("db_load_syncs in callback()");
-            free(path);
-            res = DB_ERROR;
-            break;
-        }
+        callback(path, mtime, ctime);
         free(path);
     }
 
