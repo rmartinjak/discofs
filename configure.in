@@ -11,7 +11,7 @@ CPPFLAGS="-D_GNU_SOURCE -DLOG_ENABLE_DEBUG"
 CFLAGS="-std=c99 -pedantic -g"
 INCLUDES=""
 LDFLAGS=""
-LIBS="-lrt"
+LIBS="-lrt -lpthread"
 
 WARNINGS="all no-int-to-pointer-cast no-pointer-to-int-cast no-unused-but-set-variable"
 

@@ -67,7 +67,7 @@ test_header() {
 
 	echo "#include <$1>" >> $testfile
 
-	if $cc $CFLAGS $ctestflags $testfile 2> /dev/null
+	if $cc $CPPFLAGS $CFLAGS $ctestflags $testfile # 2> /dev/null
 	then
 		echo "yes"
 		includes="$includes $1"
@@ -91,7 +91,7 @@ int main(void) {
 	return $1 ();
 }
 EOF
-	if $cc $CFLAGS $ctestflags $testfile 2> /dev/null
+	if $cc $CPPFLAGS $CFLAGS $ctestflags $testfile 2> /dev/null
 	then
 		echo "NO"
 		$2 $1 0
@@ -135,6 +135,7 @@ else
 	echo "pkg-config not found"
 	exit 1
 fi
+
 
 for w in $WARNINGS
 do
