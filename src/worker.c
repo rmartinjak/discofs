@@ -128,7 +128,7 @@ static void worker_scan_dir(queue *scan_q, queue *new_hardlink_q)
     struct dirent *dbuf;
     struct dirent *ent;
     struct stat st;
-    bst *found_tree = bst_init(NULL);
+    bst *found_tree = bst_init();
 
     if (!ONLINE)
         return;

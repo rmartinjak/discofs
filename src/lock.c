@@ -24,7 +24,7 @@ int has_lock(const char *path, int type)
     long hash = djb2(path, SIZE_MAX);
 
     if (!lock_tree)
-        lock_tree = bst_init(NULL);
+        lock_tree = bst_init();
 
     hash <<= LOCK_TYPE_BITS;
     hash |= type;
@@ -42,7 +42,7 @@ int set_lock(const char *path, int type)
     long hash = djb2(path, SIZE_MAX);
 
     if (!lock_tree)
-        lock_tree = bst_init(NULL);
+        lock_tree = bst_init();
 
     hash <<= LOCK_TYPE_BITS;
     hash |= type;
@@ -65,7 +65,7 @@ int remove_lock(const char *path, int type)
     long hash = djb2(path, SIZE_MAX);
 
     if (!lock_tree)
-        lock_tree = bst_init(NULL);
+        lock_tree = bst_init();
 
     hash <<= LOCK_TYPE_BITS;
     hash |= type;

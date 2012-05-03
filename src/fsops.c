@@ -189,7 +189,7 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
 {
     int res;
     DIR **dirp;
-    bst *tree = bst_init(NULL);
+    bst *tree = bst_init();
 
     size_t dbufsize;
     struct dirent *ent;
