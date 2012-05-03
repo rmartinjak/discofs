@@ -134,7 +134,7 @@ static struct sync *sync_ht_set(const char *path, sync_xtime_t mtime, sync_xtime
     /* determine length of dirname (without trailing '/') */
     n = strrchr(path, '/') - path;
 
-    /* get basename ht */
+    /* get basename ht (or create if it doesn't exist) */
     if ((ht = ht_get_a(sync_ht, path, &n, &n)) == NULL)
     {
 
@@ -142,24 +142,28 @@ static struct sync *sync_ht_set(const char *path, sync_xtime_t mtime, sync_xtime
         if (ht_init(&ht, sync_hash, sync_cmp) == HT_ERROR)
             return NULL;
 
+        /* copy dirname */
         dir = malloc(n+1);
         if (!dir)
         {
             errno = ENOMEM;
             return NULL;
         }
-
         dir[n] = '\0';
         memcpy(dir, path, n);
 
         if (ht_insert(sync_ht, dir, ht) == HT_ERROR)
+        {
             ERROR("inserting into sync_ht\n");
+            free(dir);
+            return NULL;
+        }
 
         s = NULL;
     }
     else
     {
-        /* find item */
+        /* find sync item */
         s = ht_get(ht, path + n + 1);
     }
 
