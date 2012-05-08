@@ -31,11 +31,7 @@ enum log_levels
 #endif
 
 
-#if defined(DEBUG_FS_OPS) && !defined(LOG_ENABLE_FSOP)
-#define LOG_ENABLE_FSOP
-#endif
-
-#ifdef LOG_ENABLE_FSOP
+#ifdef DEBUG_FS_OPS
 #define LOG_ENABLE_DEBUG
 #define FSOP(...) LOG_PRINT(LOG_FSOP, __VA_ARGS__)
 #else
