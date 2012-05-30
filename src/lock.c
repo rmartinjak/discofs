@@ -57,7 +57,7 @@ int set_lock(const char *path, int type)
         {
             if ((c = malloc(sizeof *c)))
             {
-                *c = 0;
+                *c = 1;
                 res = bst_insert(lock_tree, hash, c);
             }
             else
