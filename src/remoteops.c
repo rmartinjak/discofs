@@ -153,7 +153,6 @@ int remoteop_unlink(const char *path)
     if (res)
         return -errno;
 
-    sync_delete_file(path);
     hardlink_remove(path);
 
     return 0;

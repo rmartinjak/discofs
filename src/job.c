@@ -217,7 +217,13 @@ void job_return(struct job *j, int reason)
 
     if (reason == JOB_DONE)
     {
-        sync_set(j->path, 0);
+        if (j->op == JOB_UNLINK)
+            sync_delete_file(j->path);
+        else if (j->op == JOB_RMDIR)
+            sync_delete_dir(j->path);
+        else
+            sync_set(j->path, 0);
+
         db_job_delete_id(j->id);
         job_free(j);
         return;
