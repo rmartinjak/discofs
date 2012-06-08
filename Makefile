@@ -43,6 +43,7 @@ clean :
 
 
 options :
+	@echo "MFLAGS =" $(MFLAGS)
 	@echo "CC       =" $(CC)
 	@echo "CPPFLAGS =" $(CPPFLAGS)
 	@echo "CFLAGS   =" $(CFLAGS)
