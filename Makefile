@@ -23,7 +23,7 @@ $(OBJDIR) :
 
 
 $(OBJDIR)/datastructs.a : recurse
-	$(MAKE) $(MAKEFLAGS) -C $(SRCDIR)/datastructs DESTDIR=$(realpath $(OBJDIR)) archive
+	$(MAKE) $(MFLAGS) -C $(SRCDIR)/datastructs DESTDIR=$(realpath $(OBJDIR)) archive
 
 
 $(OBJDIR)/%.o : $(SRCDIR)/%.c
