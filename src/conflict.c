@@ -55,7 +55,7 @@ int conflict_handle(const char *path, job_op op, int *keep_which)
     else if (fs2go_options.conflict == CONFLICT_THEIRS)
         keep = CONFLICT_KEEP_REMOTE;
     /* always keep cache */
-    else if (fs2go_options.conflict == CONFLICT_MINE)
+    else /* CONFLICT_MINE */
         keep = CONFLICT_KEEP_CACHE;
 
     VERBOSE("CONFLICT during %s on %s, keeping %s",

@@ -15,7 +15,7 @@
 #include "db.h"
 #include "paths.h"
 
-#if DEBUG_FS_OPS
+#if DEBUG_FSOPS
 #include "debugops.h"
 #else
 #include "fsops.h"
@@ -142,6 +142,8 @@ static void log_options(int loglevel, struct options opt)
         case CONFLICT_MINE:
             tmp = "mine";
             break;
+        default:
+            FATAL("invalid \"conflict\" option!\n");
     }
     LOG_PRINT(loglevel, "conflict: %s\n", tmp);
 
@@ -281,6 +283,7 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
                     strcpy(p2, "-ofsname=");
                     strcat(p2, p);
                     fuse_opt_add_arg(outargs, p2);
+                    free(p2);
                 }
 
                 /* get length of remote mount point */
@@ -545,7 +548,7 @@ static void sig_handler(int signo)
 
 /* operations struct which will be passed to fuse_main() */
 
-#if DEBUG_FS_OPS
+#if DEBUG_FSOPS
 #define OPER(n) .n = debug_op_ ## n
 #else
 #define OPER(n) .n = op_ ## n

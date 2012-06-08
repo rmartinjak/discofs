@@ -6,7 +6,7 @@ OUT_MK="config.mk"
 
 CC_CANDIDATES="cc gcc"
 
-#CPPFLAGS="-DDEBUG_FS_OPS -DDEBUG_SQL"
+#CPPFLAGS="-DDEBUG_FSOPS -DDEBUG_SQL"
 CPPFLAGS="-D_GNU_SOURCE -DLOG_ENABLE_DEBUG"
 CFLAGS="-std=c99 -pedantic -g"
 INCLUDES=""
@@ -16,6 +16,7 @@ LIBS="-lrt -lpthread"
 WARNINGS="all no-int-to-pointer-cast no-pointer-to-int-cast no-unused-but-set-variable"
 
 PKGCONF="fuse sqlite3"
+
 
 REQUIRE_HEADERS="stdio.h unistd.h sys/types.h dirent.h sqlite3.h fuse.h fuse_opt.h"
 CHECK_HEADERS="attr/xattr.h"

@@ -164,6 +164,7 @@ int op_opendir(const char *path, struct fuse_file_info *fi)
         else
         {
             free(p);
+            free(dirp);
             return -errno;
         }
     }
@@ -208,7 +209,10 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
 
     res = readdir_r(*dirp, dbuf, &ent);
     if (res > 0)
+    {
+        free(dbuf);
         return -res;
+    }
 
     int n = 2;
     while (n-- && *dirp)
@@ -440,7 +444,7 @@ int op_rename(const char *from, const char *to)
     int res = 0;
     char *pf, *pt;
     size_t len_from, len_to;
-    int from_is_dir, to_is_dir;
+    int from_is_dir;
 
     len_from = strlen(from);
     len_to = strlen(to);
@@ -455,7 +459,6 @@ int op_rename(const char *from, const char *to)
 
     /* needed later */
     from_is_dir = is_dir(pf);
-    to_is_dir = is_dir(pt);
 
     /* rename in cache */
     res = rename(pf, pt);
@@ -547,12 +550,9 @@ int op_releasedir(const char* path, struct fuse_file_info *fi)
 static int op_open_create(int op, const char *path, mode_t mode, struct fuse_file_info *fi)
 {
     int sync;
-    int *fh;
+    int fh[FH_ELEMENTS], *fhp;
     char *pc, *pr;
     size_t p_len;
-
-    if ((fh = malloc(FH_SIZE)) == NULL)
-        return -EIO;
 
     p_len = strlen(path);
 
@@ -564,7 +564,6 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
 
         if (sync == -1)
         {
-            free(fh);
             return -EIO;
         }
 
@@ -611,7 +610,9 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
 
     pc = cache_path2(path, p_len);
     if (!pc)
+    {
         return -EIO;
+    }
 
     if (op == OP_OPEN)
         FH_FD(fh) = open(pc, fi->flags);
@@ -623,7 +624,6 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
     /* open() failed */
     if (FH_FD(fh) == -1)
     {
-        free(fh);
         return -errno;
     }
 
@@ -637,7 +637,14 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
 
     set_lock(path, LOCK_OPEN);
 
-    fi->fh = (uint64_t)fh;
+    if ((fhp = malloc(sizeof fh)) == NULL)
+    {
+        close(FH_FD(fh));
+        return -EIO;
+    }
+
+    memcpy(fhp, fh, sizeof fh);
+    fi->fh = (uint64_t) fhp;
     return 0;
 }
 

@@ -667,19 +667,20 @@ int db_ ## name ## _rename_dir(const char *from, const char *to)            \
     char *p, *pat, *oldpath, *newpath;                                      \
     queue *q = q_init();                                                    \
                                                                             \
+    PREPARE("SELECT path FROM " table " WHERE " column " LIKE ?;", &stmt);  \
+                                                                            \
     from_len = strlen(from);                                                \
     to_len = strlen(to);                                                    \
                                                                             \
     if ((pat = malloc(from_len+2)) == NULL)                                 \
     {                                                                       \
+        sqlite3_finalize(stmt);                                             \
         errno = ENOMEM;                                                     \
         return DB_ERROR;                                                    \
     }                                                                       \
     memcpy(pat, from, from_len);                                            \
     memcpy(pat+from_len, "%\0", 2);                                         \
                                                                             \
-                                                                            \
-    PREPARE("SELECT path FROM " table " WHERE " column " LIKE ?;", &stmt);  \
     sqlite3_bind_text(stmt, 1, pat, -1, SQLITE_STATIC);                     \
                                                                             \
     while ((sql_res = sqlite3_step(stmt)) == SQLITE_ROW)                    \

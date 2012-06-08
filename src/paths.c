@@ -40,19 +40,12 @@ static char *get_home_dir(void)
 char *paths_data_root(const char *remote)
 {
     char *ret;
-    char *tmp;
     char *home;
     char *root;
-    char *hash;
+    char hash[32];
+    char tmp[2048];
 
-    tmp = malloc(2048);
-    *tmp = '\0';
-    hash = malloc(30);
-
-    if (!tmp || !hash)
-    {
-        FATAL("memory allocation failed\n");
-    }
+    tmp[0] = '\0';
 
     sprintf(hash, "%lu", djb2(remote, SIZE_MAX));
 
@@ -75,7 +68,6 @@ char *paths_data_root(const char *remote)
     strcat(tmp, hash);
 
     ret = strdup(tmp);
-    free(tmp);
 
     return ret;
 }

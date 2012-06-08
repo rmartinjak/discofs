@@ -19,7 +19,7 @@ default : all
 all : options $(OBJDIR) fs2go
 
 $(OBJDIR) :
-	@mkdir $@
+	@mkdir $@ || true
 
 
 $(OBJDIR)/datastructs.a : recurse

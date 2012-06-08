@@ -51,6 +51,9 @@ char *join_path2(const char *p1, size_t n1, const char *p2, size_t n2)
 {
     char *ret, *p;
 
+    if (!p1 || !p2)
+        return NULL;
+
     if (!n1)
         n1 = strlen(p1);
     if (!n2)
@@ -60,10 +63,9 @@ char *join_path2(const char *p1, size_t n1, const char *p2, size_t n2)
     if (!ret)
         return NULL;
 
-    p = ret;
-    memcpy(p, p1, n1);
+    memcpy(ret, p1, n1+1);
 
-    p += n1-1;
+    p = ret + n1 - 1;
 
     /* append trailing '/' to p1 if not already present */
     if (*p != '/')
@@ -167,8 +169,7 @@ int is_reachable(const char *host)
 
 int copy_rec(const char *from, const char *to)
 {
-    int res;
-    int res2;
+    int res = 0;
     char *subfrom;
     char *subto;
 
@@ -203,37 +204,27 @@ int copy_rec(const char *from, const char *to)
         if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0)
             continue;
 
-        if (lstat(ent->d_name, &st) == -1)
-            return -1;
+        if ((res = lstat(ent->d_name, &st)))
+            break;
 
         d_len = strlen(ent->d_name);
 
         subfrom = join_path2(from, from_len, ent->d_name, d_len);
         subto = join_path2(to, to_len, ent->d_name, d_len);
-        if (S_ISDIR(st.st_mode))
-        {
-            res2 = copy_rec(subfrom, subto);
-            free(subfrom);
-            free(subto);
-            if (res2 == -1)
-                return -1;
-        }
-        else
-        {
-            res2 = copy_file(subfrom, subto);
-            free(subfrom);
-            free(subto);
-            if (res2 == -1)
-                return -1;
-        }
-    }
-    closedir(dirp);
-    if (res)
-    {
-        errno = res;
-        return -1;
+
+        res = (S_ISDIR(st.st_mode)) ?  copy_rec(subfrom, subto) : copy_file(subfrom, subto);
+
+        free(subfrom);
+        free(subto);
+
+        if (res)
+            break;
     }
 
+    free(buf);
+    closedir(dirp);
+    if (res)
+        return -1;
     return 0;
 }
 
@@ -501,7 +492,10 @@ char *affix_filename(const char *path, const char *prefix, const char *suffix)
     /* copy dirname */
     tmp = dirname_r(path);
     if (!tmp)
+    {
+        free(p);
         return NULL;
+    }
     strcpy(p, tmp);
     free(tmp);
 
@@ -514,7 +508,10 @@ char *affix_filename(const char *path, const char *prefix, const char *suffix)
     /* append filename */
     tmp = basename_r(path);
     if (!tmp)
+    {
+        free(p);
         return NULL;
+    }
     strcat(p, tmp);
     free(tmp);
 
@@ -591,7 +588,7 @@ int mkdir_rec(const char *path)
         return -1;
     }
 
-    while (stat(p, &st) == -1)
+    while (p && stat(p, &st) == -1)
     {
         ptmp = dirname_r(p);
         free(p);
@@ -605,7 +602,6 @@ int mkdir_rec(const char *path)
 
     while (n--)
     {
-        i = n;
         p = strdup(path);
         if (!p)
         {
@@ -613,19 +609,21 @@ int mkdir_rec(const char *path)
             return -1;
         }
 
+        i = n;
         while (i--)
         {
             ptmp = dirname_r(p);
             free(p);
             p = ptmp;
         }
-        if (mkdir(p, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != 0)
+        if (!p || mkdir(p, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))
         {
             free(p);
             return -1;
         }
+        free(p);
     }
-    free(p);
+
     return 0;
 }
 
@@ -655,7 +653,7 @@ int rmdir_rec(const char *path)
             continue;
 
         subpath = join_path(path, ent->d_name);
-        if (lstat(subpath, &st) == -1)
+        if (!subpath || lstat(subpath, &st) == -1)
         {
             closedir(dirp);
             free(subpath);
