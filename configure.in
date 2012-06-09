@@ -8,10 +8,10 @@ CC_CANDIDATES="cc gcc"
 
 #CPPFLAGS="-DDEBUG_FSOPS -DDEBUG_SQL"
 CPPFLAGS="-D_GNU_SOURCE -DLOG_ENABLE_DEBUG"
-CFLAGS="-std=c99 -pedantic -g"
+CFLAGS="-pthread -std=c99 -pedantic -g"
 INCLUDES=""
 LDFLAGS=""
-LIBS="-lrt -lpthread"
+LIBS="-lrt"
 
 WARNINGS="all no-int-to-pointer-cast no-pointer-to-int-cast no-unused-but-set-variable"
 
