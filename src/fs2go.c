@@ -9,6 +9,7 @@
 
 #include "log.h"
 #include "funcs.h"
+#include "lock.h"
 #include "sync.h"
 #include "job.h"
 #include "worker.h"
@@ -764,13 +765,16 @@ int main(int argc, char **argv)
     }
 
 
-    /*---------------------------*/
-    /* initialize sync/job stuff */
-    /*---------------------------*/
-    if (sync_init())
-        FATAL("error initializing sync");
-    if (job_init())
-        FATAL("error initializing job queue");
+    /*------------------*/
+    /* initialize stuff */
+    /*------------------*/
+    #define INIT(name)                          \
+        if (name ## _init())                    \
+            FATAL("error initializing " #name)
+    INIT(lock);
+    INIT(sync);
+    INIT(job);
+    #undef INIT
 
 
     /*----------------------*/
@@ -789,11 +793,9 @@ int main(int argc, char **argv)
     /* exit */
     /*------*/
 
-    /* store and free job data */
-    job_destroy();
-
-    /* store and free sync data */
+    lock_destroy();
     sync_destroy();
+    job_destroy();
 
     /* free arguments */
     fuse_opt_free_args(&args);

@@ -367,7 +367,7 @@ void *worker_main(void *arg)
                     continue;
 
                 /* transfer finished or error */
-                remove_lock(j->path, LOCK_TRANSFER);
+                lock_remove(j->path, LOCK_TRANSFER);
                 job_return(j, (res == TRANSFER_FINISH) ? JOB_DONE : JOB_FAILED);
                 j = NULL;
             }
@@ -380,7 +380,7 @@ void *worker_main(void *arg)
             j = job_get();
 
             /* skip locked files */
-            while (j && (j->op & (JOB_PUSH|JOB_PULL)) && has_lock(j->path, LOCK_OPEN))
+            while (j && (j->op & (JOB_PUSH|JOB_PULL)) && lock_has(j->path, LOCK_OPEN))
             {
                 DEBUG("%s is locked, NEXT\n", j->path);
                 job_return(j, JOB_LOCKED);
@@ -447,7 +447,7 @@ void *worker_main(void *arg)
     VERBOSE("exiting job thread\n");
     if (j)
     {
-        remove_lock(j->path, LOCK_TRANSFER);
+        lock_remove(j->path, LOCK_TRANSFER);
         transfer_abort();
         job_return(j, JOB_LOCKED);
         j = NULL;

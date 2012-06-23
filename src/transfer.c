@@ -47,7 +47,7 @@ int transfer(const char *from, const char *to)
 
     if (from && to)
     {
-        set_lock(t_path, LOCK_TRANSFER);
+        lock_set(t_path, LOCK_TRANSFER);
         VERBOSE("beginning transfer: '%s' -> '%s'\n", from, to);
         t_read = strdup(from);
         t_write = strdup(to);
@@ -70,7 +70,7 @@ int transfer(const char *from, const char *to)
     if (!t_read || !t_write)
     {
         ERROR("t_read or t_write is NULL\n");
-        remove_lock(t_path, LOCK_TRANSFER);
+        lock_remove(t_path, LOCK_TRANSFER);
         transfer_free();
         return TRANSFER_FAIL;
     }
@@ -122,7 +122,7 @@ int transfer(const char *from, const char *to)
 
             VERBOSE("transfer finished: '%s' -> '%s'\n", t_read, t_write);
 
-            remove_lock(t_path, LOCK_TRANSFER);
+            lock_remove(t_path, LOCK_TRANSFER);
             transfer_free();
             pthread_mutex_unlock(&m_transfer);
 
@@ -258,10 +258,10 @@ void transfer_rename(const char *to)
     worker_block();
     pthread_mutex_lock(&m_transfer);
 
-    remove_lock(t_path, LOCK_TRANSFER);
+    lock_remove(t_path, LOCK_TRANSFER);
     free(t_path);
     t_path = strdup(to);
-    set_lock(t_path, LOCK_TRANSFER);
+    lock_set(t_path, LOCK_TRANSFER);
 
     free(t_read);
     free(t_write);
@@ -290,7 +290,7 @@ void transfer_abort(void)
 
     t_active = 0;
 
-    remove_lock(t_path, LOCK_TRANSFER);
+    lock_remove(t_path, LOCK_TRANSFER);
 
     transfer_free();
 

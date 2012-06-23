@@ -12,8 +12,11 @@
 #define LOCK_OPEN 0
 #define LOCK_TRANSFER 1
 
-int has_lock(const char *path, int type);
-int set_lock(const char *path, int type);
-int remove_lock(const char *path, int type);
+int lock_init(void);
+void lock_destroy(void);
+
+int lock_has(const char *path, int type);
+int lock_set(const char *path, int type);
+int lock_remove(const char *path, int type);
 
 #endif

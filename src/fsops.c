@@ -500,10 +500,10 @@ int op_rename(const char *from, const char *to)
     /*------*/
 
     /* "rename" all OPEN locks */
-    while (has_lock(from, LOCK_OPEN))
+    while (lock_has(from, LOCK_OPEN))
     {
-        remove_lock(from, LOCK_OPEN);
-        set_lock(to, LOCK_OPEN);
+        lock_remove(from, LOCK_OPEN);
+        lock_set(to, LOCK_OPEN);
     }
 
 
@@ -558,7 +558,7 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
 
     FH_FLAGS(fh) = 0;
 
-    if (ONLINE && !has_lock(path, LOCK_OPEN))
+    if (ONLINE && !lock_has(path, LOCK_OPEN))
     {
         sync = sync_get(path);
 
@@ -575,7 +575,7 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
 
             job_delete(path, JOB_PULL);
 
-            if (has_lock(path, LOCK_TRANSFER))
+            if (lock_has(path, LOCK_TRANSFER))
                 transfer_abort();
 
             transfer_instant_pull(path);
@@ -635,7 +635,7 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
             job_schedule(JOB_CREATE, path, fi->flags, mode, NULL, NULL);
     }
 
-    set_lock(path, LOCK_OPEN);
+    lock_set(path, LOCK_OPEN);
 
     if ((fhp = malloc(sizeof fh)) == NULL)
     {
@@ -674,7 +674,7 @@ int op_release(const char *path, struct fuse_file_info *fi)
     int res;
     char *p;
     struct stat st;
-    remove_lock(path, LOCK_OPEN);
+    lock_remove(path, LOCK_OPEN);
     res = close(FI_FD(fi));
 
     /* file written -> schedule push */
@@ -762,12 +762,12 @@ int op_truncate(const char *path, off_t size)
 
     if (ONLINE)
     {
-        if (!has_lock(path, LOCK_OPEN))
+        if (!lock_has(path, LOCK_OPEN))
         {
-            if (has_lock(path, LOCK_TRANSFER))
+            if (lock_has(path, LOCK_TRANSFER))
             {
                 transfer_abort();
-                remove_lock(path, LOCK_TRANSFER);
+                lock_remove(path, LOCK_TRANSFER);
             }
 
             p = remote_path2(path, p_len);

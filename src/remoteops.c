@@ -38,19 +38,19 @@ int remoteop_rename(const char *from, const char *to)
     }
 
     /* abort eventual transfering of "to" */
-    if (has_lock(to, LOCK_TRANSFER))
+    if (lock_has(to, LOCK_TRANSFER))
     {
         transfer_abort();
     }
     /* rename transfer if "from" is being transfered */
-    else if (has_lock(from, LOCK_TRANSFER))
+    else if (lock_has(from, LOCK_TRANSFER))
     {
 
         transfer_rename(to);
 
         /* rename transfer lock */
-        remove_lock(from, LOCK_TRANSFER);
-        set_lock(to, LOCK_TRANSFER);
+        lock_remove(from, LOCK_TRANSFER);
+        lock_set(to, LOCK_TRANSFER);
     }
 
     /* renaming a dir -> rename transfer if "inside" that dir */
@@ -123,10 +123,10 @@ int remoteop_unlink(const char *path)
     int res, sync;
     char *p;
 
-    if (has_lock(path, LOCK_TRANSFER))
+    if (lock_has(path, LOCK_TRANSFER))
     {
         transfer_abort();
-        remove_lock(path, LOCK_TRANSFER);
+        lock_remove(path, LOCK_TRANSFER);
     }
 
     sync = sync_get(path);
