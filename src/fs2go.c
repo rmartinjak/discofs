@@ -39,7 +39,7 @@
 #include <attr/xattr.h>
 #endif
 
-/* mount options (specified i.e. with "-o name,name=value..." */
+/* mount options (specified e.g. with "-o name,name=value..." */
 struct options fs2go_options = OPTIONS_INIT;
 
 

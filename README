@@ -1,5 +1,5 @@
 fs2go is a FUSE filesystem which automatically mirrors a network filesystem
-(i.e. nfs/cifs or whatever you like) to a local cache, making the files
+(e.g. nfs/cifs or whatever you like) to a local cache, making the files
 available even if you're not connected to the corresponding host/network.
 
 The main goal is to automatically synchronize a local version of the network
