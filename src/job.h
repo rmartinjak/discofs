@@ -22,7 +22,7 @@
 
 #define OP_PRIO(op) ((OP_PRIO_LOW(op)) ? PRIO_LOW : ((OP_PRIO_HIGH(op)) ? PRIO_HIGH : PRIO_MID))
 
-#define JOB_ANY         ((unsigned int)-1)
+#define JOB_ANY         (~ 0U)
 #define JOB_PULL        (1U << 0)
 #define JOB_PUSH        (1U << 1)
 #define JOB_RENAME      (1U << 2)
