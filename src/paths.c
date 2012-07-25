@@ -1,4 +1,4 @@
-/* fs2go - takeaway filesystem
+/* discofs - disconnected file system
  * Copyright (c) 2012 Robin Martinjak
  * see LICENSE for full license (BSD 2-Clause)
  */
@@ -64,7 +64,7 @@ char *paths_data_root(const char *remote)
         strcat(tmp, root);
     }
 
-    strcat(tmp, "/fs2go/");
+    strcat(tmp, "/discofs/");
     strcat(tmp, hash);
 
     ret = strdup(tmp);

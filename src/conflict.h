@@ -1,12 +1,12 @@
-/* fs2go - takeaway filesystem
+/* discofs - disconnected file system
  * Copyright (c) 2012 Robin Martinjak
  * see LICENSE for full license (BSD 2-Clause)
  */
 
-#ifndef FS2GO_CONFLICT_H
-#define FS2GO_CONFLICT_H
+#ifndef DISCOFS_CONFLICT_H
+#define DISCOFS_CONFLICT_H
 
-#include "fs2go.h"
+#include "discofs.h"
 #include "job.h"
 
 #define CONFLICT_KEEP_CACHE 0
@@ -19,11 +19,11 @@
    *keep_which, so the caller knows which file was kept */
 int conflict_handle(const char *path, job_op op, int *keep_which);
 
-/* adds fs2go_options.bprefix and .suffix to file name, or returns NULL if
+/* adds discofs_options.bprefix and .suffix to file name, or returns NULL if
    neither of them is set */
 char *conflict_path(const char *path);
 
-/* delete file or back up if fs2go_options.bprefix or .bsuffix set. returns:
+/* delete file or back up if discofs_options.bprefix or .bsuffix set. returns:
    CONFLICT_DELETED if file was deleted
    CONFLICT_BACKEDUP if backed up
    if file is backed up, automatically schedules a job to synchronise it

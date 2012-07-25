@@ -1,11 +1,11 @@
-/* fs2go - takeaway filesystem
+/* discofs - disconnected file system
  * Copyright (c) 2012 Robin Martinjak
  * see LICENSE for full license (BSD 2-Clause)
  */
 
 #include "config.h"
 
-#include "fs2go.h"
+#include "discofs.h"
 
 #include "log.h"
 #include "funcs.h"
@@ -41,14 +41,14 @@
 #endif
 
 /* mount options (specified e.g. with "-o name,name=value..." */
-struct options fs2go_options = OPTIONS_INIT;
+struct options discofs_options = OPTIONS_INIT;
 
 
 /* static prototypes */
 static void print_usage();
 static void print_version();
 static void log_options(int loglevel, struct options opt);
-static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args *outargs);
+static int discofs_opt_proc(void *data, const char *arg, int key, struct fuse_args *outargs);
 static int test_fs_features(int *f);
 static void sig_handler(int signo);
 
@@ -115,13 +115,13 @@ static void print_version()
 }
 
 
-/* log the options with which fs2go will be run */
+/* log the options with which discofs will be run */
 static void log_options(int loglevel, struct options opt)
 {
     const char *tmp;
 #define YESNO(x) (x) ? "yes" : "no"
-    LOG_PRINT(loglevel, "fs2go options:\n");
-    LOG_PRINT(loglevel, "mount point: %s\n", opt.fs2go_mp);
+    LOG_PRINT(loglevel, "discofs options:\n");
+    LOG_PRINT(loglevel, "mount point: %s\n", opt.discofs_mp);
     LOG_PRINT(loglevel, "remote fs: %s\n", opt.remote_root);
     LOG_PRINT(loglevel, "cache root: %s\n", opt.cache_root);
     LOG_PRINT(loglevel, "debug: %s\n", YESNO(opt.clear));
@@ -156,10 +156,10 @@ static void log_options(int loglevel, struct options opt)
 #endif
 
     LOG_PRINT(loglevel, "remote fs features:\n");
-    LOG_PRINT(loglevel, "nanosecond timestamps: %s\n", YESNO((fs2go_options.fs_features & FEAT_NS)));
-    LOG_PRINT(loglevel, "hardlinks: %s\n", YESNO((fs2go_options.fs_features & FEAT_HARDLINKS)));
+    LOG_PRINT(loglevel, "nanosecond timestamps: %s\n", YESNO((discofs_options.fs_features & FEAT_NS)));
+    LOG_PRINT(loglevel, "hardlinks: %s\n", YESNO((discofs_options.fs_features & FEAT_HARDLINKS)));
 #if HAVE_SETXATTR
-    LOG_PRINT(loglevel, "extended attributes: %s\n", YESNO((fs2go_options.fs_features & FEAT_XATTR)));
+    LOG_PRINT(loglevel, "extended attributes: %s\n", YESNO((discofs_options.fs_features & FEAT_XATTR)));
 #endif
 }
 
@@ -167,11 +167,11 @@ static void log_options(int loglevel, struct options opt)
 #define OPT_KEY(t, p, v) { t, offsetof(struct options, p), v }
 
 /* options recognized, anything else will be passed to FUSE */
-static struct fuse_opt fs2go_opts[] =
+static struct fuse_opt discofs_opts[] =
 {
     /* user or group ID to change to before mounting */
-    FUSE_OPT_KEY("uid=%s", FS2GO_OPT_UID),
-    FUSE_OPT_KEY("gid=%s", FS2GO_OPT_GID),
+    FUSE_OPT_KEY("uid=%s", DISCOFS_OPT_UID),
+    FUSE_OPT_KEY("gid=%s", DISCOFS_OPT_GID),
 
     /* alternate directory for database and cache */
     OPT_KEY("data=%s", data_root, 0),
@@ -186,7 +186,7 @@ static struct fuse_opt fs2go_opts[] =
     OPT_KEY("scan=%u", scan_interval, 0),
 
     /* conflict resolution mode */
-    FUSE_OPT_KEY("conflict=%s", FS2GO_OPT_CONFLICT),
+    FUSE_OPT_KEY("conflict=%s", DISCOFS_OPT_CONFLICT),
 
     /* backup prefix/sufix */
     OPT_KEY("bprefix=%s", backup_prefix, 0),
@@ -196,34 +196,34 @@ static struct fuse_opt fs2go_opts[] =
     OPT_KEY("clear", clear, 1),
 
     /* logging */
-    FUSE_OPT_KEY("loglevel=%s", FS2GO_OPT_LOGLEVEL),
+    FUSE_OPT_KEY("loglevel=%s", DISCOFS_OPT_LOGLEVEL),
     OPT_KEY("logfile=%s", logfile, 0),
 
     /* file attributes not to copy */
-    FUSE_OPT_KEY("no-mode", FS2GO_OPT_NO_MODE),
-    FUSE_OPT_KEY("no-owner", FS2GO_OPT_NO_OWNER),
-    FUSE_OPT_KEY("no-group", FS2GO_OPT_NO_GROUP),
+    FUSE_OPT_KEY("no-mode", DISCOFS_OPT_NO_MODE),
+    FUSE_OPT_KEY("no-owner", DISCOFS_OPT_NO_OWNER),
+    FUSE_OPT_KEY("no-group", DISCOFS_OPT_NO_GROUP),
 #if HAVE_SETXATTR
-    FUSE_OPT_KEY("no-xattr", FS2GO_OPT_NO_XATTR),
+    FUSE_OPT_KEY("no-xattr", DISCOFS_OPT_NO_XATTR),
 #endif
     /* preset combinations of the above suitable for certain fses */
-    FUSE_OPT_KEY("sshfs", FS2GO_OPT_SSHFS),
-    FUSE_OPT_KEY("nfs", FS2GO_OPT_NFS),
+    FUSE_OPT_KEY("sshfs", DISCOFS_OPT_SSHFS),
+    FUSE_OPT_KEY("nfs", DISCOFS_OPT_NFS),
 
     /* generic stuff */
-    FUSE_OPT_KEY("-v", FS2GO_OPT_VERSION),
-    FUSE_OPT_KEY("--version", FS2GO_OPT_VERSION),
-    FUSE_OPT_KEY("-h", FS2GO_OPT_HELP),
-    FUSE_OPT_KEY("--help", FS2GO_OPT_HELP),
-    FUSE_OPT_KEY("-d", FS2GO_OPT_DEBUG),
-    FUSE_OPT_KEY("--debug", FS2GO_OPT_DEBUG),
-    FUSE_OPT_KEY("-f", FS2GO_OPT_FOREGROUND),
-    FUSE_OPT_KEY("--foreground", FS2GO_OPT_FOREGROUND),
+    FUSE_OPT_KEY("-v", DISCOFS_OPT_VERSION),
+    FUSE_OPT_KEY("--version", DISCOFS_OPT_VERSION),
+    FUSE_OPT_KEY("-h", DISCOFS_OPT_HELP),
+    FUSE_OPT_KEY("--help", DISCOFS_OPT_HELP),
+    FUSE_OPT_KEY("-d", DISCOFS_OPT_DEBUG),
+    FUSE_OPT_KEY("--debug", DISCOFS_OPT_DEBUG),
+    FUSE_OPT_KEY("-f", DISCOFS_OPT_FOREGROUND),
+    FUSE_OPT_KEY("--foreground", DISCOFS_OPT_FOREGROUND),
     FUSE_OPT_END,
 };
 #undef OPT_KEY
 
-static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args *outargs)
+static int discofs_opt_proc(void *data, const char *arg, int key, struct fuse_args *outargs)
 {
     const char *val = NULL;
     char *p, *p2;
@@ -241,7 +241,7 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
             /*--------------------*/
             /* remote mount point */
             /*--------------------*/
-            if (!fs2go_options.remote_root)
+            if (!discofs_options.remote_root)
             {
 
                 /* transform to absolute path by appending the current
@@ -302,13 +302,13 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
             }
 
             /*-------------------*/
-            /* fs2go mount point */
+            /* discofs mount point */
             /*-------------------*/
 
             /* second one is "our" mount point */
-            else if (!fs2go_options.fs2go_mp)
+            else if (!discofs_options.discofs_mp)
             {
-                fs2go_options.fs2go_mp = strdup(arg);
+                discofs_options.discofs_mp = strdup(arg);
                 fuse_opt_add_arg(outargs, arg);
                 return 0;
             }
@@ -319,24 +319,24 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
         /* --VERSION AND --HELP */
         /*======================*/
 
-        case FS2GO_OPT_VERSION:
+        case DISCOFS_OPT_VERSION:
             print_version();
             exit(EXIT_SUCCESS);
 
-        case FS2GO_OPT_HELP:
+        case DISCOFS_OPT_HELP:
             print_usage();
             exit(EXIT_SUCCESS);
 
         /*==========================*/
         /* --DEBUG AND --FOREGROUND */
         /*==========================*/
-        case FS2GO_OPT_DEBUG:
-            fs2go_options.debug = 1;
+        case DISCOFS_OPT_DEBUG:
+            discofs_options.debug = 1;
             /* forward argument to fuse */
             fuse_opt_add_arg(outargs, "-d");
             return 0;
 
-        case FS2GO_OPT_FOREGROUND:
+        case DISCOFS_OPT_FOREGROUND:
             /* forward argument to fuse */
             fuse_opt_add_arg(outargs, "-f");
             return 0;
@@ -349,19 +349,19 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
         /*-----*/
         /* UID */
         /*-----*/
-        case FS2GO_OPT_UID:
+        case DISCOFS_OPT_UID:
             /* let val point to beginning of the actual uid string */
             val = arg + strlen("uid=");
 
             /* try to convert uid to number */
-            fs2go_options.uid = strtol(val, &endptr, 10);
+            discofs_options.uid = strtol(val, &endptr, 10);
 
 
             /* get passwd entry for given uid */
 
             /* use numeric id if strtol() was successful */
             if (*endptr == '\0' && endptr != val)
-                pw = getpwuid(fs2go_options.uid);
+                pw = getpwuid(discofs_options.uid);
 
             /* or try the given string */
             else
@@ -372,24 +372,24 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
                 FATAL("could not find user \"%s\"\n", val);
 
             /* set uid in options */
-            fs2go_options.uid = pw->pw_uid;
+            discofs_options.uid = pw->pw_uid;
 
             /* set gid to user's primary group if gid not already set */
-            if (!fs2go_options.gid)
-                fs2go_options.gid = pw->pw_gid;
+            if (!discofs_options.gid)
+                discofs_options.gid = pw->pw_gid;
             return 0;
 
         /*-----*/
         /* GID */
         /*-----*/
-        case FS2GO_OPT_GID:
+        case DISCOFS_OPT_GID:
             val = arg + strlen("gid=");
-            fs2go_options.gid = strtol(val, &endptr, 10);
+            discofs_options.gid = strtol(val, &endptr, 10);
             if (*endptr != '\0')
             {
                 if (!(gr = getgrnam(val)))
                     FATAL("could not find group \"%s\"\n", val);
-                fs2go_options.uid = gr->gr_gid;
+                discofs_options.uid = gr->gr_gid;
             }
             return 0;
 
@@ -398,8 +398,8 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
         /* FILE ATTRIBUTES NOT TO COPY */
         /*=============================*/
 
-        #define OPT_COPYADDR(n) case FS2GO_OPT_ ## n: \
-            fs2go_options.copyattr |= COPYATTR_ ## n; \
+        #define OPT_COPYADDR(n) case DISCOFS_OPT_ ## n: \
+            discofs_options.copyattr |= COPYATTR_ ## n; \
             return 0
 
             OPT_COPYADDR(NO_MODE);
@@ -415,18 +415,18 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
         /* LOGLEVEL */
         /*==========*/
 
-        case FS2GO_OPT_LOGLEVEL:
+        case DISCOFS_OPT_LOGLEVEL:
             val = arg + strlen("loglevel=");
             if (!strcmp(val, "error"))
-                fs2go_options.loglevel = LOG_ERROR;
+                discofs_options.loglevel = LOG_ERROR;
             else if (!strcmp(val, "info"))
-                fs2go_options.loglevel = LOG_INFO;
+                discofs_options.loglevel = LOG_INFO;
             else if (!strcmp(val, "verbose"))
-                fs2go_options.loglevel = LOG_VERBOSE;
+                discofs_options.loglevel = LOG_VERBOSE;
             else if (!strcmp(val, "fsop"))
-                fs2go_options.loglevel = LOG_FSOP;
+                discofs_options.loglevel = LOG_FSOP;
             else if (!strcmp(val, "debug"))
-                fs2go_options.loglevel = LOG_DEBUG;
+                discofs_options.loglevel = LOG_DEBUG;
             else
             {
                 print_usage();
@@ -439,15 +439,15 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
         /* CONFLICT RESOLUTION MODE */
         /*==========================*/
 
-        case FS2GO_OPT_CONFLICT:
+        case DISCOFS_OPT_CONFLICT:
             val = arg + strlen("conflict=");
 
             if (!strcmp(val, "newer") || !strcmp(val, "n"))
-                fs2go_options.conflict = CONFLICT_NEWER;
+                discofs_options.conflict = CONFLICT_NEWER;
             else if (!strcmp(val, "theirs") || !strcmp(val, "t"))
-                fs2go_options.conflict = CONFLICT_THEIRS;
+                discofs_options.conflict = CONFLICT_THEIRS;
             else if (!strcmp(val, "mine") || !strcmp(val, "m"))
-                fs2go_options.conflict = CONFLICT_MINE;
+                discofs_options.conflict = CONFLICT_MINE;
             else
             {
                 print_usage();
@@ -462,8 +462,8 @@ static int fs2go_opt_proc(void *data, const char *arg, int key, struct fuse_args
 
 static int test_fs_features(int *f)
 {
-#define TESTFILE1 ".__fs2go_test_1__"
-#define TESTFILE2 ".__fs2go_test_2__"
+#define TESTFILE1 ".__discofs_test_1__"
+#define TESTFILE2 ".__discofs_test_2__"
     char *p, *p2;
     struct stat st, st2;
     struct timespec times[2];
@@ -502,7 +502,7 @@ static int test_fs_features(int *f)
 
 #if HAVE_SETXATTR
     /* test if extended attributes are supported */
-    if (lsetxattr(p, "user.fs2go_test", "1", 1, 0) == 0 || errno != ENOTSUP)
+    if (lsetxattr(p, "user.discofs_test", "1", 1, 0) == 0 || errno != ENOTSUP)
         *f |= FEAT_XATTR;
 #endif
 
@@ -554,7 +554,7 @@ static void sig_handler(int signo)
 #else
 #define OPER(n) .n = op_ ## n
 #endif
-static struct fuse_operations fs2go_oper =
+static struct fuse_operations discofs_oper =
 {
     OPER(init),
     OPER(destroy),
@@ -631,7 +631,7 @@ int main(int argc, char **argv)
     /* handle arguments */
     /*------------------*/
 
-    if (fuse_opt_parse(&args, &fs2go_options, fs2go_opts, fs2go_opt_proc) == -1)
+    if (fuse_opt_parse(&args, &discofs_options, discofs_opts, discofs_opt_proc) == -1)
         return EXIT_FAILURE;
 
     /* after option parsing, remote mount point must be set */
@@ -641,8 +641,8 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    /* a mount point for fs2go must also be set */
-    if (!fs2go_options.fs2go_mp)
+    /* a mount point for discofs must also be set */
+    if (!discofs_options.discofs_mp)
     {
         fprintf(stderr, "no mount point given\n");
         return EXIT_FAILURE;
@@ -658,19 +658,19 @@ int main(int argc, char **argv)
 
     /* set GID first since permissions might not be
        sufficient if UID was set beforehand */
-    if (fs2go_options.gid)
+    if (discofs_options.gid)
     {
-        VERBOSE("setting gid to %d\n", fs2go_options.gid);
-        if (setgid(fs2go_options.gid))
+        VERBOSE("setting gid to %d\n", discofs_options.gid);
+        if (setgid(discofs_options.gid))
         {
             perror("setting gid");
             return EXIT_FAILURE;
         }
     }
-    if (fs2go_options.uid)
+    if (discofs_options.uid)
     {
-        VERBOSE("setting uid to %d\n", fs2go_options.uid);
-        if (setuid(fs2go_options.uid))
+        VERBOSE("setting uid to %d\n", discofs_options.uid);
+        if (setuid(discofs_options.uid))
         {
             perror("setting uid");
             return EXIT_FAILURE;
@@ -683,10 +683,10 @@ int main(int argc, char **argv)
     /*--------------------*/
 
     /* if -d is specified, override logging settings */
-    if (fs2go_options.debug)
+    if (discofs_options.debug)
         log_init(LOG_DEBUG, NULL);
     else
-        log_init(fs2go_options.loglevel, fs2go_options.logfile);
+        log_init(discofs_options.loglevel, discofs_options.logfile);
 
 
 
@@ -695,13 +695,13 @@ int main(int argc, char **argv)
     /*=========================*/
 
     /* compute data root if not passed as option */
-    if (!fs2go_options.data_root)
-        fs2go_options.data_root = paths_data_root(REMOTE_ROOT);
+    if (!discofs_options.data_root)
+        discofs_options.data_root = paths_data_root(REMOTE_ROOT);
 
-    if (!is_dir(fs2go_options.data_root))
+    if (!is_dir(discofs_options.data_root))
     {
-        if (mkdir_rec(fs2go_options.data_root))
-            FATAL("failed to create data directory %s\n", fs2go_options.data_root);
+        if (mkdir_rec(discofs_options.data_root))
+            FATAL("failed to create data directory %s\n", discofs_options.data_root);
     }
 
 
@@ -710,13 +710,13 @@ int main(int argc, char **argv)
     /*----------------------*/
 
     /* set cache dir */
-    CACHE_ROOT = join_path(fs2go_options.data_root, "cache");
+    CACHE_ROOT = join_path(discofs_options.data_root, "cache");
 
     /* store length of cache root (to save a few hundred strlen() calls)  */
     CACHE_ROOT_LEN = strlen(CACHE_ROOT);
 
     /* delete cache if "clear" specified */
-    if (fs2go_options.clear)
+    if (discofs_options.clear)
     {
         VERBOSE("deleting cache\n");
         rmdir_rec(CACHE_ROOT);
@@ -735,32 +735,32 @@ int main(int argc, char **argv)
     /*---------------------*/
 
     /* set db filename */
-    db_file = join_path(fs2go_options.data_root, "db.sqlite");
+    db_file = join_path(discofs_options.data_root, "db.sqlite");
 
     /* initialize tables etc */
-    db_init(db_file, fs2go_options.clear);
+    db_init(db_file, discofs_options.clear);
 
     /* try to load filesystem features from DB */
-    if (db_cfg_get_int(CFG_FS_FEATURES, &fs2go_options.fs_features))
+    if (db_cfg_get_int(CFG_FS_FEATURES, &discofs_options.fs_features))
     {
 
         /* if loading failed, try to determine them */
-        if (is_mounted(REMOTE_ROOT) && is_reachable(fs2go_options.host))
+        if (is_mounted(REMOTE_ROOT) && is_reachable(discofs_options.host))
         {
-            if (test_fs_features(&fs2go_options.fs_features))
+            if (test_fs_features(&discofs_options.fs_features))
             {
                 ERROR("failed to test remote fs features\n");
-                fs2go_options.fs_features = 0;
+                discofs_options.fs_features = 0;
             }
             /* test succeeded, store value for next time */
             else
-                db_cfg_set_int(CFG_FS_FEATURES, fs2go_options.fs_features);
+                db_cfg_set_int(CFG_FS_FEATURES, discofs_options.fs_features);
         }
         /* nag and assume that no features available (but don't save that) */
         else
         {
             ERROR("could not determine remote fs features");
-            fs2go_options.fs_features = 0;
+            discofs_options.fs_features = 0;
         }
     }
 
@@ -780,13 +780,13 @@ int main(int argc, char **argv)
     /*----------------------*/
     /* print options to log */
     /*----------------------*/
-    log_options(LOG_VERBOSE, fs2go_options);
+    log_options(LOG_VERBOSE, discofs_options);
 
 
     /*-----------------*/
     /* run fuse_main() */
     /*-----------------*/
-    ret = fuse_main(args.argc, args.argv, &fs2go_oper, NULL);
+    ret = fuse_main(args.argc, args.argv, &discofs_oper, NULL);
 
 
     /*------*/

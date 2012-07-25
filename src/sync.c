@@ -1,4 +1,4 @@
-/* fs2go - takeaway filesystem
+/* discofs - disconnected file system
  * Copyright (c) 2012 Robin Martinjak
  * see LICENSE for full license (BSD 2-Clause)
  */
@@ -6,7 +6,7 @@
 #include "config.h"
 #include "sync.h"
 
-#include "fs2go.h"
+#include "discofs.h"
 #include "state.h"
 #include "log.h"
 #include "funcs.h"
@@ -230,7 +230,7 @@ int sync_timecmp(sync_xtime_t t1, sync_xtime_t t2)
 #if HAVE_UTIMENSAT && HAVE_CLOCK_GETTIME
     if (t1.tv_sec == t2.tv_sec)
     {
-        if (!(fs2go_options.fs_features & FEAT_NS))
+        if (!(discofs_options.fs_features & FEAT_NS))
             return 0;
         else
             return t1.tv_nsec - t2.tv_nsec;
@@ -351,7 +351,7 @@ int sync_set(const char *path, int flags)
         return -1;
     }
 
-    if (st.st_nlink > 1 && !(flags & SYNC_NOHARDLINKS) && (fs2go_options.fs_features & FEAT_HARDLINKS))
+    if (st.st_nlink > 1 && !(flags & SYNC_NOHARDLINKS) && (discofs_options.fs_features & FEAT_HARDLINKS))
     {
         /* hardlink_sync_set will set sync for all paths sharing the same
            inode, including "path" */

@@ -1,4 +1,4 @@
-PROG_NAME="fs2go"
+PROG_NAME="discofs"
 PROG_VERSION="0"
 
 OUT_HEADER="src/config.h"

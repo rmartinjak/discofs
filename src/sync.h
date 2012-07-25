@@ -1,13 +1,13 @@
-/* fs2go - takeaway filesystem
+/* discofs - disconnected file system
  * Copyright (c) 2012 Robin Martinjak
  * see LICENSE for full license (BSD 2-Clause)
  */
 
-#ifndef FS2GO_SYNC_H
-#define FS2GO_SYNC_H
+#ifndef DISCOFS_SYNC_H
+#define DISCOFS_SYNC_H
 
 #include "config.h"
-#include "fs2go.h"
+#include "discofs.h"
 
 #include <sys/stat.h>
 #include <sys/types.h>

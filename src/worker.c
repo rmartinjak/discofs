@@ -1,4 +1,4 @@
-/* fs2go - takeaway filesystem
+/* discofs - disconnected file system
  * Copyright (c) 2012 Robin Martinjak
  * see LICENSE for full license (BSD 2-Clause)
  */
@@ -6,7 +6,7 @@
 #include "config.h"
 #include "worker.h"
 
-#include "fs2go.h"
+#include "discofs.h"
 #include "state.h"
 #include "log.h"
 #include "funcs.h"
@@ -107,7 +107,7 @@ static void worker_scan_remote(void)
         }
 
         /* sleep and begin new scan */
-        worker_sleep(fs2go_options.scan_interval);
+        worker_sleep(discofs_options.scan_interval);
         VERBOSE("beginning remote scan\n");
         q_enqueue(scan_q, strdup("/"));
     }
@@ -181,7 +181,7 @@ static void worker_scan_dir(queue *scan_q, queue *new_hardlink_q)
             break;
         }
 
-        /* fs2go path */
+        /* discofs path */
         p = join_path2(srch, srch_len, ent->d_name, d_len);
 
         if (S_ISDIR(st.st_mode))
@@ -317,9 +317,9 @@ void *worker_statecheck(void *arg)
         sleep(SLEEP_SHORT);
 
         /* check and set state */
-        if (is_running(fs2go_options.pid_file)
-                && is_reachable(fs2go_options.host)
-                && is_mounted(fs2go_options.remote_root)) {
+        if (is_running(discofs_options.pid_file)
+                && is_reachable(discofs_options.host)
+                && is_mounted(discofs_options.remote_root)) {
 
             state_set(STATE_ONLINE, &oldstate);
 

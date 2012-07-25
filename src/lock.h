@@ -1,10 +1,10 @@
-/* fs2go - takeaway filesystem
+/* discofs - disconnected file system
  * Copyright (c) 2012 Robin Martinjak
  * see LICENSE for full license (BSD 2-Clause)
  */
 
-#ifndef FS2GO_LOCK_H
-#define FS2GO_LOCK_H
+#ifndef DISCOFS_LOCK_H
+#define DISCOFS_LOCK_H
 
 #include "config.h"
 

@@ -1,10 +1,10 @@
-/* fs2go - takeaway filesystem
+/* discofs - disconnected file system
  * Copyright (c) 2012 Robin Martinjak
  * see LICENSE for full license (BSD 2-Clause)
  */
 
-#ifndef FS2GO_H
-#define FS2GO_H
+#ifndef DISCOFS_H
+#define DISCOFS_H
 #include "config.h"
 
 #include "log.h"
@@ -19,13 +19,13 @@
 /* DEFINITIONS */
 /*=============*/
 
-/* make options available for everybody including fs2go.h */
-extern struct options fs2go_options;
+/* make options available for everybody including discofs.h */
+extern struct options discofs_options;
 
-#define CACHE_ROOT fs2go_options.cache_root
-#define CACHE_ROOT_LEN fs2go_options.cache_root_len
-#define REMOTE_ROOT fs2go_options.remote_root
-#define REMOTE_ROOT_LEN fs2go_options.remote_root_len
+#define CACHE_ROOT discofs_options.cache_root
+#define CACHE_ROOT_LEN discofs_options.cache_root_len
+#define REMOTE_ROOT discofs_options.remote_root
+#define REMOTE_ROOT_LEN discofs_options.remote_root_len
 
 #define TRANSFER_SIZE 4096
 
@@ -37,7 +37,7 @@ extern struct options fs2go_options;
 #define FEAT_XATTR 2
 #define FEAT_HARDLINKS 4
 
-#define FS_FEAT(f) (fs2go_options.fs_features & FEAT_##f)
+#define FS_FEAT(f) (discofs_options.fs_features & FEAT_##f)
 
 
 /*---------------------*/
@@ -69,7 +69,7 @@ enum opt_conflict { CONFLICT_NEWER, CONFLICT_THEIRS, CONFLICT_MINE };
 
 struct options
 {
-    char *fs2go_mp;             /* fs2go mount point */
+    char *discofs_mp;             /* discofs mount point */
     char *remote_root;          /* remote fs mount point */
     size_t remote_root_len;     /* string length of remote root */
     char *data_root;            /* directory for cache/db */
@@ -93,7 +93,7 @@ struct options
 
 /* options initializer */
 #define OPTIONS_INIT \
-{   .fs2go_mp = NULL,\
+{   .discofs_mp = NULL,\
     .remote_root = NULL,\
     .data_root = NULL,\
     .cache_root = NULL,\
@@ -113,24 +113,24 @@ struct options
     .logfile = NULL }
 
 
-/* option keys for fs2go_opt_proc */
-enum fs2go_opt_keys
+/* option keys for discofs_opt_proc */
+enum discofs_opt_keys
 {
-    FS2GO_OPT_HELP,
-    FS2GO_OPT_VERSION,
-    FS2GO_OPT_UID,
-    FS2GO_OPT_GID,
-    FS2GO_OPT_PID,
-    FS2GO_OPT_CONFLICT,
-    FS2GO_OPT_LOGLEVEL,
-    FS2GO_OPT_DEBUG,
-    FS2GO_OPT_FOREGROUND,
-    FS2GO_OPT_NO_MODE,
-    FS2GO_OPT_NO_OWNER,
-    FS2GO_OPT_NO_GROUP,
-    FS2GO_OPT_NO_XATTR,
-    FS2GO_OPT_SSHFS,
-    FS2GO_OPT_NFS,
+    DISCOFS_OPT_HELP,
+    DISCOFS_OPT_VERSION,
+    DISCOFS_OPT_UID,
+    DISCOFS_OPT_GID,
+    DISCOFS_OPT_PID,
+    DISCOFS_OPT_CONFLICT,
+    DISCOFS_OPT_LOGLEVEL,
+    DISCOFS_OPT_DEBUG,
+    DISCOFS_OPT_FOREGROUND,
+    DISCOFS_OPT_NO_MODE,
+    DISCOFS_OPT_NO_OWNER,
+    DISCOFS_OPT_NO_GROUP,
+    DISCOFS_OPT_NO_XATTR,
+    DISCOFS_OPT_SSHFS,
+    DISCOFS_OPT_NFS,
 };
 
 #endif

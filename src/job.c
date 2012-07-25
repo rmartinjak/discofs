@@ -1,4 +1,4 @@
-/* fs2go - takeaway filesystem
+/* discofs - disconnected file system
  * Copyright (c) 2012 Robin Martinjak
  * see LICENSE for full license (BSD 2-Clause)
  */
@@ -6,7 +6,7 @@
 #include "config.h"
 #include "job.h"
 
-#include "fs2go.h"
+#include "discofs.h"
 #include "log.h"
 #include "queue.h"
 #include "db.h"

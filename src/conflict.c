@@ -1,11 +1,11 @@
-/* fs2go - takeaway filesystem
+/* discofs - disconnected file system
  * Copyright (c) 2012 Robin Martinjak
  * see LICENSE for full license (BSD 2-Clause)
  */
 
 #include "conflict.h"
 
-#include "fs2go.h"
+#include "discofs.h"
 #include "job.h"
 #include "sync.h"
 #include "hardlink.h"
@@ -25,7 +25,7 @@ int conflict_handle(const char *path, job_op op, int *keep_which)
     size_t p_len = strlen(path);
 
     /* select which to keep by comparing mtime */
-    if (fs2go_options.conflict == CONFLICT_NEWER)
+    if (discofs_options.conflict == CONFLICT_NEWER)
     {
         struct stat st_c;
         struct stat st_r;
@@ -52,7 +52,7 @@ int conflict_handle(const char *path, job_op op, int *keep_which)
         keep = (cmp < 0) ? CONFLICT_KEEP_REMOTE : CONFLICT_KEEP_CACHE;
     }
     /* always keep remote */
-    else if (fs2go_options.conflict == CONFLICT_THEIRS)
+    else if (discofs_options.conflict == CONFLICT_THEIRS)
         keep = CONFLICT_KEEP_REMOTE;
     /* always keep cache */
     else /* CONFLICT_MINE */
@@ -124,8 +124,8 @@ int conflict_handle(const char *path, job_op op, int *keep_which)
 
 char *conflict_path(const char *path)
 {
-    if (fs2go_options.backup_prefix || fs2go_options.backup_suffix)
-        return affix_filename(path, fs2go_options.backup_prefix, fs2go_options.backup_suffix);
+    if (discofs_options.backup_prefix || discofs_options.backup_suffix)
+        return affix_filename(path, discofs_options.backup_prefix, discofs_options.backup_suffix);
 
     return NULL;
 }

@@ -1,4 +1,4 @@
-/* fs2go - takeaway filesystem
+/* discofs - disconnected file system
  * Copyright (c) 2012 Robin Martinjak
  * see LICENSE for full license (BSD 2-Clause)
  */
@@ -6,7 +6,7 @@
 #include "config.h"
 #include "fsops.h"
 
-#include "fs2go.h"
+#include "discofs.h"
 #include "state.h"
 #include "remoteops.h"
 #include "log.h"
@@ -411,7 +411,7 @@ int op_link(const char *to, const char *path)
     int res;
     char *pp, *pt;
 
-    if (!(fs2go_options.fs_features & FEAT_HARDLINKS))
+    if (!(discofs_options.fs_features & FEAT_HARDLINKS))
         return -ENOTSUP;
 
     pp = cache_path(path);
@@ -876,7 +876,7 @@ int op_setxattr(const char *path, const char *name, const char *value, size_t si
     int res;
     char *p;
 
-    if (!(fs2go_options.fs_features & FEAT_XATTR))
+    if (!(discofs_options.fs_features & FEAT_XATTR))
         return -ENOTSUP;
 
     p = cache_path(path);
@@ -909,7 +909,7 @@ int op_getxattr(const char *path, const char *name, char *value, size_t size)
     int res;
     char *p;
 
-    if (!(fs2go_options.fs_features & FEAT_XATTR))
+    if (!(discofs_options.fs_features & FEAT_XATTR))
         return -ENOTSUP;
 
     p = get_path(path);
@@ -927,7 +927,7 @@ int op_listxattr(const char *path, char *list, size_t size)
     int res;
     char *p;
 
-    if (!(fs2go_options.fs_features & FEAT_XATTR))
+    if (!(discofs_options.fs_features & FEAT_XATTR))
         return -ENOTSUP;
 
     p = get_path(path);

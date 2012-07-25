@@ -3,7 +3,7 @@ include config.mk
 SRCDIR = src
 OBJDIR = obj
 
-OBJNAMES = fs2go state funcs paths sync job hardlink conflict worker transfer db log lock fsops debugops remoteops
+OBJNAMES = discofs state funcs paths sync job hardlink conflict worker transfer db log lock fsops debugops remoteops
 OBJ = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(OBJNAMES)))
 
 SUBMODULES = datastructs
@@ -16,7 +16,7 @@ export CC CPPFLAGS CFLAGS LDFLAGS LIBS
 
 default : all
 
-all : options $(OBJDIR) fs2go
+all : options $(OBJDIR) discofs
 
 $(OBJDIR) :
 	@mkdir $@ || true
@@ -31,14 +31,14 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.c
 	@$(CC) $(FUSE_VERSION) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) -c -o $@ $<
 
 
-fs2go : $(OBJ) $(SUBOBJ)
+discofs : $(OBJ) $(SUBOBJ)
 	@echo CC -o $@
 	@$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(LIBS)
 
 
 clean :
 	@echo cleaning
-	@rm -f fs2go
+	@rm -f discofs
 	@rm -rf $(OBJDIR)
 
 
@@ -56,18 +56,18 @@ install :
 	@echo installing executable to ${DESTDIR}${PREFIX}/bin
 	@mkdir -p ${DESTDIR}${PREFIX}/bin
 	@install -m 755 -d ${DESTDIR}${PREFIX}/bin
-	@install -m 755 fs2go ${DESTDIR}${PREFIX}/bin/fs2go
+	@install -m 755 discofs ${DESTDIR}${PREFIX}/bin/discofs
 	@echo installing manual page to ${DESTDIR}${MANPREFIX}/man1
 	@mkdir -p ${DESTDIR}${MANPREFIX}/man1
-	@install -m 644 fs2go.1 ${DESTDIR}${MANPREFIX}/man1/fs2go.1
-	@sed -i "s/VERSION/${VERSION}/g" ${DESTDIR}${MANPREFIX}/man1/fs2go.1
+	@install -m 644 discofs.1 ${DESTDIR}${MANPREFIX}/man1/discofs.1
+	@sed -i "s/VERSION/${VERSION}/g" ${DESTDIR}${MANPREFIX}/man1/discofs.1
 
 
 uninstall :
 	@echo removing executable file from ${DESTDIR}${PREFIX}/bin
-	@rm -f ${DESTDIR}${PREFIX}/bin/fs2go
+	@rm -f ${DESTDIR}${PREFIX}/bin/discofs
 	@echo removing manual page from ${DESTDIR}${MANPREFIX}/man1
-	@rm -f ${DESTDIR}${MANPREFIX}/man1/fs2go.1
+	@rm -f ${DESTDIR}${MANPREFIX}/man1/discofs.1
 
 
 .PHONY: clean install uninstall options recurse

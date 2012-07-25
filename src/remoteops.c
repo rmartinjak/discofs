@@ -1,4 +1,4 @@
-/* fs2go - takeaway filesystem
+/* discofs - disconnected file system
  * Copyright (c) 2012 Robin Martinjak
  * see LICENSE for full license (BSD 2-Clause)
  */
@@ -6,7 +6,7 @@
 #include "config.h"
 #include "remoteops.h"
 
-#include "fs2go.h"
+#include "discofs.h"
 #include "sync.h"
 #include "hardlink.h"
 #include "lock.h"
@@ -271,9 +271,9 @@ int remoteop_chown(const char *path, uid_t uid, gid_t gid)
     int res;
     char *p;
 
-    if (fs2go_options.copyattr & COPYATTR_NO_OWNER)
+    if (discofs_options.copyattr & COPYATTR_NO_OWNER)
         uid = -1;
-    if (fs2go_options.copyattr & COPYATTR_NO_GROUP)
+    if (discofs_options.copyattr & COPYATTR_NO_GROUP)
         gid = -1;
 
     if (uid == -1 && gid == -1)
@@ -297,7 +297,7 @@ int remoteop_chmod(const char *path, mode_t mode)
     int res;
     char *p;
 
-    if (fs2go_options.copyattr & COPYATTR_NO_MODE)
+    if (discofs_options.copyattr & COPYATTR_NO_MODE)
         return 0;
 
     p = remote_path(path);
@@ -320,7 +320,7 @@ int remoteop_setxattr(const char *path, const char *name, const char *value,
     int res;
     char *p;
 
-    if (fs2go_options.copyattr & COPYATTR_NO_XATTR)
+    if (discofs_options.copyattr & COPYATTR_NO_XATTR)
         return 0;
 
     p = remote_path(path);

@@ -1,10 +1,10 @@
-/* fs2go - takeaway filesystem
+/* discofs - disconnected file system
  * Copyright (c) 2012 Robin Martinjak
  * see LICENSE for full license (BSD 2-Clause)
  */
 
-#ifndef FS2GO_TRANSFER_H
-#define FS2GO_TRANSFER_H
+#ifndef DISCOFS_TRANSFER_H
+#define DISCOFS_TRANSFER_H
 
 #include "job.h"
 

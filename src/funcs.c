@@ -1,4 +1,4 @@
-/* fs2go - takeaway filesystem
+/* discofs - disconnected file system
  * Copyright (c) 2012 Robin Martinjak
  * see LICENSE for full license (BSD 2-Clause)
  */
@@ -6,7 +6,7 @@
 #include "config.h"
 #include "funcs.h"
 
-#include "fs2go.h"
+#include "discofs.h"
 #include "log.h"
 
 #include <errno.h>
@@ -327,26 +327,26 @@ int copy_attrs(const char *from, const char *to)
     if (lstat(from, &st) == -1)
         return -1;
 
-    if (!(fs2go_options.copyattr & COPYATTR_NO_MODE))
+    if (!(discofs_options.copyattr & COPYATTR_NO_MODE))
     {
         if (chmod(to, st.st_mode) == -1)
             PERROR("copy_attrs: setting mode failed");
     }
 
-    if (!(fs2go_options.copyattr & COPYATTR_NO_OWNER))
+    if (!(discofs_options.copyattr & COPYATTR_NO_OWNER))
     {
         if (lchown(to, st.st_uid, (gid_t)-1) == -1)
             PERROR("copy_attrs: setting owner failed");
     }
 
-    if (!(fs2go_options.copyattr & COPYATTR_NO_GROUP))
+    if (!(discofs_options.copyattr & COPYATTR_NO_GROUP))
     {
         if (lchown(to, (uid_t)-1, st.st_gid) == -1)
             PERROR("copy_attrs: setting group failed");
     }
 
 #if HAVE_SETXATTR
-    if ((fs2go_options.fs_features & FEAT_XATTR) && !(fs2go_options.copyattr & COPYATTR_NO_XATTR))
+    if ((discofs_options.fs_features & FEAT_XATTR) && !(discofs_options.copyattr & COPYATTR_NO_XATTR))
     {
         if (copy_xattrs(from, to) == -1)
             PERROR("copy_attrs: copy_xattrs failed");

@@ -1,4 +1,4 @@
-fs2go is a FUSE filesystem which automatically mirrors a network filesystem
+discofs is a FUSE filesystem which automatically mirrors a network filesystem
 (e.g. nfs/cifs or whatever you like) to a local cache, making the files
 available even if you're not connected to the corresponding host/network.
 
@@ -12,8 +12,6 @@ Changes made on the remote side are detected by comparing each file's
 MTIME/CTIME with the stored timestamp of the last synchronization.
 
 For more details and usage see the manual.
-
-(The name "fs2go" is a parody on a German pseudo-english term for "takeaway coffee".)
 
 Contact: 
 Robin Martinjak <rob@rmartinjak.de>
