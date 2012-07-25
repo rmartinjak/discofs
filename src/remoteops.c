@@ -28,6 +28,7 @@ int remoteop_rename(const char *from, const char *to)
     int res;
     int sync, keep;
     char *pf, *pt;
+    int from_is_dir;
 
     pf = remote_path(from);
     pt = remote_path(to);
@@ -36,6 +37,8 @@ int remoteop_rename(const char *from, const char *to)
         free(pf), free(pt);
         return -EIO;
     }
+
+    from_is_dir = is_dir(pf);
 
     /* abort eventual transfering of "to" */
     if (lock_has(to, LOCK_TRANSFER))
@@ -54,7 +57,7 @@ int remoteop_rename(const char *from, const char *to)
     }
 
     /* renaming a dir -> rename transfer if "inside" that dir */
-    else if (is_dir(pf))
+    else if (from_is_dir)
     {
         transfer_rename_dir(from, to);
     }
@@ -81,15 +84,31 @@ int remoteop_rename(const char *from, const char *to)
         res = rename(pf, pt);
         free(pf);
         free(pt);
+
+        /* if it worked, rename snyc entries */
+        if (!res)
+        {
+            if (from_is_dir)
+            {
+                sync_delete_dir(to);
+                sync_rename_dir(from, to);
+            }
+            else
+            {
+                sync_delete_file(to);
+                sync_rename_file(from, to);
+            }
+        }
     }
-    /* pt is NULL if a conflict occured, the remote file is kept
+    /* pt is NULL iff a conflict occured, the remote file is kept
        and no backup prefix/suffix was set. this means the file/dir
        should be removed, not renamed */
     else
     {
-        /* one of those will work */
+        /* one of those two will work */
         unlink(pf);
         rmdir(pf);
+
         res = 0;
         free(pf);
     }

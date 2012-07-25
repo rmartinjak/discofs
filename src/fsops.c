@@ -472,9 +472,9 @@ int op_rename(const char *from, const char *to)
         return -errno;
     }
 
-    /*---------------------------*/
-    /* delete/rename sync & jobs */
-    /*---------------------------*/
+    /*-------------------------------*/
+    /* delete/rename hardlink & jobs */
+    /*-------------------------------*/
 
     job_delete(to, JOB_ANY);
 
@@ -482,16 +482,11 @@ int op_rename(const char *from, const char *to)
     {
         job_rename_dir(from, to);
         hardlink_rename_dir(from, to);
-
-        sync_delete_dir(to);
-        sync_rename_dir(from, to);
     }
     else
     {
         job_rename_file(from, to);
-
-        sync_delete_file(to);
-        sync_rename_file(from, to);
+        hardlink_rename_file(from, to);
     }
 
 
