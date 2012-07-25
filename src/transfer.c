@@ -79,7 +79,7 @@ int transfer(const char *from, const char *to)
     /* open files */
     if ((fdread = open(t_read, O_RDONLY)) == -1
             || lseek(fdread, t_off, SEEK_SET) == -1) {
-        LOG_ERROR(t_read);
+        PERROR(t_read);
         pthread_mutex_unlock(&m_transfer);
         transfer_abort();
         return TRANSFER_FAIL;
@@ -87,7 +87,7 @@ int transfer(const char *from, const char *to)
 
     if ((fdwrite = open(t_write, w_flags, 0666)) == -1
             || lseek(fdwrite, t_off, SEEK_SET) == -1) {
-        LOG_ERROR(t_write);
+        PERROR(t_write);
         pthread_mutex_unlock(&m_transfer);
         transfer_abort();
         return TRANSFER_FAIL;

@@ -20,14 +20,14 @@ enum log_levels
 
 
 
-#if defined(LOG_ENABLE_WHERE) || defined(LOG_ENABLE_DEBUG)
+#if defined(LOG_ENABLE_WHERE) || defined(LOG_ENABLE_DEBUG) || defined(DEBUG_FSOPS)
 #define WHERE __FILE__ ":" STR(__LINE__)
 #define LOG_PRINT(level, ...) log_print(level, WHERE, __func__, __VA_ARGS__)
-#define LOG_ERROR(msg) log_error(WHERE, __func__, msg)
+#define PERROR(msg) log_error(WHERE, __func__, msg)
 #else
 #define WHERE ""
 #define LOG_PRINT(level, ...) log_print(level, "", "", __VA_ARGS__)
-#define LOG_ERROR(msg) log_error("", "", msg)
+#define PERROR(msg) log_error("", "", msg)
 #endif
 
 
@@ -76,15 +76,11 @@ enum log_levels
 
 #ifdef LOG_ENABLE_ERROR
 #define ERROR(...) LOG_PRINT(LOG_ERROR, __VA_ARGS__)
-#if defined(LOG_ENABLE_WHERE) || defined(LOG_ENABLE_DEBUG)
-#define PERROR(msg) log_error(WHERE, __func__, msg)
 #else
-#endif
-#else
+#undef PERROR
+#define PERROR(...)
 #define ERROR(...)
-#define PERROR(msg)
 #endif
-
 
 void log_init(int level, const char *path);
 void log_destroy(void);
