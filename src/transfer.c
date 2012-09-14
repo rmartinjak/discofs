@@ -315,6 +315,8 @@ int transfer_instant_pull(const char *path)
     pr = remote_path2(path, p_len);
     pc = cache_path2(path, p_len);
 
+    /* requested file is already being transfered (normally).
+       just continue the transfer until it is finished */
     if (t_active && strcmp(path, t_path) == 0)
     {
         do

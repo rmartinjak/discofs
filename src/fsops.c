@@ -569,10 +569,6 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
             pthread_mutex_unlock(&m_instant_pull);
 
             job_delete(path, JOB_PULL);
-
-            if (lock_has(path, LOCK_TRANSFER))
-                transfer_abort();
-
             transfer_instant_pull(path);
         }
         else if (sync == SYNC_NEW || sync == SYNC_MOD)
@@ -581,11 +577,7 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
             pthread_mutex_lock(&m_instant_pull);
             pthread_mutex_unlock(&m_instant_pull);
 
-            /* maybe the last instant_pull pulled exactly the file we
-               want to open. if not, instant_pull it now */
-            sync = sync_get(path);
-            if (sync == SYNC_NEW || sync == SYNC_MOD)
-                transfer_instant_pull(path);
+            transfer_instant_pull(path);
         }
         else if (sync == SYNC_CHG)
         {
