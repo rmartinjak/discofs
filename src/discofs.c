@@ -429,7 +429,7 @@ static int discofs_opt_proc(void *data, const char *arg, int key, struct fuse_ar
                 discofs_options.loglevel = LOG_DEBUG;
             else
             {
-                print_usage();
+                fprintf(stderr, "invalid loglevel \"%s\"\n", val);
                 exit(EXIT_FAILURE);
             }
             return 0;
