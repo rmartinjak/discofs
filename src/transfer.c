@@ -26,6 +26,7 @@ static char *t_path, *t_read = NULL, *t_write = NULL;
 static int t_active = 0, t_op = 0;
 
 static void transfer_free(void);
+static int transfer_pull_dir(const char *path);
 
 static void transfer_free(void)
 {
@@ -36,7 +37,48 @@ static void transfer_free(void)
 #undef FREE
 }
 
-/* partially transfer file. if from and to are given, open files first */
+static int transfer_pull_dir(const char *path)
+{
+    int res;
+    char *pr, *pc;
+
+    if (!strcmp(path, "/"))
+        return -1;
+
+    pr = remote_path(path);
+    pc = cache_path(path);
+
+    if (!pr || !pc)
+    {
+        free(pr);
+        free(pc);
+        return -1;
+    }
+
+    res = clone_dir(pr, pc);
+
+    if (res && errno == ENOENT)
+    {
+        int res2;
+        char *parent = basename_r(path);
+
+        if (parent)
+        {
+            res2 = transfer_pull_dir(parent);
+            free(parent);
+        }
+
+        if (!res2)
+            res = clone_dir(pr, pc);
+    }
+
+    free(pr);
+    free(pc);
+
+    return res;
+}
+
+/* partially transfer file. if "from" and "to" are given, open files first */
 int transfer(const char *from, const char *to)
 {
 #define CLOSE(fd) { if (close(fd)) PERROR("error closing fd"); }
@@ -143,7 +185,7 @@ int transfer(const char *from, const char *to)
 int transfer_begin(const struct job *j)
 {
     int res;
-    char *pread=NULL, *pwrite=NULL;
+    char *pread = NULL, *pwrite = NULL;
     size_t p_len = strlen(j->path);
 
     if (j->op == JOB_PUSH)
@@ -328,7 +370,23 @@ int transfer_instant_pull(const char *path)
         res = (res == TRANSFER_FINISH) ? 0 : 1;
     }
     else
+    {
         res = copy_file(pr, pc);
+
+        /* if copy_file failed, possibly because the file's directory didn't
+           exist in the cache yet. create it and retry */
+        if (res && errno == ENOENT)
+        {
+            char *dir = dirname_r(path);
+
+            if (dir)
+            {
+                transfer_pull_dir(dir);
+                free(dir);
+                res = copy_file(pr, pc);
+            }
+        }
+    }
 
     worker_unblock();
 
