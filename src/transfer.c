@@ -60,7 +60,7 @@ static int transfer_pull_dir(const char *path)
     if (res && errno == ENOENT)
     {
         int res2;
-        char *parent = basename_r(path);
+        char *parent = dirname_r(path);
 
         if (parent)
         {
