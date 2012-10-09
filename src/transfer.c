@@ -138,7 +138,7 @@ int transfer(const char *from, const char *to)
     while (ONLINE && !worker_blocked())
     {
         readbytes = read(fdread, buf, sizeof buf);
-        if (readbytes && readbytes < 0 || write(fdwrite, buf, readbytes) < readbytes || fsync(fdwrite))
+        if (readbytes && (readbytes < 0 || write(fdwrite, buf, readbytes) < readbytes || fsync(fdwrite)))
         {
 
             if (readbytes < 0)
