@@ -70,7 +70,12 @@ void log_print(int level, const char *where, const char *func, const char *fmt, 
         pthread_mutex_lock(&m_log_print);
 
         now = time(NULL);
-        ctim = strdup(ctime(&now));
+        if (!(ctim = strdup(ctime(&now))))
+        {
+            pthread_mutex_lock(&m_log_print);
+            va_end(ap);
+            return;
+        }
 
         /* remove \n */
         *(ctim + strlen(ctim)-1) = '0';
