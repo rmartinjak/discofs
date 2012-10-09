@@ -138,7 +138,7 @@ int transfer(const char *from, const char *to)
     while (ONLINE && !worker_blocked())
     {
         readbytes = read(fdread, buf, sizeof buf);
-        if (readbytes < 0 || write(fdwrite, buf, readbytes) < readbytes || fsync(fdwrite))
+        if (readbytes && readbytes < 0 || write(fdwrite, buf, readbytes) < readbytes || fsync(fdwrite))
         {
 
             if (readbytes < 0)
@@ -361,13 +361,16 @@ int transfer_instant_pull(const char *path)
        just continue the transfer until it is finished */
     if (t_active && strcmp(path, t_path) == 0)
     {
+        /* continuing a running transfer() only works if !worker_blocked() */
+        worker_unblock();
         do
         {
             res = transfer(NULL, NULL);
         }
-        while (res == TRANSFER_OK);
+        while (ONLINE && res == TRANSFER_OK);
 
         res = (res == TRANSFER_FINISH) ? 0 : 1;
+        worker_block();
     }
     else
     {
