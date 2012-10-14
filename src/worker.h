@@ -22,6 +22,8 @@ void worker_block();
 void worker_unblock();
 int worker_blocked();
 
+void worker_cancel_scan(void);
+
 void *worker_statecheck(void *arg);
 void *worker_main(void *arg);
 #endif

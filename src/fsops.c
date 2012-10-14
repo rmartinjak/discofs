@@ -508,7 +508,14 @@ int op_rename(const char *from, const char *to)
 
     if (ONLINE)
     {
+        /* moving a file or directory may render the data collected by the
+           worker thread during worker_scan_dir outdated. worker_cancel_scan()
+           forces it to re-scan from the root
+        */
+        worker_block();
+        worker_cancel_scan();
         res = remoteop_rename(from, to);
+        worker_unblock();
 
         if (!res || errno == ENOENT)
         {

@@ -41,6 +41,8 @@ static pthread_mutex_t m_worker_wakeup = PTHREAD_MUTEX_INITIALIZER;
 static void worker_scan_remote(void);
 static void worker_scan_dir(queue *scan_q, queue *new_hardlink_q);
 
+static int worker_cancel_scan_dir = 0;
+
 /* ====== SLEEP ====== */
 void worker_wakeup()
 {
@@ -93,6 +95,20 @@ static void worker_scan_remote(void)
         scan_q = q_init();
     if (!new_hardlink_q)
         new_hardlink_q = q_init();
+
+    /* scan was cancelled -> begin a new scan from root */
+    if (worker_cancel_scan_dir)
+    {
+        /* clear both queues */
+        q_clear(scan_q, free);
+
+        while ((hl = q_dequeue(new_hardlink_q)))
+        {
+            free(hl->path);
+            free(hl);
+        }
+        worker_cancel_scan_dir = 0;
+    }
 
     /* if scan_q is empty, the whole remote directory tree was scanned */
     if (q_empty(scan_q))
@@ -162,7 +178,7 @@ static void worker_scan_dir(queue *scan_q, queue *new_hardlink_q)
         return;
     }
 
-    while (ONLINE && dirp && (res = readdir_r(dirp, dbuf, &ent)) == 0 && ent)
+    while (ONLINE && !worker_cancel_scan_dir && dirp && (res = readdir_r(dirp, dbuf, &ent)) == 0 && ent)
     {
         if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0)
             continue;
@@ -244,7 +260,7 @@ static void worker_scan_dir(queue *scan_q, queue *new_hardlink_q)
         return;
     }
 
-    while (ONLINE && dirp && (res = readdir_r(dirp, dbuf, &ent)) == 0 && ent)
+    while (ONLINE && !worker_cancel_scan_dir && dirp && (res = readdir_r(dirp, dbuf, &ent)) == 0 && ent)
     {
         if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0)
             continue;
@@ -272,6 +288,12 @@ static void worker_scan_dir(queue *scan_q, queue *new_hardlink_q)
         closedir(dirp);
     free(dbuf);
 }
+
+void worker_cancel_scan(void)
+{
+    worker_cancel_scan_dir = 1;
+}
+
 
 static int worker_perform(struct job *j)
 {
