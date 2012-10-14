@@ -75,7 +75,10 @@ void worker_block()
 void worker_unblock()
 {
     pthread_mutex_lock(&m_worker_block);
-    worker_block_n--;
+    if (worker_block_n)
+        worker_block_n--;
+    else
+        DEBUG("BUG: erroneous call to worker_unblock!");
     pthread_mutex_unlock(&m_worker_block);
 }
 
