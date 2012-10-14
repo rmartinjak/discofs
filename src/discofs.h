@@ -27,7 +27,7 @@ extern struct options discofs_options;
 #define REMOTE_ROOT discofs_options.remote_root
 #define REMOTE_ROOT_LEN discofs_options.remote_root_len
 
-#define TRANSFER_SIZE 1024
+#define TRANSFER_SIZE 4096
 
 
 /*--------------------*/
