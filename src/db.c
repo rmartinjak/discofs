@@ -663,31 +663,25 @@ int db_ ## name ## _rename_dir(const char *from, const char *to)            \
 {                                                                           \
     int res = DB_OK, sql_res;                                               \
     sqlite3_stmt *stmt;                                                     \
-    size_t from_len, to_len;                                                \
-    char *p, *pat, *oldpath, *newpath;                                      \
-    queue *q = q_init();                                                    \
+    char *pat;                                                              \
                                                                             \
-    PREPARE("SELECT path FROM " table " WHERE " column " LIKE ?;", &stmt);  \
+    PREPARE("UPDATE " table " SET " column " = replace(" column ", ?, ?) "  \
+        "WHERE " column " LIKE ?;", &stmt);                                 \
                                                                             \
-    from_len = strlen(from);                                                \
-    to_len = strlen(to);                                                    \
-                                                                            \
-    if ((pat = malloc(from_len+2)) == NULL)                                 \
+    if ((pat = malloc(strlen(from) + strlen("/%") + 1)) == NULL)            \
     {                                                                       \
         sqlite3_finalize(stmt);                                             \
         errno = ENOMEM;                                                     \
         return DB_ERROR;                                                    \
     }                                                                       \
-    memcpy(pat, from, from_len);                                            \
-    memcpy(pat+from_len, "%\0", 2);                                         \
+    strcpy(pat, from);                                                      \
+    strcat(pat, "/%");                                                      \
                                                                             \
-    sqlite3_bind_text(stmt, 1, pat, -1, SQLITE_STATIC);                     \
+    sqlite3_bind_text(stmt, 1, from, -1, SQLITE_STATIC);                    \
+    sqlite3_bind_text(stmt, 2, to, -1, SQLITE_STATIC);                      \
+    sqlite3_bind_text(stmt, 3, pat, -1, SQLITE_STATIC);                     \
                                                                             \
-    while ((sql_res = sqlite3_step(stmt)) == SQLITE_ROW)                    \
-    {                                                                       \
-        p = column_text(stmt, 0);                                           \
-        if (p) q_enqueue(q, p);                                             \
-    }                                                                       \
+    sql_res = sqlite3_step(stmt);                                           \
                                                                             \
     if (sql_res != SQLITE_DONE)                                             \
     {                                                                       \
@@ -697,37 +691,6 @@ int db_ ## name ## _rename_dir(const char *from, const char *to)            \
                                                                             \
     sqlite3_finalize(stmt);                                                 \
     free(pat);                                                              \
-                                                                            \
-                                                                            \
-    PREPARE("UPDATE " table " set " column "=? WHERE " column "=?;", &stmt);\
-                                                                            \
-    while (res == DB_OK && (oldpath = q_dequeue(q)))                        \
-    {                                                                       \
-        newpath = join_path2(to, to_len, oldpath+from_len, 0);              \
-        if (!newpath)                                                       \
-        {                                                                   \
-            errno = ENOMEM;                                                 \
-            res = DB_ERROR;                                                 \
-            break;                                                          \
-        }                                                                   \
-                                                                            \
-        sqlite3_bind_text(stmt, 1, newpath, -1, SQLITE_STATIC);             \
-        sqlite3_bind_text(stmt, 2, oldpath, -1, SQLITE_STATIC);             \
-                                                                            \
-        if (sqlite3_step(stmt) != SQLITE_DONE)                              \
-        {                                                                   \
-            ERRMSG("db_" #name "_rename_dir");                              \
-            res = DB_ERROR;                                                 \
-            break;                                                          \
-        }                                                                   \
-                                                                            \
-        free(newpath);                                                      \
-        free(oldpath);                                                      \
-        sqlite3_reset(stmt);                                                \
-    }                                                                       \
-                                                                            \
-    sqlite3_finalize(stmt);                                                 \
-    q_free(q, free);                                                        \
     return res;                                                             \
 }
 
