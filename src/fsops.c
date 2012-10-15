@@ -133,6 +133,13 @@ int op_readlink(const char *path, char *buf, size_t bufsize)
 
     if (res == -1)
         return -errno;
+
+    /* null-terminate buf */
+    if (res < bufsize)
+        buf[res] = '\0';
+    else
+        buf[bufsize-1] = '\0';
+
     return 0;
 }
 
