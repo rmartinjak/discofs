@@ -78,7 +78,7 @@ void log_print(int level, const char *where, const char *func, const char *fmt, 
         }
 
         /* remove \n */
-        *(ctim + strlen(ctim)-1) = '0';
+        ctim[strlen(ctim)-1] = '\0';
 
         fprintf(logf, "%s %s: %s %s\t", ctim, log_lvlstr[level], where, func);
 

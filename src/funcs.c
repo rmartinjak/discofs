@@ -244,7 +244,7 @@ int copy_symlink(const char *from, const char *to)
     if (!buf)
         return -1;
 
-    *(buf + bufsz) = '\0';
+    buf[bufsz] = '\0';
 
     if (readlink(from, buf, bufsz) != bufsz)
     {
