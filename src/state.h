@@ -16,4 +16,7 @@ enum states { STATE_ONLINE, STATE_OFFLINE, STATE_EXITING };
 int state_get();
 void state_set(int state, int *oldstate);
 
+void state_toggle_force_offline(void);
+void *state_check_main(void *arg);
+
 #endif

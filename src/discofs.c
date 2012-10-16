@@ -538,11 +538,15 @@ static void sig_handler(int signo)
     switch (signo) {
         /* sighup blocks the working thread for 10 seconds. this gives the
            user the opportunity to unmount the remote fs */
-        case SIGHUP:
-            INFO("received SIGHUP, blocking worker for 10 seconds\n");
+        case SIGUSR1:
+            INFO("received SIGUSR1, blocking worker for 10 seconds\n");
             worker_block();
             sleep(10);
             worker_unblock();
+            break;
+        case SIGUSR2:
+            INFO("received SIGUSR2\n");
+            state_toggle_force_offline();
             break;
     }
 }
@@ -624,7 +628,8 @@ int main(int argc, char **argv)
     sigaddset(&sig.sa_mask, SIGHUP);
 
     /* finally install signal handler */
-    sigaction(SIGHUP, &sig, NULL);
+    sigaction(SIGUSR1, &sig, NULL);
+    sigaction(SIGUSR2, &sig, NULL);
 
 
     /*------------------*/

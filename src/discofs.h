@@ -29,6 +29,8 @@ extern struct options discofs_options;
 
 #define TRANSFER_SIZE 4096
 
+#define SLEEP_LONG 5
+#define SLEEP_SHORT 2
 
 /*--------------------*/
 /* remote fs features */

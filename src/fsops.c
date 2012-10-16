@@ -40,7 +40,7 @@ static pthread_t t_worker, t_state;
 void *op_init(struct fuse_conn_info *conn)
 {
     VERBOSE("starting state check thread\n");
-    if (pthread_create(&t_state, NULL, worker_statecheck, NULL))
+    if (pthread_create(&t_state, NULL, state_check_main, NULL))
         FATAL("failed to create thread\n");
 
     VERBOSE("starting worker thread\n");

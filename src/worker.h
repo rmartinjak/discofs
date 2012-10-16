@@ -12,9 +12,6 @@
 
 #include <pthread.h>
 
-#define SLEEP_LONG 5
-#define SLEEP_SHORT 2
-
 void worker_wakeup();
 void worker_sleep(unsigned int seconds);
 

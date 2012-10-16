@@ -332,34 +332,7 @@ static int worker_perform(struct job *j)
     return -1;
 }
 
-/* ====== WORKER THREADS ====== */
-void *worker_statecheck(void *arg)
-{
-    int oldstate = STATE_OFFLINE;
-
-    while (oldstate != STATE_EXITING)
-    {
-        sleep(SLEEP_SHORT);
-
-        /* check and set state */
-        if (is_running(discofs_options.pid_file)
-                && is_reachable(discofs_options.host)
-                && is_mounted(discofs_options.remote_root)) {
-
-            state_set(STATE_ONLINE, &oldstate);
-
-            if (oldstate == STATE_OFFLINE)
-                worker_wakeup();
-        }
-        else
-        {
-            state_set(STATE_OFFLINE, &oldstate);
-        }
-    }
-
-    return NULL;
-}
-
+/* ====== WORKER THREAD ====== */
 void *worker_main(void *arg)
 {
     int res;
