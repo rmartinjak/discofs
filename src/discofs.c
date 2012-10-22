@@ -730,7 +730,7 @@ int main(int argc, char **argv)
     /* create cache root if needed */
     if (!is_dir(CACHE_ROOT))
     {
-        if (mkdir(CACHE_ROOT, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != 0)
+        if (mkdir(CACHE_ROOT, S_IRWXU) != 0)
             FATAL("failed to create cache directory %s\n", CACHE_ROOT);
     }
 
@@ -741,6 +741,15 @@ int main(int argc, char **argv)
 
     /* set db filename */
     db_file = join_path(discofs_options.data_root, "db.sqlite");
+
+    /* create database file if it doesn't exist  */
+    int fd = open(db_file, (O_RDONLY | O_CREAT), (S_IRUSR | S_IWUSR));
+    if (fd == -1)
+    {
+        perror(db_file);
+        FATAL("couldn't open or create database file\n");
+    }
+    close(fd);
 
     /* initialize tables etc */
     db_init(db_file, discofs_options.clear);
