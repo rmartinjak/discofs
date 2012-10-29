@@ -690,6 +690,28 @@ int db_ ## name ## _rename_dir(const char *from, const char *to)            \
     }                                                                       \
                                                                             \
     sqlite3_finalize(stmt);                                                 \
+                                                                            \
+    if (!strcmp(table, TABLE_JOB))                                          \
+    {                                                                       \
+        PREPARE("UPDATE " table " SET s1 = replace(s1, ?, ?) "              \
+            "WHERE (op = ? OR op = ?) AND s1 LIKE ?;", &stmt);              \
+                                                                            \
+        sqlite3_bind_text(stmt, 1, from, -1, SQLITE_STATIC);                \
+        sqlite3_bind_text(stmt, 2, to, -1, SQLITE_STATIC);                  \
+        sqlite3_bind_int (stmt, 3, JOB_RENAME);                             \
+        sqlite3_bind_int (stmt, 4, JOB_LINK);                               \
+        sqlite3_bind_text(stmt, 5, pat, -1, SQLITE_STATIC);                 \
+                                                                            \
+        sql_res = sqlite3_step(stmt);                                       \
+                                                                            \
+        if (sql_res != SQLITE_DONE)                                         \
+        {                                                                   \
+            ERRMSG("db_" #name "_rename_dir");                              \
+            res = DB_ERROR;                                                 \
+        }                                                                   \
+        sqlite3_finalize(stmt);                                             \
+    }                                                                       \
+                                                                            \
     free(pat);                                                              \
     return res;                                                             \
 }
