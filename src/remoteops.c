@@ -66,8 +66,10 @@ int remoteop_rename(const char *from, const char *to)
     {
         sync = sync_get(to);
         /* target new/modified -> conflict! */
-        if (sync & (SYNC_NEW | SYNC_MOD))
+        if (sync == SYNC_MOD || sync == SYNC_NEW)
         {
+            DEBUG("conflict: sync of target is %s\n",
+                (sync == SYNC_MOD) ? "SYNC_MOD" : "SYNC_NEW");
             conflict_handle(to, JOB_RENAME, &keep);
             if (keep == CONFLICT_KEEP_REMOTE)
             {

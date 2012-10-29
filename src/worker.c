@@ -230,7 +230,11 @@ static void worker_scan_dir(queue *scan_q, queue *new_hardlink_q)
                 if (!job_exists(p, JOB_PUSH))
                     job_schedule_pull(p);
                 else
+                {
+                    DEBUG("conflict: sync of target is %s\n",
+                        (sync == SYNC_MOD) ? "SYNC_MOD" : "SYNC_NEW");
                     conflict_handle(p, JOB_PUSH, NULL);
+                }
             }
 
             free(p);
@@ -397,9 +401,11 @@ void *worker_main(void *arg)
                 /* check PUSH job for conflict */
                 if (j->op == JOB_PUSH)
                 {
-                    if (sync_get(j->path) & (SYNC_MOD|SYNC_NEW))
+                    int sync = sync_get(j->path);
+                    if (sync == SYNC_MOD || sync == SYNC_NEW)
                     {
-                        DEBUG("conflict\n");
+                        DEBUG("conflict: sync of target is %s\n",
+                            (sync == SYNC_MOD) ? "SYNC_MOD" : "SYNC_NEW");
                         conflict_handle(j->path, j->op, NULL);
                         job_return(j, JOB_DONE);
                         j = NULL;
