@@ -72,17 +72,17 @@ static int sync_ht_get(const char *path, struct sync *s);
 static hash_t sync_hash(const void *p, const void *n)
 {
     if (n)
-        return djb2((const char*)p, *((size_t*)n));
+        return djb2(p, *(size_t*)n);
     else
-        return djb2((const char*)p, SIZE_MAX);
+        return djb2(p, SIZE_MAX);
 }
 
 static int sync_cmp(const void *p1, const void *p2, const void *n)
 {
     if (n)
-        return strncmp((char*)p1, (char*)p2, *((size_t*)n));
+        return strncmp(p1, p2, *(size_t*)n);
     else
-        return strcmp((char*)p1, (char*)p2);
+        return strcmp(p1, p2);
 }
 
 static void sync_ht_free(void)
