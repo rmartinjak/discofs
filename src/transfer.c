@@ -334,6 +334,7 @@ void transfer_abort(void)
 
     lock_remove(t_path, LOCK_TRANSFER);
 
+    unlink(t_write);
     transfer_free();
 
     pthread_mutex_unlock(&m_transfer);
