@@ -9,6 +9,7 @@
 
 #include "log.h"
 
+#include <stdbool.h>
 #include <limits.h>
 #include <unistd.h>
 #include <pwd.h>
@@ -35,9 +36,9 @@ extern struct options discofs_options;
 /*--------------------*/
 /* remote fs features */
 /*--------------------*/
-#define FEAT_NS 1
-#define FEAT_XATTR 2
-#define FEAT_HARDLINKS 4
+#define FEAT_NS         (1 << 0)
+#define FEAT_XATTR      (1 << 1)
+#define FEAT_HARDLINKS  (1 << 2)
 
 #define FS_FEAT(f) (discofs_options.fs_features & FEAT_##f)
 
@@ -45,10 +46,10 @@ extern struct options discofs_options;
 /*---------------------*/
 /* attribute copy mask */
 /*---------------------*/
-#define COPYATTR_NO_MODE    1
-#define COPYATTR_NO_OWNER   2
-#define COPYATTR_NO_GROUP   4
-#define COPYATTR_NO_XATTR   8
+#define COPYATTR_NO_MODE    (1 << 0)
+#define COPYATTR_NO_OWNER   (1 << 1)
+#define COPYATTR_NO_GROUP   (1 << 2)
+#define COPYATTR_NO_XATTR   (1 << 3)
 
 #define COPYATTR_SSHFS   (COPYATTR_NO_OWNER | COPYATTR_NO_GROUP | COPYATTR_NO_XATTR)
 #define COPYATTR_NFS     (COPYATTR_NO_XATTR)
@@ -77,7 +78,7 @@ struct options
     char *data_root;            /* directory for cache/db */
     char *cache_root;           /* cache root */
     size_t cache_root_len;      /* string length of cache root */
-    int debug;                  /* "-d" specified */
+    bool debug;                 /* "-d" specified */
     int fs_features;            /* features of remote filesystem */
     uid_t uid;                  /* uid to setuid() to */
     gid_t gid;                  /* gid to setgid() to */
@@ -99,7 +100,7 @@ struct options
     .remote_root = NULL,\
     .data_root = NULL,\
     .cache_root = NULL,\
-    .debug = 0,\
+    .debug = false,\
     .fs_features = 0,\
     .uid = 0,\
     .gid = 0,\

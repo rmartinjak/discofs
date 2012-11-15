@@ -14,10 +14,8 @@
 
 static char *get_home_dir(void);
 
-#ifdef __linux__
 #include <unistd.h>
 #include <pwd.h>
-
 
 static char *get_home_dir(void)
 {
@@ -71,4 +69,3 @@ char *paths_data_root(const char *remote)
 
     return ret;
 }
-#endif // __linux__

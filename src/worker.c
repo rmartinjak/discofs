@@ -19,6 +19,7 @@
 #include "hardlink.h"
 #include "bst.h"
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <unistd.h>
 #include <pthread.h>
@@ -35,7 +36,7 @@ struct new_hardlink
 static unsigned long long worker_block_n = 0;
 static pthread_mutex_t m_worker_block = PTHREAD_MUTEX_INITIALIZER;
 
-static int worker_wkup = 0;
+static bool worker_wkup = false;
 static pthread_mutex_t m_worker_wakeup = PTHREAD_MUTEX_INITIALIZER;
 
 static void worker_scan_remote(void);
@@ -48,14 +49,14 @@ void worker_wakeup()
 {
     pthread_mutex_lock(&m_worker_wakeup);
     DEBUG("waking up worker thread\n");
-    worker_wkup = 1;
+    worker_wkup = true;
     pthread_mutex_unlock(&m_worker_wakeup);
 }
 
 void worker_sleep(unsigned int seconds)
 {
     pthread_mutex_lock(&m_worker_wakeup);
-    worker_wkup = 0;
+    worker_wkup = false;
     pthread_mutex_unlock(&m_worker_wakeup);
     while (seconds-- && !worker_wkup && !(EXITING))
     {

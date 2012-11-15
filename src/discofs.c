@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <string.h>
 #include <signal.h>
@@ -331,7 +332,7 @@ static int discofs_opt_proc(void *data, const char *arg, int key, struct fuse_ar
         /* --DEBUG AND --FOREGROUND */
         /*==========================*/
         case DISCOFS_OPT_DEBUG:
-            discofs_options.debug = 1;
+            discofs_options.debug = true;
             /* forward argument to fuse */
             fuse_opt_add_arg(outargs, "-d");
             return 0;

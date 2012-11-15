@@ -585,7 +585,7 @@ static int op_open_create(int op, const char *path, mode_t mode, struct fuse_fil
             job_delete(path, JOB_PULL);
             transfer_instant_pull(path);
         }
-        else if (!job_exists(path, JOB_PUSH) && sync == SYNC_NEW || sync == SYNC_MOD)
+        else if (!job_exists(path, JOB_PUSH) && (sync == SYNC_NEW || sync == SYNC_MOD))
         {
             /* wait until eventually running instant_pull is finished */
             pthread_mutex_lock(&m_instant_pull);
