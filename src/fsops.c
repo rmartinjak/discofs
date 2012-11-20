@@ -526,7 +526,8 @@ int op_rename(const char *from, const char *to)
 
         if (!res || errno == ENOENT)
         {
-            sync_set(to, 0);
+            if (!job_exists(to, JOB_PUSH))
+                sync_set(to, 0);
             return 0;
         }
     }

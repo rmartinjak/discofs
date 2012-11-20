@@ -13,6 +13,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
@@ -21,20 +22,28 @@
 pthread_mutex_t m_instant_pull = PTHREAD_MUTEX_INITIALIZER;
 
 static pthread_mutex_t m_transfer = PTHREAD_MUTEX_INITIALIZER;
-static off_t t_off;
-static char *t_path, *t_read = NULL, *t_write = NULL;
-static int t_active = 0, t_op = 0;
 
-static void transfer_free(void);
+static struct transfer_state
+{
+    struct job *job;
+    char *read_path, *write_path;
+    bool active;
+    off_t offset;
+} t_state;
+
+static void transfer_reset_state(void);
 static int transfer_pull_dir(const char *path);
 
-static void transfer_free(void)
+static void transfer_reset_state(void)
 {
-#define FREE(p) free(p); p = NULL;
-    FREE(t_path);
-    FREE(t_read);
-    FREE(t_write);
-#undef FREE
+    free(t_state.read_path);
+    free(t_state.write_path);
+
+    t_state.active = false;
+    t_state.job = NULL;
+    t_state.read_path = NULL;
+    t_state.write_path = NULL;
+    t_state.offset = 0;
 }
 
 static int transfer_pull_dir(const char *path)
@@ -89,47 +98,49 @@ int transfer(const char *from, const char *to)
 
     if (from && to)
     {
-        lock_set(t_path, LOCK_TRANSFER);
+        lock_set(t_state.job->path, LOCK_TRANSFER);
         VERBOSE("beginning transfer: '%s' -> '%s'\n", from, to);
-        t_read = strdup(from);
-        t_write = strdup(to);
+        t_state.read_path = strdup(from);
+        t_state.write_path = strdup(to);
 
-        t_active = 1;
+        t_state.active = true;
+        t_state.offset = 0;
 
-        t_off = 0;
         w_flags = O_WRONLY | O_CREAT | O_TRUNC;
     }
-    else if (!t_active)
+    else if (!t_state.active)
     {
         return TRANSFER_FINISH;
     }
     else
     {
-        VERBOSE("resuming transfer: '%s' -> '%s' at %ld\n", t_read, t_write, t_off);
+        VERBOSE("resuming transfer: '%s' -> '%s' at %ld\n",
+            t_state.read_path, t_state.write_path, t_state.offset);
+
         w_flags = O_WRONLY | O_APPEND;
     }
 
-    if (!t_read || !t_write)
+    if (!t_state.read_path || !t_state.write_path)
     {
-        ERROR("t_read or t_write is NULL\n");
-        lock_remove(t_path, LOCK_TRANSFER);
-        transfer_free();
+        ERROR("t_state.read_path or t_state.write_path is NULL\n");
+        lock_remove(t_state.job->path, LOCK_TRANSFER);
+        transfer_reset_state();
         return TRANSFER_FAIL;
     }
 
     pthread_mutex_lock(&m_transfer);
     /* open files */
-    if ((fdread = open(t_read, O_RDONLY)) == -1
-            || lseek(fdread, t_off, SEEK_SET) == -1) {
-        PERROR(t_read);
+    if ((fdread = open(t_state.read_path, O_RDONLY)) == -1
+            || lseek(fdread, t_state.offset, SEEK_SET) == -1) {
+        PERROR(t_state.read_path);
         pthread_mutex_unlock(&m_transfer);
         transfer_abort();
         return TRANSFER_FAIL;
     }
 
-    if ((fdwrite = open(t_write, w_flags, 0666)) == -1
-            || lseek(fdwrite, t_off, SEEK_SET) == -1) {
-        PERROR(t_write);
+    if ((fdwrite = open(t_state.write_path, w_flags, 0666)) == -1
+            || lseek(fdwrite, t_state.offset, SEEK_SET) == -1) {
+        PERROR(t_state.write_path);
         pthread_mutex_unlock(&m_transfer);
         transfer_abort();
         return TRANSFER_FAIL;
@@ -154,25 +165,22 @@ int transfer(const char *from, const char *to)
         /* copy completed, set mode and ownership */
         if (readbytes < sizeof buf)
         {
-
-            t_active = 0;
-
             CLOSE(fdread);
             CLOSE(fdwrite);
 
-            copy_attrs(t_read, t_write);
+            copy_attrs(t_state.read_path, t_state.write_path);
 
-            VERBOSE("transfer finished: '%s' -> '%s'\n", t_read, t_write);
+            VERBOSE("transfer finished: '%s' -> '%s'\n", t_state.read_path, t_state.write_path);
 
-            lock_remove(t_path, LOCK_TRANSFER);
-            transfer_free();
+            lock_remove(t_state.job->path, LOCK_TRANSFER);
+            transfer_reset_state();
             pthread_mutex_unlock(&m_transfer);
 
             return TRANSFER_FINISH;
         }
     }
 
-    t_off = lseek(fdread, 0, SEEK_CUR);
+    t_state.offset = lseek(fdread, 0, SEEK_CUR);
 
     CLOSE(fdread);
     CLOSE(fdwrite);
@@ -182,7 +190,7 @@ int transfer(const char *from, const char *to)
 #undef CLOSE
 }
 
-int transfer_begin(const struct job *j)
+int transfer_begin(struct job *j)
 {
     int res;
     char *pread = NULL, *pwrite = NULL;
@@ -212,20 +220,12 @@ int transfer_begin(const struct job *j)
         if (!is_reg(pwrite) && !is_nonexist(pwrite))
         {
             DEBUG("write target is non-regular file: %s\n", pwrite);
-            free(t_path);
             free(pread);
             free(pwrite);
             return TRANSFER_FAIL;
         }
-        t_op = j->op;
-        t_path = strdup(j->path);
-        if (t_path)
-            res = transfer(pread, pwrite);
-        else
-        {
-            errno = ENOMEM;
-            return -1;
-        }
+        t_state.job = j;
+        res = transfer(pread, pwrite);
         free(pread);
         free(pwrite);
         return res;
@@ -236,7 +236,6 @@ int transfer_begin(const struct job *j)
         DEBUG("push/pull on symlink\n");
         copy_symlink(pread, pwrite);
         copy_attrs(pread, pwrite);
-        free(t_path);
         free(pread);
         free(pwrite);
         return TRANSFER_FINISH;
@@ -267,16 +266,16 @@ void transfer_rename_dir(const char *from, const char *to)
     size_t from_len;
     char *p, *t_path_new;
 
-    if (!t_active)
+    if (!t_state.active)
         return;
 
     from_len = strlen(from);
 
     /* current transfer path doesn't begin with "from" -> nothing to do */
-    if (strncmp(from, t_path, from_len))
+    if (strncmp(from, t_state.job->path, from_len))
         return;
 
-    p = t_path;
+    p = t_state.job->path;
     p += from_len;
 
     t_path_new = join_path(to, p);
@@ -290,7 +289,7 @@ void transfer_rename(const char *to)
 {
     size_t to_len;
 
-    if (!t_active)
+    if (!t_state.active)
         return;
 
     DEBUG("transfer_rename to %s\n", to);
@@ -300,22 +299,22 @@ void transfer_rename(const char *to)
     worker_block();
     pthread_mutex_lock(&m_transfer);
 
-    lock_remove(t_path, LOCK_TRANSFER);
-    free(t_path);
-    t_path = strdup(to);
-    lock_set(t_path, LOCK_TRANSFER);
+    lock_remove(t_state.job->path, LOCK_TRANSFER);
+    free(t_state.job->path);
+    t_state.job->path = strdup(to);
+    lock_set(t_state.job->path, LOCK_TRANSFER);
 
-    free(t_read);
-    free(t_write);
-    if (t_op == JOB_PUSH)
+    free(t_state.read_path);
+    free(t_state.write_path);
+    if (t_state.job->op == JOB_PUSH)
     {
-        t_read = cache_path2(to, to_len);
-        t_write = remote_path2(to, to_len);
+        t_state.read_path = cache_path2(to, to_len);
+        t_state.write_path = remote_path2(to, to_len);
     }
     else
     {
-        t_read = remote_path2(to, to_len);
-        t_write = cache_path2(to, to_len);
+        t_state.read_path = remote_path2(to, to_len);
+        t_state.write_path = cache_path2(to, to_len);
     }
 
     pthread_mutex_unlock(&m_transfer);
@@ -324,18 +323,16 @@ void transfer_rename(const char *to)
 
 void transfer_abort(void)
 {
-    if (!t_active)
+    if (!t_state.active)
         return;
 
     worker_block();
     pthread_mutex_lock(&m_transfer);
 
-    t_active = 0;
+    lock_remove(t_state.job->path, LOCK_TRANSFER);
 
-    lock_remove(t_path, LOCK_TRANSFER);
-
-    unlink(t_write);
-    transfer_free();
+    unlink(t_state.write_path);
+    transfer_reset_state();
 
     pthread_mutex_unlock(&m_transfer);
     worker_unblock();
@@ -360,7 +357,7 @@ int transfer_instant_pull(const char *path)
 
     /* requested file is already being transfered (normally).
        just continue the transfer until it is finished */
-    if (t_active && strcmp(path, t_path) == 0)
+    if (t_state.active && strcmp(path, t_state.job->path) == 0)
     {
         /* continuing a running transfer() only works if !worker_blocked() */
         worker_unblock();
