@@ -36,6 +36,7 @@ static int transfer_pull_dir(const char *path);
 
 static void transfer_reset_state(void)
 {
+    pthread_mutex_lock(&m_transfer);
     free(t_state.read_path);
     free(t_state.write_path);
 
@@ -44,6 +45,7 @@ static void transfer_reset_state(void)
     t_state.read_path = NULL;
     t_state.write_path = NULL;
     t_state.offset = 0;
+    pthread_mutex_unlock(&m_transfer);
 }
 
 static int transfer_pull_dir(const char *path)
@@ -96,6 +98,8 @@ int transfer(const char *from, const char *to)
     char buf[TRANSFER_SIZE];
     int w_flags;
 
+    pthread_mutex_lock(&m_transfer);
+
     if (from && to)
     {
         lock_set(t_state.job->path, LOCK_TRANSFER);
@@ -103,47 +107,40 @@ int transfer(const char *from, const char *to)
         t_state.read_path = strdup(from);
         t_state.write_path = strdup(to);
 
-        t_state.active = true;
-        t_state.offset = 0;
-
         w_flags = O_WRONLY | O_CREAT | O_TRUNC;
     }
     else if (!t_state.active)
     {
+        pthread_mutex_unlock(&m_transfer);
         return TRANSFER_FINISH;
     }
     else
     {
         VERBOSE("resuming transfer: '%s' -> '%s' at %ld\n",
-            t_state.read_path, t_state.write_path, t_state.offset);
+                t_state.read_path, t_state.write_path, t_state.offset);
 
         w_flags = O_WRONLY | O_APPEND;
     }
+
 
     if (!t_state.read_path || !t_state.write_path)
     {
         ERROR("t_state.read_path or t_state.write_path is NULL\n");
         lock_remove(t_state.job->path, LOCK_TRANSFER);
-        transfer_reset_state();
-        return TRANSFER_FAIL;
+        goto failure;
     }
 
-    pthread_mutex_lock(&m_transfer);
     /* open files */
     if ((fdread = open(t_state.read_path, O_RDONLY)) == -1
             || lseek(fdread, t_state.offset, SEEK_SET) == -1) {
         PERROR(t_state.read_path);
-        pthread_mutex_unlock(&m_transfer);
-        transfer_abort();
-        return TRANSFER_FAIL;
+        goto failure;
     }
 
     if ((fdwrite = open(t_state.write_path, w_flags, 0666)) == -1
             || lseek(fdwrite, t_state.offset, SEEK_SET) == -1) {
         PERROR(t_state.write_path);
-        pthread_mutex_unlock(&m_transfer);
-        transfer_abort();
-        return TRANSFER_FAIL;
+        goto failure;
     }
 
     while (ONLINE && !worker_blocked())
@@ -157,9 +154,7 @@ int transfer(const char *from, const char *to)
             else
                 ERROR("failed or incomplete write\n");
 
-            pthread_mutex_unlock(&m_transfer);
-            transfer_abort();
-            return TRANSFER_FAIL;
+            goto failure;
         }
 
         /* copy completed, set mode and ownership */
@@ -173,8 +168,8 @@ int transfer(const char *from, const char *to)
             VERBOSE("transfer finished: '%s' -> '%s'\n", t_state.read_path, t_state.write_path);
 
             lock_remove(t_state.job->path, LOCK_TRANSFER);
-            transfer_reset_state();
             pthread_mutex_unlock(&m_transfer);
+            transfer_reset_state();
 
             return TRANSFER_FINISH;
         }
@@ -187,6 +182,11 @@ int transfer(const char *from, const char *to)
 
     pthread_mutex_unlock(&m_transfer);
     return TRANSFER_OK;
+
+failure:
+    pthread_mutex_unlock(&m_transfer);
+    transfer_abort();
+    return TRANSFER_FAIL;
 #undef CLOSE
 }
 
@@ -194,7 +194,19 @@ int transfer_begin(struct job *j)
 {
     int res;
     char *pread = NULL, *pwrite = NULL;
-    size_t p_len = strlen(j->path);
+    size_t p_len;
+
+    pthread_mutex_lock(&m_transfer);
+
+    if (t_state.active)
+    {
+        DEBUG("called transfer_begin while a transfer is active!\n");
+        pthread_mutex_unlock(&m_transfer);
+        return TRANSFER_FAIL;
+    }
+    pthread_mutex_unlock(&m_transfer);
+
+    p_len = strlen(j->path);
 
     if (j->op == JOB_PUSH)
     {
@@ -224,7 +236,13 @@ int transfer_begin(struct job *j)
             free(pwrite);
             return TRANSFER_FAIL;
         }
+
+        pthread_mutex_lock(&m_transfer);
+        t_state.active = true;
         t_state.job = j;
+        t_state.offset = 0;
+        pthread_mutex_unlock(&m_transfer);
+
         res = transfer(pread, pwrite);
         free(pread);
         free(pwrite);
@@ -289,15 +307,19 @@ void transfer_rename(const char *to)
 {
     size_t to_len;
 
+    pthread_mutex_lock(&m_transfer);
+
     if (!t_state.active)
+    {
+        pthread_mutex_unlock(&m_transfer);
         return;
+    }
 
     DEBUG("transfer_rename to %s\n", to);
 
     to_len = strlen(to);
 
     worker_block();
-    pthread_mutex_lock(&m_transfer);
 
     lock_remove(t_state.job->path, LOCK_TRANSFER);
     free(t_state.job->path);
@@ -323,28 +345,29 @@ void transfer_rename(const char *to)
 
 void transfer_abort(void)
 {
-    if (!t_state.active)
-        return;
-
     worker_block();
     pthread_mutex_lock(&m_transfer);
 
-    lock_remove(t_state.job->path, LOCK_TRANSFER);
+    if (t_state.active)
+    {
+        lock_remove(t_state.job->path, LOCK_TRANSFER);
+        unlink(t_state.write_path);
 
-    unlink(t_state.write_path);
-    transfer_reset_state();
+        pthread_mutex_unlock(&m_transfer);
+        transfer_reset_state();
+    }
 
-    pthread_mutex_unlock(&m_transfer);
     worker_unblock();
+    pthread_mutex_unlock(&m_transfer);
 }
 
 /* instantly copy a file from remote to cache */
 int transfer_instant_pull(const char *path)
 {
     int res;
-    char *pc;
-    char *pr;
+    char *pc, *pr;
     size_t p_len = strlen(path);
+    bool path_equal = false;
 
     VERBOSE("instant_pulling %s\n", path);
 
@@ -355,9 +378,14 @@ int transfer_instant_pull(const char *path)
     pr = remote_path2(path, p_len);
     pc = cache_path2(path, p_len);
 
+    pthread_mutex_lock(&m_transfer);
+    if (t_state.active)
+        path_equal = !strcmp(path, t_state.job->path);
+    pthread_mutex_unlock(&m_transfer);
+
     /* requested file is already being transfered (normally).
        just continue the transfer until it is finished */
-    if (t_state.active && strcmp(path, t_state.job->path) == 0)
+    if (path_equal)
     {
         /* continuing a running transfer() only works if !worker_blocked() */
         worker_unblock();
