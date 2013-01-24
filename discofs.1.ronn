@@ -1,0 +1,159 @@
+discofs(1) -- client-side caching overlay filesystem
+====================================================
+
+## SYNOPSIS
+
+### Mounting
+`discofs` [<-fd>] [ `-o` `option`[=<value>][,...] ] <remotefs> <mountpoint>
+
+### Unmounting
+`fusermount -u` <mountpoint>
+
+
+## DESCRIPTION
+`discofs` is a FUSE filesystem which automatically mirrors a (network)
+filesystem (e.g. nfs/cifs or whatever you like) to a local cache, making the
+files available even if the underlying filesystem is not.
+
+The main goal is to automatically synchronize a local version of the network
+filesystem without the need of user interaction.
+
+Changes made while "offline" are applied to the remote filesystem once the 
+connection to the host/network is available.
+
+Changes made on the remote side are detected by comparing each file's
+MTIME/CTIME with the stored timestamp of the last synchronization.
+
+
+## OPTIONS
+
+### General options
+
+  * `-h`, `--help`:
+    Show help text and exit.
+
+  * `-v`, `--version`:
+    Show version and exit.
+
+  * `-f`, `--foreground`:
+    Don't fork to background.
+
+  * `-d`, `--debug`:
+    Enable debugging output, don't fork to background.
+
+
+### discofs options
+
+These are specified with `-o` `opt1`[=<val1>][,`opt2`[=<val2>],...]
+
+  * `uid`=<uid>:
+    Changes user ID to <uid> (user name or numeric UID) before mounting. Also
+    changes group ID to <uid>'s primary group (unless `gid` is specified).
+    See `setuid(2)` for details.
+
+  * `gid`=<gid>:
+    Changes group ID to <gid> before mounting. See `setgid(2)` for details.
+
+  * `host`=<hostname>:
+    Periodically `ping(1)` <hostname> to determine if <remotefs> is available.
+    See [STATE][] for details.
+
+  * `pid`=<file>:
+    Check whether a process with the PID in <file> is running to determine if
+    <remotefs> is available.
+    See [STATE][] for details.
+
+  * `scan`=<sec>:
+    <remotefs> is scanned for changes periodically every <sec> seconds.
+    Default is `10`.
+
+  * `conflict`=<mode>:
+    Conflict resolution mode. <mode> can be `newer`, `mine` or `theirs`
+    (see [CONFLICTS][]). Default is `newer`.
+
+  * `bprefix`=<pfx>, `bsuffix`=<sfx>:
+    If at least one of these is specified, files or directories that would be
+    removed during conflict handling are instead renamed to
+    <pfx>`filename`<sfx>.
+
+  * `clear`:
+    Clear database and cache before mounting.
+
+  * `data`=<datadir>:
+    Store database and cache in <datadir>. 
+    Defaults to *$XDG_DATA_HOME/discofs* if `$XDG_DATA_HOME` is set, or
+    *~/.local/share/discofs* else.
+
+  * `loglevel`=<level>:
+    Set logging level to <level>. Log levels are `none`, `error`, `info`, `verbose`, `debug` or `fsop`,
+    each one including its predecessors (e.g. `verbose` will also print `info` and `error` messages).
+
+  * `logfile`=<file>:
+    Append log messages to <file>. If not specified, *stderr* will be used.
+
+  * `no-mode`:
+    Don't synchronize access permissions (set with e.g. `chmod(1)`).
+
+  * `no-owner`:
+    Don't synchronize user ownership.
+    
+  * `no-group`:
+    Don't synchronize group ownership.
+
+  * `no-xattr`:
+    Don't synchronize extended attributes.
+    If <remotefs> doesn't support extended attributes, this option does not
+    need to be specified.
+
+  * `sshfs`:
+    Set `no-owner`, `no-group` and `no-xattr`.
+
+
+## STATE
+
+`discofs` periodically checks the <state> of <remotefs> which can be `OFFLINE`
+or `ONLINE`.
+
+  * Changes made while `ONLINE` are applied immediately.
+
+  * When `ONLINE`, <remotefs> will be periodically scanned for changes
+
+  * Changes made while `OFFLINE` are scheduled for synchronization and applied
+    once <state> changes back to `ONLINE`.
+
+The current <state> is considered `ONLINE` if the following three conditions
+are met:
+
+  * <remotefs> is `mounted`.
+
+  * The option `host`=<hostname> is not set `OR` trying to `ping(1)` <hostname>
+    succeeds.
+
+  * The option `pid`=<file> is not set `OR` a process with the PID contained in
+    <file> is running.
+
+
+## CONFLICTS
+
+If a file was changed on `both` the <remote> and <local> side after the last
+synchronization, this is considered a `conflict`. Conflicts are resolved
+automatically, dependent on the `conflict resolution mode` set with
+`conflict`=<mode> (<newer> being the default):
+
+  * <newer>:
+    Keep the file that was changed most recently.
+
+  * <mine>:
+    Always keep the <local> file.
+
+  * <theirs>:
+    Always keep the <remote> file.
+
+The file that is `not` to be kept is either deleted, or, if at least one of
+`bprefix`=<pfx> or `bsuffix`=<sfx> is set, renamed 
+<pfx>`filename`<sfx>.
+
+
+<!---
+vim: ft=markdown ts=2 sw=2 sts=-1 et ai
+-->

@@ -1,173 +1,160 @@
-.TH DISCOFS 1 "Jul 2012" "discofs\ VERSION"
-
-.SH NAME
-discofs \- disconnected file system
-
-
-.SH SYNOPSYS
-.TP
-.BR discofs \ [ \-hv ]
-
-.SS Mounting
-.TP
-.B discofs
-.RB [ \-fd ]
-.RB [ \-o
-.IR option [ \fB,\fPoption ]...]
-.IR remotefs " " mountpoint
-.SS Unmounting
-.B fusermount -u
-.I mountpoint
-
-
-.SH DESCRIPTION
-bla bla bla
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "DISCOFS" "1" "January 2013" "" ""
+.
+.SH "NAME"
+\fBdiscofs\fR \- client\-side caching overlay filesystem
+.
+.SH "SYNOPSIS"
+.
+.SS "Mounting"
+\fBdiscofs\fR [\fI\-fd\fR] [ \fB\-o\fR \fBoption\fR[=\fIvalue\fR][,\.\.\.] ] \fIremotefs\fR \fImountpoint\fR
+.
+.SS "Unmounting"
+\fBfusermount \-u\fR \fImountpoint\fR
+.
+.SH "DESCRIPTION"
+\fBdiscofs\fR is a FUSE filesystem which automatically mirrors a (network) filesystem (e\.g\. nfs/cifs or whatever you like) to a local cache, making the files available even if the underlying filesystem is not\.
+.
 .P
-another paragraph lol
-
-
-.SH OPTIONS
-
-.SS "General options:"
+The main goal is to automatically synchronize a local version of the network filesystem without the need of user interaction\.
+.
+.P
+Changes made while "offline" are applied to the remote filesystem once the connection to the host/network is available\.
+.
+.P
+Changes made on the remote side are detected by comparing each file\'s MTIME/CTIME with the stored timestamp of the last synchronization\.
+.
+.SH "OPTIONS"
+.
+.SS "General options"
+.
 .TP
-.B -h\t\-\-help
-print help
-
+\fB\-h\fR, \fB\-\-help\fR
+Show help text and exit\.
+.
 .TP
-.B -v\t\-\-version
-print version
-
+\fB\-v\fR, \fB\-\-version\fR
+Show version and exit\.
+.
 .TP
-.B -f\t\-\-foreground
-don't fork to background
-
+\fB\-f\fR, \fB\-\-foreground\fR
+Don\'t fork to background\.
+.
 .TP
-.B -d\t\-\-debug
-enable debugging output, don't fork to background
-
-
-.SS "discofs options:"
-
+\fB\-d\fR, \fB\-\-debug\fR
+Enable debugging output, don\'t fork to background\.
+.
+.SS "discofs options"
+These are specified with \fB\-o\fR \fBopt1\fR[=\fIval1\fR][,\fBopt2\fR[=\fIval2\fR],\.\.\.]
+.
 .TP
-.BI uid= uid
-Change the process user to
-.I uid
-(name or numeric id) before mounting. Also changes group to
-.I uid\fR's
-primary group (unless
-.I gid
-is specified).
-
+\fBuid\fR=\fIuid\fR
+Changes user ID to \fIuid\fR (user name or numeric UID) before mounting\. Also changes group ID to \fIuid\fR\'s primary group (unless \fBgid\fR is specified)\. See \fBsetuid(2)\fR for details\.
+.
 .TP
-.BI gid= gid
-Change the process group to
-.I gid
-(name or numeric id) before mounting.
-
+\fBgid\fR=\fIgid\fR
+Changes group ID to \fIgid\fR before mounting\. See \fBsetgid(2)\fR for details\.
+.
 .TP
-.BI host= host
-Hostname or IP adress of remote host. Whether pinging this host succeeds is a state criterion (see
-.B STATE
-below).
-
+\fBhost\fR=\fIhostname\fR
+Periodically \fBping(1)\fR \fIhostname\fR to determine if \fIremotefs\fR is available\. See \fISTATE\fR for details\.
+.
 .TP
-.BI pid= file
-Path to a file containing a PID to check. Whether this PID is running is a state criterion (see
-.B STATE
-below).
-
+\fBpid\fR=\fIfile\fR
+Check whether a process with the PID in \fIfile\fR is running to determine if \fIremotefs\fR is available\. See \fISTATE\fR for details\.
+.
 .TP
-.BI scan= secs
-Wait
-.I secs
-seconds each interval before scanning remote fs for changed files (default is 10)
-
+\fBscan\fR=\fIsec\fR
+\fIremotefs\fR is scanned for changes periodically every \fIsec\fR seconds\. Default is \fB10\fR\.
+.
 .TP
-.BI conflict= mode
-Conflict resolution mode (see
-.B CONFLICTS
-below). The
-.I mode
-argument can be either
-.BR newer ", " mine " or " theirs
-resulting in the following behaviour:
-.RS
-.RS
-.BR newer ": Compare modification times of cached and remote file, keep the newer one"
-.br
-.BR mine ": Always keep cached file"
-.br
-.BR theirs ": Always keep remote file"
-.RE
-The default value is
-.BR newer .
-.RE
-
+\fBconflict\fR=\fImode\fR
+Conflict resolution mode\. \fImode\fR can be \fBnewer\fR, \fBmine\fR or \fBtheirs\fR (see \fICONFLICTS\fR)\. Default is \fBnewer\fR\.
+.
 .TP
-.BI bprefix= prefix \fR,\ \fPbsuffix= suffix
-If at least one of these is specified, files or directories that would be removed during conflict handling (see
-.B CONFLICTS
-below) are being backed up by renaming them to
-.RI < prefix >\fBfilename\fR< suffix >.
-
+\fBbprefix\fR=\fIpfx\fR, \fBbsuffix\fR=\fIsfx\fR
+If at least one of these is specified, files or directories that would be removed during conflict handling are instead renamed to \fIpfx\fR\fBfilename\fR\fIsfx\fR\.
+.
 .TP
-.B clear
-Clear database and cache before mounting
-
+\fBclear\fR
+Clear database and cache before mounting\.
+.
 .TP
-.BI loglevel= level
-Set logging level. The
-.I level
-argument can be either
-.BR none ,\  error ,\  info ,\  verbose ,\  fsop \ or\  debug ,
-each one including its predecessors (e.g. using
-.B verbose
-will also print
-.BR info \ and\  error
-messages).
-.br
-The default value is
-.BR none .
-
+\fBdata\fR=\fIdatadir\fR
+Store database and cache in \fIdatadir\fR\. Defaults to \fI$XDG_DATA_HOME/discofs\fR if \fB$XDG_DATA_HOME\fR is set, or \fI~/\.local/share/discofs\fR else\.
+.
 .TP
-.BI logfile= file
-File to append log messages to. If not specified,
-.I stderr
-will be used.
-
+\fBloglevel\fR=\fIlevel\fR
+Set logging level to \fIlevel\fR\. Log levels are \fBnone\fR, \fBerror\fR, \fBinfo\fR, \fBverbose\fR, \fBdebug\fR or \fBfsop\fR, each one including its predecessors (e\.g\. \fBverbose\fR will also print \fBinfo\fR and \fBerror\fR messages)\.
+.
 .TP
-.BI no-mode
-Don't synchronize file access permssions (chmod) between cache and remote
-
+\fBlogfile\fR=\fIfile\fR
+Append log messages to \fIfile\fR\. If not specified, \fIstderr\fR will be used\.
+.
 .TP
-.BI no-owner
-Don't synchronize file user ownership
-
+\fBno\-mode\fR
+Don\'t synchronize access permissions (set with e\.g\. \fBchmod(1)\fR)\.
+.
 .TP
-.BI no-group
-Don't synchronize file group ownership
-
+\fBno\-owner\fR
+Don\'t synchronize user ownership\.
+.
 .TP
-.BI no-xattr
-Don't synchronize extended attributes (if supported at all)
-
+\fBno\-group\fR
+Don\'t synchronize group ownership\.
+.
 .TP
-.BI nfs
-like
-.IR no-owner , no-group
-
+\fBno\-xattr\fR
+Don\'t synchronize extended attributes\. If \fIremotefs\fR doesn\'t support extended attributes, this option does not need to be specified\.
+.
 .TP
-.BI sshfs
-like
-.IR no-owner , no-group , no-xattr
-
-.SS "Advanced options:"
+\fBsshfs\fR
+Set \fBno\-owner\fR, \fBno\-group\fR and \fBno\-xattr\fR\.
+.
+.SH "STATE"
+\fBdiscofs\fR periodically checks the \fIstate\fR of \fIremotefs\fR which can be \fBOFFLINE\fR or \fBONLINE\fR\.
+.
+.IP "\(bu" 4
+Changes made while \fBONLINE\fR are applied immediately\.
+.
+.IP "\(bu" 4
+When \fBONLINE\fR, \fIremotefs\fR will be periodically scanned for changes
+.
+.IP "\(bu" 4
+Changes made while \fBOFFLINE\fR are scheduled for synchronization and applied once \fIstate\fR changes back to \fBONLINE\fR\.
+.
+.IP "" 0
+.
+.P
+The current \fIstate\fR is considered \fBONLINE\fR if the following three conditions are met:
+.
+.IP "\(bu" 4
+\fIremotefs\fR is \fBmounted\fR\.
+.
+.IP "\(bu" 4
+The option \fBhost\fR=\fIhostname\fR is not set \fBOR\fR trying to \fBping(1)\fR \fIhostname\fR succeeds\.
+.
+.IP "\(bu" 4
+The option \fBpid\fR=\fIfile\fR is not set \fBOR\fR a process with the PID contained in \fIfile\fR is running\.
+.
+.IP "" 0
+.
+.SH "CONFLICTS"
+If a file was changed on \fBboth\fR the \fIremote\fR and \fIlocal\fR side after the last synchronization, this is considered a \fBconflict\fR\. Conflicts are resolved automatically, dependent on the \fBconflict resolution mode\fR set with \fBconflict\fR=\fImode\fR (\fInewer\fR being the default):
+.
 .TP
-.BI db= file
-File to use for sqlite db
-
+\fInewer\fR
+Keep the file that was changed most recently\.
+.
 .TP
-.BI cache= dir
-Cache directory
-
-.SS STATE
+\fImine\fR
+Always keep the \fIlocal\fR file\.
+.
+.TP
+\fItheirs\fR
+Always keep the \fIremote\fR file\.
+.
+.P
+The file that is \fBnot\fR to be kept is either deleted, or, if at least one of \fBbprefix\fR=\fIpfx\fR or \fBbsuffix\fR=\fIsfx\fR is set, renamed \fIpfx\fR\fBfilename\fR\fIsfx\fR\.
