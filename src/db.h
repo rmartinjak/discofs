@@ -15,64 +15,54 @@
 #include <sqlite3.h>
 #include <sys/types.h>
 
+/*=============*
+ * DEFINITIONS *
+ *=============*/
+
+/* config option names */
+#define CFG_VERSION "version"
+#define CFG_FS_FEATURES "fs_features"
+
+/*--------------*
+ * return codes *
+ *--------------*/
 
 #define DB_OK 0
 #define DB_ERROR -1
 #define DB_NOTFOUND 404
 
-#define TABLE_CFG "config"
-#define SCHEMA_CFG "option TEXT UNIQUE, nval INTEGER, tval TEXT"
 
-#define CFG_VERSION "version"
-#define CFG_FS_FEATURES "fs_features"
-
-#define TABLE_JOB "job"
-#define SCHEMA_JOB                  \
-    "rowid INTEGER PRIMARY KEY,"    \
-    "prio INTEGER,"                 \
-    "op INTEGER,"                   \
-    "time INTEGER,"                 \
-    "attempts INTEGER,"             \
-    "path TEXT,"                    \
-    "n1 INTEGER,"                   \
-    "n2 INTEGER,"                   \
-    "s1 TEXT,"                      \
-    "s2 TEXT"
-
-#define TABLE_SYNC "sync"
-#define SCHEMA_SYNC                 \
-    "path TEXT UNIQUE NOT NULL,"    \
-    "mtime_s INTEGER,"              \
-    "mtime_ns INTEGER,"             \
-    "ctime_s INTEGER,"              \
-    "ctime_ns INTEGER"
-
-#define TABLE_HARDLINK "hardlink"
-#define SCHEMA_HARDLINK             \
-    "path TEXT UNIQUE NOT NULL,"    \
-    "inode INTEGER"
-
-void db_open(void);
-void db_close(void);
-
+/*====================*
+ * EXPORTED FUNCTIONS *
+ *====================*/
 
 /* initialize sqlite db in file _fn_.
    if _clear_ is non-zero, remove ALL the data */
 int db_init(const char *fn, int clear);
+
+/* free all resources */
 int db_destroy(void);
 
 
-/* get/set "config values" */
-int db_cfg_delete(const char *option);
+/*--------*
+ * config *
+ *--------*/
+
+/* set/retrieve int */
 int db_cfg_set_int(const char *option, int val);
-int db_cfg_set_str(char *option, const char *val);
 int db_cfg_get_int(const char *option, int *buf);
+
+/* set/retrieve string */
+int db_cfg_set_str(char *option, const char *val);
 int db_cfg_get_str(const char *option, char **buf);
 
+/* delete int/string */
+int db_cfg_delete(const char *option);
 
-/*======*
- * JOBS *
- *======*/
+
+/*------*
+ * jobs *
+ *------*/
 
 /* store a job in the database */
 int db_job_store(const struct job *j);
@@ -97,9 +87,9 @@ int db_job_rename_file(const char *from, const char *to);
 int db_job_rename_dir(const char *from, const char *to);
 
 
-/*======*
- * SYNC *
- *======*/
+/*------*
+ * sync *
+ *------*/
 
 /* load all sync entries from the db and pass them to _callback_ */
 int db_load_sync(sync_load_cb_t callback);
@@ -115,9 +105,9 @@ int db_sync_rename_file(const char *from, const char *to);
 int db_sync_rename_dir(const char *from, const char *to);
 
 
-/*===========*
- * HARDLINKS *
- *===========*/
+/*-----------*
+ * hardlinks *
+ *-----------*/
 
 /* stores all hardlinks that poit to _inode_ in _q_ */
 int db_hardlink_get(ino_t inode, queue *q);

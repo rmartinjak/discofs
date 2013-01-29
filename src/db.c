@@ -18,19 +18,81 @@
 #include <limits.h>
 #include <sys/types.h>
 
+
+/*=============*
+ * DEFINITIONS *
+ *=============*/
+
+/*------------------*
+ * tables & schemas *
+ *------------------*/
+
+#define TABLE_CFG "config"
+#define SCHEMA_CFG "option TEXT UNIQUE, nval INTEGER, tval TEXT"
+
+#define TABLE_JOB "job"
+#define SCHEMA_JOB                  \
+    "rowid INTEGER PRIMARY KEY,"    \
+    "prio INTEGER,"                 \
+    "op INTEGER,"                   \
+    "time INTEGER,"                 \
+    "attempts INTEGER,"             \
+    "path TEXT,"                    \
+    "n1 INTEGER,"                   \
+    "n2 INTEGER,"                   \
+    "s1 TEXT,"                      \
+    "s2 TEXT"
+
+#define TABLE_SYNC "sync"
+#define SCHEMA_SYNC                 \
+    "path TEXT UNIQUE NOT NULL,"    \
+    "mtime_s INTEGER,"              \
+    "mtime_ns INTEGER,"             \
+    "ctime_s INTEGER,"              \
+    "ctime_ns INTEGER"
+
+#define TABLE_HARDLINK "hardlink"
+#define SCHEMA_HARDLINK             \
+    "path TEXT UNIQUE NOT NULL,"    \
+    "inode INTEGER"
+
+
+/*--------------------*
+ * convenience macros *
+ *--------------------*/
+
 #define ERRMSG(msg) ERROR(msg ": %s\n", sqlite3_errmsg(db))
 
 #define PREPARE(sql, stmt)                                                  \
 do {                                                                        \
     if (sqlite3_prepare_v2(db, sql, -1, stmt, NULL) != SQLITE_OK)           \
-        {                                                                   \
-            ERRMSG("preparing statement");                                  \
-            return DB_ERROR;                                                \
-        }                                                                   \
+    {                                                                       \
+        ERRMSG("preparing statement");                                      \
+        db_close();                                                         \
+        return DB_ERROR;                                                    \
+    }                                                                       \
 } while (0)
 
+
+/* database object */
 static sqlite3 *db;
+
+/* mutex because only one function should access the database */
 static pthread_mutex_t m_db = PTHREAD_MUTEX_INITIALIZER;
+
+
+/*-------------------*
+ * static prototypes *
+ *-------------------*/
+
+static char *column_text(sqlite3_stmt *stmt, int n);
+static void db_open(void);
+static void db_close(void);
+
+
+/*==================*
+ * STATIC FUNCTIONS *
+ *==================*/
 
 static char *column_text(sqlite3_stmt *stmt, int n)
 {
@@ -42,19 +104,20 @@ static char *column_text(sqlite3_stmt *stmt, int n)
     return strdup((const char*)p);
 }
 
-/********************
- * GENERAL DB STUFF *
- ********************/
-
-void db_open(void)
+static void db_open(void)
 {
     pthread_mutex_lock(&m_db);
 }
 
-void db_close(void)
+static void db_close(void)
 {
     pthread_mutex_unlock(&m_db);
 }
+
+
+/*====================*
+ * EXPORTED FUNCTIONS *
+ *====================*/
 
 int db_init(const char *path, int clear)
 {
@@ -113,9 +176,9 @@ int db_destroy(void)
 }
 
 
-/**********
- * CONFIG *
- **********/
+/*--------*
+ * config *
+ *--------*/
 
 int db_cfg_delete(const char *option)
 {
@@ -242,9 +305,9 @@ int db_cfg_get_str(const char *option, char **buf)
 }
 
 
-/*******
- * JOB *
- *******/
+/*-----*
+ * job *
+ *-----*/
 
 int db_job_store(const struct job *j)
 {
@@ -297,7 +360,6 @@ int db_job_store(const struct job *j)
     return res;
 }
 
-#define SELECT_JOB "SELECT rowid, op, time, attempts, path, n1, n2, s1, s2 FROM " TABLE_JOB " "
 int db_job_get(struct job **j)
 {
     int res = DB_OK, sql_res;
@@ -309,7 +371,8 @@ int db_job_get(struct job **j)
 
     db_open();
 
-    PREPARE(SELECT_JOB "WHERE time <? ORDER BY prio DESC, time ASC LIMIT 1;", &stmt);
+    PREPARE("SELECT rowid, op, time, attempts, path, n1, n2, s1, s2 FROM " TABLE_JOB \
+        "WHERE time <? ORDER BY prio DESC, time ASC LIMIT 1;", &stmt);
     sqlite3_bind_int64(stmt, 1, now);
 
     sql_res = sqlite3_step(stmt);
@@ -451,9 +514,9 @@ int db_job_delete_rename_to(const char *path)
 }
 
 
-/********
- * SYNC *
- ********/
+/*------*
+ * sync *
+ *------*/
 
 int db_load_sync(sync_load_cb_t callback)
 {
@@ -554,9 +617,9 @@ int db_sync_delete_path(const char *path)
 }
 
 
-/************
- * HARDLINK *
- ************/
+/*----------*
+ * hardlink *
+ *----------*/
 
 int db_hardlink_get(ino_t inode, queue *q)
 {
@@ -631,9 +694,9 @@ int db_hardlink_remove(const char *path)
 }
 
 
-/****************
- * RENAME PATHS *
- ****************/
+/*--------------*
+ * rename paths *
+ *--------------*/
 
 #define DB_x_RENAME_FILE(name, table, column)                               \
 int db_ ## name ## _rename_file(const char *from, const char *to)           \
