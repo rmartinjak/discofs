@@ -234,14 +234,14 @@ static int discofs_opt_proc(void *data, const char *arg, int key, struct fuse_ar
 
     switch (key) {
 
-        /*==============*/
-        /* MOUNT POINTS */
-        /*==============*/
+        /*==============*
+         * MOUNT POINTS *
+         *==============*/
 
         case FUSE_OPT_KEY_NONOPT:
-            /*--------------------*/
-            /* remote mount point */
-            /*--------------------*/
+            /*--------------------*
+             * remote mount point *
+             *--------------------*/
             if (!discofs_options.remote_root)
             {
 
@@ -302,9 +302,9 @@ static int discofs_opt_proc(void *data, const char *arg, int key, struct fuse_ar
                 return 0;
             }
 
-            /*-------------------*/
-            /* discofs mount point */
-            /*-------------------*/
+            /*---------------------*
+             * discofs mount point *
+             *---------------------*/
 
             /* second one is "our" mount point */
             else if (!discofs_options.discofs_mp)
@@ -316,9 +316,9 @@ static int discofs_opt_proc(void *data, const char *arg, int key, struct fuse_ar
             return 1;
 
 
-        /*======================*/
-        /* --VERSION AND --HELP */
-        /*======================*/
+        /*======================*
+         * --VERSION AND --HELP *
+         *======================*/
 
         case DISCOFS_OPT_VERSION:
             print_version();
@@ -328,9 +328,9 @@ static int discofs_opt_proc(void *data, const char *arg, int key, struct fuse_ar
             print_usage();
             exit(EXIT_SUCCESS);
 
-        /*==========================*/
-        /* --DEBUG AND --FOREGROUND */
-        /*==========================*/
+        /*==========================*
+         * --DEBUG AND --FOREGROUND *
+         *==========================*/
         case DISCOFS_OPT_DEBUG:
             discofs_options.debug = true;
             /* forward argument to fuse */
@@ -343,13 +343,13 @@ static int discofs_opt_proc(void *data, const char *arg, int key, struct fuse_ar
             return 0;
 
 
-        /*================*/
-        /* UID AND/OR GID */
-        /*================*/
+        /*================*
+         * UID AND/OR GID *
+         *================*/
 
-        /*-----*/
-        /* UID */
-        /*-----*/
+        /*-----*
+         * UID *
+         *-----*/
         case DISCOFS_OPT_UID:
             /* let val point to beginning of the actual uid string */
             val = arg + strlen("uid=");
@@ -380,9 +380,9 @@ static int discofs_opt_proc(void *data, const char *arg, int key, struct fuse_ar
                 discofs_options.gid = pw->pw_gid;
             return 0;
 
-        /*-----*/
-        /* GID */
-        /*-----*/
+        /*-----*
+         * GID *
+         *-----*/
         case DISCOFS_OPT_GID:
             val = arg + strlen("gid=");
             discofs_options.gid = strtol(val, &endptr, 10);
@@ -395,9 +395,9 @@ static int discofs_opt_proc(void *data, const char *arg, int key, struct fuse_ar
             return 0;
 
 
-        /*=============================*/
-        /* FILE ATTRIBUTES NOT TO COPY */
-        /*=============================*/
+        /*=============================*
+         * FILE ATTRIBUTES NOT TO COPY *
+         *=============================*/
 
         #define OPT_COPYADDR(n) case DISCOFS_OPT_ ## n: \
             discofs_options.copyattr |= COPYATTR_ ## n; \
@@ -412,9 +412,9 @@ static int discofs_opt_proc(void *data, const char *arg, int key, struct fuse_ar
         #undef OPT_COPYADDR
 
 
-        /*==========*/
-        /* LOGLEVEL */
-        /*==========*/
+        /*==========*
+         * LOGLEVEL *
+         *==========*/
 
         case DISCOFS_OPT_LOGLEVEL:
             val = arg + strlen("loglevel=");
@@ -436,9 +436,9 @@ static int discofs_opt_proc(void *data, const char *arg, int key, struct fuse_ar
             return 0;
 
 
-        /*==========================*/
-        /* CONFLICT RESOLUTION MODE */
-        /*==========================*/
+        /*==========================*
+         * CONFLICT RESOLUTION MODE *
+         *==========================*/
 
         case DISCOFS_OPT_CONFLICT:
             val = arg + strlen("conflict=");
@@ -612,9 +612,9 @@ int main(int argc, char **argv)
     char *db_file;
 
 
-    /*------------------------*/
-    /* install signal handler */
-    /*------------------------*/
+    /*------------------------*
+     * install signal handler *
+     *------------------------*/
 
     /* set handling function */
     sig.sa_handler = sig_handler;
@@ -633,9 +633,9 @@ int main(int argc, char **argv)
     sigaction(SIGUSR2, &sig, NULL);
 
 
-    /*------------------*/
-    /* handle arguments */
-    /*------------------*/
+    /*------------------*
+     * handle arguments *
+     *------------------*/
 
     if (fuse_opt_parse(&args, &discofs_options, discofs_opts, discofs_opt_proc) == -1)
         return EXIT_FAILURE;
@@ -658,9 +658,9 @@ int main(int argc, char **argv)
     fuse_opt_add_arg(&args, "-ouse_ino");
 
 
-    /*---------------*/
-    /* set UID / GID */
-    /*---------------*/
+    /*---------------*
+     * set UID / GID *
+     *---------------*/
 
     /* set GID first since permissions might not be
        sufficient if UID was set beforehand */
@@ -684,9 +684,9 @@ int main(int argc, char **argv)
     }
 
 
-    /*--------------------*/
-    /* initialize logging */
-    /*--------------------*/
+    /*--------------------*
+     * initialize logging *
+     *--------------------*/
 
     /* if -d is specified, override logging settings */
     if (discofs_options.debug)
@@ -696,9 +696,9 @@ int main(int argc, char **argv)
 
 
 
-    /*=========================*/
-    /* INITIALIZE CACHE AND DB */
-    /*=========================*/
+    /*=========================*
+     * INITIALIZE CACHE AND DB *
+     *=========================*/
 
     /* compute data root if not passed as option */
     if (!discofs_options.data_root)
@@ -711,9 +711,9 @@ int main(int argc, char **argv)
     }
 
 
-    /*----------------------*/
-    /* initialize cache dir */
-    /*----------------------*/
+    /*----------------------*
+     * initialize cache dir *
+     *----------------------*/
 
     /* set cache dir */
     CACHE_ROOT = join_path(discofs_options.data_root, "cache");
@@ -736,9 +736,9 @@ int main(int argc, char **argv)
     }
 
 
-    /*---------------------*/
-    /* initialize database */
-    /*---------------------*/
+    /*---------------------*
+     * initialize database *
+     *---------------------*/
 
     /* set db filename */
     db_file = join_path(discofs_options.data_root, "db.sqlite");
@@ -780,9 +780,9 @@ int main(int argc, char **argv)
     }
 
 
-    /*------------------*/
-    /* initialize stuff */
-    /*------------------*/
+    /*------------------*
+     * initialize stuff *
+     *------------------*/
     #define INIT(name)                          \
         if (name ## _init())                    \
             FATAL("error initializing " #name)
@@ -792,21 +792,21 @@ int main(int argc, char **argv)
     #undef INIT
 
 
-    /*----------------------*/
-    /* print options to log */
-    /*----------------------*/
+    /*----------------------*
+     * print options to log *
+     *----------------------*/
     log_options(LOG_VERBOSE, discofs_options);
 
 
-    /*-----------------*/
-    /* run fuse_main() */
-    /*-----------------*/
+    /*-----------------*
+     * run fuse_main() *
+     *-----------------*/
     ret = fuse_main(args.argc, args.argv, &discofs_oper, NULL);
 
 
-    /*------*/
-    /* exit */
-    /*------*/
+    /*------*
+     * exit *
+     *------*/
 
     lock_destroy();
     sync_destroy();

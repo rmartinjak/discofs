@@ -13,9 +13,9 @@
 
 #include <pthread.h>
 
-/*=============*/
-/* DEFINITIONS */
-/*=============*/
+/*=============*
+ * DEFINITIONS *
+ *=============*/
 
 #define JOB_STR_BUF_N   5
 #define JOB_STR_BUF_SZ  1024
@@ -25,15 +25,15 @@ static queue *job_q = NULL;
 static pthread_mutex_t m_job_q = PTHREAD_MUTEX_INITIALIZER;
 
 
-/*-------------------*/
-/* static prototypes */
-/*-------------------*/
+/*-------------------*
+ * static prototypes *
+ *-------------------*/
 
 static int job_q_enqueue(struct job *j);
 
-/*==================*/
-/* STATIC FUNCTIONS */
-/*==================*/
+/*==================*
+ * STATIC FUNCTIONS *
+ *==================*/
 
 static int job_q_enqueue(struct job *j)
 {
@@ -49,9 +49,9 @@ static int job_q_enqueue(struct job *j)
 }
 
 
-/*====================*/
-/* EXPORTED FUNCTIONS */
-/*====================*/
+/*====================*
+ * EXPORTED FUNCTIONS *
+ *====================*/
 
 int job_init(void)
 {

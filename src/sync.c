@@ -22,9 +22,9 @@
 #include <pthread.h>
 #include <string.h>
 
-/*=============*/
-/* DEFINITIONS */
-/*=============*/
+/*=============*
+ * DEFINITIONS *
+ *=============*/
 
 /* queue for changed sync entries + mutex */
 static queue *sync_queue;
@@ -45,9 +45,9 @@ static hashtable *sync_ht = NULL;
 static pthread_mutex_t m_sync_ht = PTHREAD_MUTEX_INITIALIZER;
 
 
-/*-------------------*/
-/* static prototypes */
-/*-------------------*/
+/*-------------------*
+ * static prototypes *
+ *-------------------*/
 
 /* hash function for hashtables */
 static hash_t sync_hash(const void *p, const void *n);
@@ -65,9 +65,9 @@ static struct sync *sync_ht_set(const char *path, sync_xtime_t mtime, sync_xtime
 static int sync_ht_get(const char *path, struct sync *s);
 
 
-/*==================*/
-/* STATIC FUNCTIONS */
-/*==================*/
+/*==================*
+ * STATIC FUNCTIONS *
+ *==================*/
 
 static hash_t sync_hash(const void *p, const void *n)
 {
@@ -221,9 +221,9 @@ static int sync_ht_get(const char *path, struct sync *s)
 }
 
 
-/*====================*/
-/* EXPORTED FUNCTIONS */
-/*====================*/
+/*====================*
+ * EXPORTED FUNCTIONS *
+ *====================*/
 
 int sync_timecmp(sync_xtime_t t1, sync_xtime_t t2)
 {

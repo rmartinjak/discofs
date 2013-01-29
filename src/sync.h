@@ -13,13 +13,13 @@
 #include <sys/types.h>
 
 
-/*=============*/
-/* DEFINITIONS */
-/*=============*/
+/*=============*
+ * DEFINITIONS *
+ *=============*/
 
-/*----------------------*/
-/* type for mtime/ctime */
-/*----------------------*/
+/*----------------------*
+ * type for mtime/ctime *
+ *----------------------*/
 
 #if HAVE_UTIMENSAT && HAVE_CLOCK_GETTIME
 typedef struct timespec sync_xtime_t;
@@ -32,9 +32,9 @@ typedef time_t sync_xtime_t;
 #endif
 
 
-/*-------------*/
-/* sync object */
-/*-------------*/
+/*-------------*
+ * sync object *
+ *-------------*/
 
 struct sync
 {
@@ -44,22 +44,22 @@ struct sync
 };
 
 
-/*-------------------------------------------*/
-/* callback function type for db_load_sync() */
-/*-------------------------------------------*/
+/*-------------------------------------------*
+ * callback function type for db_load_sync() *
+ *-------------------------------------------*/
 typedef struct sync * (*sync_load_cb_t) (const char*, sync_xtime_t, sync_xtime_t);
 
 
-/*----------------------*/
-/* flags for set_sync() */
-/*----------------------*/
+/*----------------------*
+ * flags for set_sync() *
+ *----------------------*/
 
 #define SYNC_NOHARDLINKS    (1 << 0)
 
 
-/*-----------------------------*/
-/* return values of get_sync() */
-/*-----------------------------*/
+/*-----------------------------*
+ * return values of get_sync() *
+ *-----------------------------*/
 
 /* file is synchronised */
 #define SYNC_SYNC   0
@@ -77,9 +77,9 @@ typedef struct sync * (*sync_load_cb_t) (const char*, sync_xtime_t, sync_xtime_t
 #define SYNC_NOT_FOUND  (1 << 3)
 
 
-/*====================*/
-/* EXPORTED FUNCTIONS */
-/*====================*/
+/*====================*
+ * EXPORTED FUNCTIONS *
+ *====================*/
 
 int sync_timecmp(sync_xtime_t t1, sync_xtime_t t2);
 

@@ -16,9 +16,9 @@
 #include <grp.h>
 
 
-/*=============*/
-/* DEFINITIONS */
-/*=============*/
+/*=============*
+ * DEFINITIONS *
+ *=============*/
 
 /* make options available for everybody including discofs.h */
 extern struct options discofs_options;
@@ -33,9 +33,9 @@ extern struct options discofs_options;
 #define SLEEP_LONG 5
 #define SLEEP_SHORT 2
 
-/*--------------------*/
-/* remote fs features */
-/*--------------------*/
+/*--------------------*
+ * remote fs features *
+ *--------------------*/
 #define FEAT_NS         (1 << 0)
 #define FEAT_XATTR      (1 << 1)
 #define FEAT_HARDLINKS  (1 << 2)
@@ -43,9 +43,9 @@ extern struct options discofs_options;
 #define FS_FEAT(f) (discofs_options.fs_features & FEAT_##f)
 
 
-/*---------------------*/
-/* attribute copy mask */
-/*---------------------*/
+/*---------------------*
+ * attribute copy mask *
+ *---------------------*/
 #define COPYATTR_NO_MODE    (1 << 0)
 #define COPYATTR_NO_OWNER   (1 << 1)
 #define COPYATTR_NO_GROUP   (1 << 2)
@@ -55,13 +55,13 @@ extern struct options discofs_options;
 #define COPYATTR_NFS     (COPYATTR_NO_XATTR)
 
 
-/*=========*/
-/* OPTIONS */
-/*=========*/
+/*=========*
+ * OPTIONS *
+ *=========*/
 
-/*-----------------*/
-/* default options */
-/*-----------------*/
+/*-----------------*
+ * default options *
+ *-----------------*/
 #define DEF_COPYATTR 0
 #define DEF_LOGLEVEL LOG_ERROR
 #define DEF_SCAN_INTERVAL 10

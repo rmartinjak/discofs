@@ -70,9 +70,9 @@ int db_cfg_get_int(const char *option, int *buf);
 int db_cfg_get_str(const char *option, char **buf);
 
 
-/********
+/*======*
  * JOBS *
- ********/
+ *======*/
 
 /* store a job in the database */
 int db_job_store(const struct job *j);
@@ -97,9 +97,9 @@ int db_job_rename_file(const char *from, const char *to);
 int db_job_rename_dir(const char *from, const char *to);
 
 
-/********
+/*======*
  * SYNC *
- ********/
+ *======*/
 
 /* load all sync entries from the db and pass them to _callback_ */
 int db_load_sync(sync_load_cb_t callback);
@@ -115,9 +115,9 @@ int db_sync_rename_file(const char *from, const char *to);
 int db_sync_rename_dir(const char *from, const char *to);
 
 
-/*************
+/*===========*
  * HARDLINKS *
- *************/
+ *===========*/
 
 /* stores all hardlinks that poit to _inode_ in _q_ */
 int db_hardlink_get(ino_t inode, queue *q);

@@ -42,9 +42,9 @@ static char *column_text(sqlite3_stmt *stmt, int n)
     return strdup((const char*)p);
 }
 
-/********************/
-/* GENERAL DB STUFF */
-/********************/
+/********************
+ * GENERAL DB STUFF *
+ ********************/
 
 void db_open(void)
 {
@@ -113,9 +113,9 @@ int db_destroy(void)
 }
 
 
-/**********/
-/* CONFIG */
-/**********/
+/**********
+ * CONFIG *
+ **********/
 
 int db_cfg_delete(const char *option)
 {
@@ -242,9 +242,9 @@ int db_cfg_get_str(const char *option, char **buf)
 }
 
 
-/*******/
-/* JOB */
-/*******/
+/*******
+ * JOB *
+ *******/
 
 int db_job_store(const struct job *j)
 {
@@ -451,9 +451,9 @@ int db_job_delete_rename_to(const char *path)
 }
 
 
-/********/
-/* SYNC */
-/********/
+/********
+ * SYNC *
+ ********/
 
 int db_load_sync(sync_load_cb_t callback)
 {
@@ -554,9 +554,9 @@ int db_sync_delete_path(const char *path)
 }
 
 
-/************/
-/* HARDLINK */
-/************/
+/************
+ * HARDLINK *
+ ************/
 
 int db_hardlink_get(ino_t inode, queue *q)
 {
@@ -631,9 +631,9 @@ int db_hardlink_remove(const char *path)
 }
 
 
-/****************/
-/* RENAME PATHS */
-/****************/
+/****************
+ * RENAME PATHS *
+ ****************/
 
 #define DB_x_RENAME_FILE(name, table, column)                               \
 int db_ ## name ## _rename_file(const char *from, const char *to)           \
