@@ -532,6 +532,27 @@ int db_store_sync(const struct sync *s)
     return res;
 }
 
+int db_sync_delete_path(const char *path)
+{
+    int res = DB_OK;
+    sqlite3_stmt *stmt;
+
+    db_open();
+
+    PREPARE("DELETE FROM " TABLE_SYNC " WHERE path=?;", &stmt);
+    sqlite3_bind_text(stmt, 1, path, -1, SQLITE_STATIC);
+
+    if (sqlite3_step(stmt) != SQLITE_DONE)
+    {
+        ERRMSG("db_sync_delete_path");
+        res = DB_ERROR;
+    }
+
+    sqlite3_finalize(stmt);
+    db_close();
+    return res;
+}
+
 
 /************/
 /* HARDLINK */
@@ -609,31 +630,10 @@ int db_hardlink_remove(const char *path)
     return res;
 }
 
-/***********************/
-/* DELETE/RENAME PATHS */
-/***********************/
 
-#define DB_x_DELETE_PATH(name, table, column)                               \
-int db_ ## name ## _delete_path(const char *path)                           \
-{                                                                           \
-    int res = DB_OK;                                                        \
-    sqlite3_stmt *stmt;                                                     \
-                                                                            \
-    db_open();                                                              \
-                                                                            \
-    PREPARE("DELETE FROM " table " WHERE " # column "=?;", &stmt);          \
-    sqlite3_bind_text(stmt, 1, path, -1, SQLITE_STATIC);                    \
-                                                                            \
-    if (sqlite3_step(stmt) != SQLITE_DONE)                                  \
-    {                                                                       \
-        ERRMSG("db_" #name "_delete_path");                                 \
-        res = DB_ERROR;                                                     \
-    }                                                                       \
-                                                                            \
-    sqlite3_finalize(stmt);                                                 \
-    db_close();                                                             \
-    return res;                                                             \
-}
+/****************/
+/* RENAME PATHS */
+/****************/
 
 #define DB_x_RENAME_FILE(name, table, column)                               \
 int db_ ## name ## _rename_file(const char *from, const char *to)           \
@@ -717,7 +717,6 @@ int db_ ## name ## _rename_dir(const char *from, const char *to)            \
 }
 
 #define DB_x_(n, t, c)      \
-DB_x_DELETE_PATH(n, t, c)   \
 DB_x_RENAME_FILE(n, t, c)   \
 DB_x_RENAME_DIR (n, t, c)
 

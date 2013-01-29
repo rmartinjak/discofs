@@ -92,8 +92,6 @@ int db_job_delete(const char *path, int opmask);
 /* delete all RENAME jobs, where the new name equals _path_ */
 int db_job_delete_rename_to(const char *path);
 
-int db_job_delete_path(const char *path);
-
 /* rename job entries */
 int db_job_rename_file(const char *from, const char *to);
 int db_job_rename_dir(const char *from, const char *to);
@@ -127,8 +125,6 @@ int db_hardlink_get(ino_t inode, queue *q);
 /* add / remove hardlinks */
 int db_hardlink_add(const char *path, ino_t inode);
 int db_hardlink_remove(const char *path);
-
-int db_hardlink_delete_path(const char *path);
 
 /* rename hardlink entries */
 int db_hardlink_rename_file(const char *from, const char *to);
