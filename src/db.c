@@ -371,8 +371,9 @@ int db_job_get(struct job **j)
 
     db_open();
 
-    PREPARE("SELECT rowid, op, time, attempts, path, n1, n2, s1, s2 FROM " TABLE_JOB \
-        "WHERE time <? ORDER BY prio DESC, time ASC LIMIT 1;", &stmt);
+    PREPARE("SELECT rowid, op, time, attempts, path, n1, n2, s1, s2 FROM "
+            TABLE_JOB " WHERE time < ? ORDER BY prio DESC, time ASC LIMIT 1;",
+            &stmt);
     sqlite3_bind_int64(stmt, 1, now);
 
     sql_res = sqlite3_step(stmt);
