@@ -27,11 +27,11 @@
  * tables & schemas *
  *------------------*/
 
-#define TABLE_CFG "config"
-#define SCHEMA_CFG "option TEXT UNIQUE, nval INTEGER, tval TEXT"
+#define TABLE_CFG " config "
+#define SCHEMA_CFG " option TEXT UNIQUE, nval INTEGER, tval TEXT "
 
-#define TABLE_JOB "job"
-#define SCHEMA_JOB                  \
+#define TABLE_JOB " job "
+#define SCHEMA_JOB " "              \
     "rowid INTEGER PRIMARY KEY,"    \
     "prio INTEGER,"                 \
     "op INTEGER,"                   \
@@ -41,20 +41,23 @@
     "n1 INTEGER,"                   \
     "n2 INTEGER,"                   \
     "s1 TEXT,"                      \
-    "s2 TEXT"
+    "s2 TEXT"                       \
+    " "
 
-#define TABLE_SYNC "sync"
-#define SCHEMA_SYNC                 \
+#define TABLE_SYNC " sync "
+#define SCHEMA_SYNC " "             \
     "path TEXT UNIQUE NOT NULL,"    \
     "mtime_s INTEGER,"              \
     "mtime_ns INTEGER,"             \
     "ctime_s INTEGER,"              \
-    "ctime_ns INTEGER"
+    "ctime_ns INTEGER"              \
+    " "
 
-#define TABLE_HARDLINK "hardlink"
-#define SCHEMA_HARDLINK             \
+#define TABLE_HARDLINK " hardlink "
+#define SCHEMA_HARDLINK " "         \
     "path TEXT UNIQUE NOT NULL,"    \
-    "inode INTEGER"
+    "inode INTEGER"                 \
+    " "
 
 
 /*--------------------*
