@@ -736,6 +736,64 @@ int db_hardlink_remove(const char *path)
     return res;
 }
 
+int db_hardlink_offload_jobs(const char *path, int mask)
+{
+    int res = DB_OK;
+    sqlite3_stmt *stmt;
+
+    queue *q = q_init();
+    char *p;
+
+    if (!q)
+        return DB_ERROR;
+
+    /* get all paths pointing to the same inode */
+    res = db_hardlink_get_by_path(path, q);
+    if (res != DB_OK)
+    {
+        q_free(q, NULL);
+        return res;
+    }
+
+    /* get the first one that is different */
+    while ((p = q_dequeue(q)))
+    {
+        if (!strcmp(p, path))
+        {
+            free(p);
+            continue;
+        }
+        break;
+    }
+
+    if (!p)
+    {
+        return DB_NOTFOUND;
+    }
+
+    /* offload jobs from _path_ to _p_ */
+    db_open();
+
+    PREPARE("UPDATE " TABLE_JOB " SET path = ? WHERE path = ? "
+        "AND (op & ?) != 0;", &stmt);
+    sqlite3_bind_text (stmt, 1, p, -1, SQLITE_STATIC);
+    sqlite3_bind_text (stmt, 2, path, -1, SQLITE_STATIC);
+    sqlite3_bind_int64(stmt, 3, mask);
+
+    if (sqlite3_step(stmt) != SQLITE_DONE)
+    {
+        ERRMSG("offloading jobs");
+        res = DB_ERROR;
+    }
+
+    free(p);
+    q_free(q, free);
+
+    sqlite3_finalize(stmt);
+    db_close();
+
+    return res;
+}
 
 /*--------------*
  * rename paths *

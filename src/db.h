@@ -122,6 +122,10 @@ int db_hardlink_get_by_path(const char *path, queue *q);
 int db_hardlink_add(const char *path, ino_t inode);
 int db_hardlink_remove(const char *path);
 
+/* offload all jobs matching _mask_ from _path_ to any other path linked to
+   the same inode */
+int db_hardlink_offload_jobs(const char *path, int mask);
+
 /* rename hardlink entries */
 int db_hardlink_rename_file(const char *from, const char *to);
 int db_hardlink_rename_dir(const char *from, const char *to);
