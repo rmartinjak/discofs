@@ -625,6 +625,32 @@ int db_sync_delete_path(const char *path)
  * hardlink *
  *----------*/
 
+int db_hardlink_inode(const char *path, ino_t *inode)
+{
+    int res = DB_OK, sql_res;
+    sqlite3_stmt *stmt;
+
+    db_open();
+
+    PREPARE("SELECT inode FROM " TABLE_HARDLINK " WHERE path=?;", &stmt);
+    sqlite3_bind_text (stmt, 1, path, -1, SQLITE_STATIC);
+
+    sql_res = sqlite3_step(stmt);
+    if (sql_res == SQLITE_ROW)
+    {
+        *inode = sqlite3_column_int64(stmt, 0);
+    }
+    else if (sql_res != SQLITE_DONE)
+    {
+        ERRMSG("finding inode");
+        res = DB_ERROR;
+    }
+
+    sqlite3_finalize(stmt);
+    db_close();
+    return res;
+}
+
 int db_hardlink_get(ino_t inode, queue *q)
 {
     int res = DB_OK, sql_res;
@@ -652,6 +678,19 @@ int db_hardlink_get(ino_t inode, queue *q)
     sqlite3_finalize(stmt);
     db_close();
     return res;
+}
+
+int db_hardlink_get_by_path(const char *path, queue *q)
+{
+    int res;
+    ino_t inode;
+
+    res = db_hardlink_inode(path, &inode);
+
+    if (res != DB_OK)
+        return res;
+
+    return db_hardlink_get(inode, q);
 }
 
 int db_hardlink_add(const char *path, ino_t inode)

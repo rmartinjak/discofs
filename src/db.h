@@ -109,8 +109,14 @@ int db_sync_rename_dir(const char *from, const char *to);
  * hardlinks *
  *-----------*/
 
-/* stores all hardlinks that poit to _inode_ in _q_ */
+/* get inode to which _path_ points to (if known) */
+int db_hardlink_inode(const char *path, ino_t *inode);
+
+/* store all hardlinks that poit to _inode_ in _q_ */
 int db_hardlink_get(ino_t inode, queue *q);
+
+/* store all hardlinks pointing to the same inode as _path_ in _q_ */
+int db_hardlink_get_by_path(const char *path, queue *q);
 
 /* add / remove hardlinks */
 int db_hardlink_add(const char *path, ino_t inode);
