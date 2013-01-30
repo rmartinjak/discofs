@@ -289,6 +289,10 @@ int job_rename_file(const char *from, const char *to)
 int job_delete(const char *path, job_op mask)
 {
     job_store();
+
+    if (db_hardlink_offload_jobs(path, mask & ~JOB_RENAME) == DB_ERROR)
+        return -1;
+
     if (db_job_delete(path, mask) != DB_OK)
         return -1;
 
