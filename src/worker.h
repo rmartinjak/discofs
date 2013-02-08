@@ -12,12 +12,12 @@
 
 #include <pthread.h>
 
-void worker_wakeup();
+void worker_wakeup(void);
 void worker_sleep(unsigned int seconds);
 
-void worker_block();
-void worker_unblock();
-int worker_blocked();
+void worker_block(void);
+void worker_unblock(void);
+int worker_blocked(void);
 
 void worker_cancel_scan(void);
 

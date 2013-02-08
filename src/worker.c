@@ -45,7 +45,7 @@ static void worker_scan_dir(queue *scan_q, queue *new_hardlink_q);
 static int worker_cancel_scan_dir = 0;
 
 /* ====== SLEEP ====== */
-void worker_wakeup()
+void worker_wakeup(void)
 {
     pthread_mutex_lock(&m_worker_wakeup);
     DEBUG("waking up worker thread\n");
@@ -66,14 +66,14 @@ void worker_sleep(unsigned int seconds)
 
 
 /* ====== BLOCK ====== */
-void worker_block()
+void worker_block(void)
 {
     pthread_mutex_lock(&m_worker_block);
     worker_block_n++;
     pthread_mutex_unlock(&m_worker_block);
 }
 
-void worker_unblock()
+void worker_unblock(void)
 {
     pthread_mutex_lock(&m_worker_block);
     if (worker_block_n)
@@ -83,7 +83,7 @@ void worker_unblock()
     pthread_mutex_unlock(&m_worker_block);
 }
 
-int worker_blocked()
+int worker_blocked(void)
 {
     return (worker_block_n != 0);
 }
