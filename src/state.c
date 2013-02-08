@@ -17,13 +17,11 @@ static int state_force_offline = 0;
 /* mutex for getting/setting the state */
 static pthread_mutex_t m_state = PTHREAD_MUTEX_INITIALIZER;
 
-/* returns the current state */
-int state_get()
+int state_get(void)
 {
     return state;
 }
 
-/* set the new state; this has no effect when current state is STATE_EXITING */
 void state_set(int s, int *oldstate)
 {
     /* put old state in caller-provided pointer */
@@ -49,14 +47,12 @@ void state_set(int s, int *oldstate)
     pthread_mutex_unlock(&m_state);
 }
 
-/* turn "force offline" on/off */
 void state_toggle_force_offline(void)
 {
     state_force_offline = !state_force_offline;
     INFO("force offline: %s\n", state_force_offline ? "on" : "off");
 }
 
-/* state checking thread */
 void *state_check_main(void *arg)
 {
     int oldstate = STATE_OFFLINE;

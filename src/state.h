@@ -13,10 +13,16 @@ enum states { STATE_ONLINE, STATE_OFFLINE, STATE_EXITING };
 #define EXITING (state_get() == STATE_EXITING)
 
 
+/* returns the current state */
 int state_get();
+
+/* set the state; this has no effect when current state is STATE_EXITING */
 void state_set(int state, int *oldstate);
 
+/* turn "force offline" on/off */
 void state_toggle_force_offline(void);
+
+/* state checking thread */
 void *state_check_main(void *arg);
 
 #endif
