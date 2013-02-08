@@ -89,7 +89,6 @@ static int transfer_pull_dir(const char *path)
     return res;
 }
 
-/* partially transfer file. if "from" and "to" are given, open files first */
 int transfer(const char *from, const char *to)
 {
 #define CLOSE(fd) { if (close(fd)) PERROR("error closing fd"); }
@@ -361,7 +360,6 @@ void transfer_abort(void)
     pthread_mutex_unlock(&m_transfer);
 }
 
-/* instantly copy a file from remote to cache */
 int transfer_instant_pull(const char *path)
 {
     int res;
