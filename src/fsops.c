@@ -127,7 +127,7 @@ int op_readlink(const char *path, char *buf, size_t bufsize)
     int res;
     char *p;
 
-    p = get_path(path);
+    p = (ONLINE) ? remote_path(path) : cache_path(path);
     res = readlink(p, buf, bufsize);
     free(p);
 
@@ -868,7 +868,7 @@ int op_statfs(const char *path, struct statvfs *buf)
     int res;
     char *p;
 
-    p = get_path(path);
+    p = (ONLINE) ? remote_path(path) : cache_path(path);
     res = statvfs(p, buf);
     free(p);
 
@@ -919,7 +919,7 @@ int op_getxattr(const char *path, const char *name, char *value, size_t size)
     if (!(discofs_options.fs_features & FEAT_XATTR))
         return -ENOTSUP;
 
-    p = get_path(path);
+    p = (ONLINE) ? remote_path(path) : cache_path(path);
 
     res = lgetxattr(p, name, value, size);
     free(p);
@@ -937,7 +937,7 @@ int op_listxattr(const char *path, char *list, size_t size)
     if (!(discofs_options.fs_features & FEAT_XATTR))
         return -ENOTSUP;
 
-    p = get_path(path);
+    p = (ONLINE) ? remote_path(path) : cache_path(path);
     res = llistxattr(p, list, size);
     free(p);
 

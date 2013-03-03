@@ -39,9 +39,6 @@ char *join_path2(const char *p1, size_t n1, const char *p2, size_t n2);
 #define cache_path2(p, n) join_path2(CACHE_ROOT, CACHE_ROOT_LEN, p, n)
 #define cache_path(p) cache_path2(p, 0)
 
-#define get_path2(p, n) (ONLINE) ? remote_path2(p, n) : cache_path2(p, n)
-#define get_path(p) get_path2(p, 0)
-
 int is_running(const char *pidfile);
 int is_mounted(const char *mpoint);
 int is_reachable(const char *host);
