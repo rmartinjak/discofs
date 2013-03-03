@@ -10,41 +10,50 @@
 \usepackage{listings}
 \lstset{
 	language=C,
+	backgroundcolor=\color{white!90!black},
 	stringstyle=\color{purple},
-	numbers=left,
-	basicstyle=\ttfamily,
-	numberstyle=\tiny\ttfamily,
+	commentstyle=\color{green!40!black},
+	numbers=none,
+	basicstyle=\small\ttfamily,
 	numbersep=5pt,
 	showstringspaces=false,
 	captionpos=b,
+	breaklines=true,
 }
 \usepackage{courier}
 \usepackage{underscore}
 \usepackage{xspace}
+\usepackage{multicol}
 
 % macro definitions (((
+\newcommand{\myemail}{\href{mailto:rob@rmartinjak.de}{rob@rmartinjak.de}\xspace}
 \newcommand{\software}[1]{\textsc{\textbf{#1}}\xspace}
 \newcommand{\discofs}{\software{DISCOFS}}
-\newcommand{\fuse}{\software{FUSE}}
-\newcommand{\sqlite}{\software{SQLite}}
+\newcommand{\fuse}{\href{http://fuse.sourceforge.net/}{\software{FUSE}\xspace}}
+\newcommand{\git}{\href{http://git-scm.com/}{\software{Git}}\xspace}
+\newcommand{\sqlite}{\href{http://sqlite.org/}{\software{SQLite}}\xspace}
 
-\newcommand{\component}[1]{\hyperref[comp:#1]{\textsc{#1}}\xspace}
-\newcommand{\job}{\component{job}}
+\newcommand{\github}{\href{https://github.com}{GitHub}\xspace}
+
+\newcommand{\keyword}[1]{\hyperref[keyword:#1]{\textsc{#1}}\xspace}
+\newcommand{\job}{\keyword{job}}
 \newcommand{\jobs}{\job{}s\xspace}
 \newcommand{\jobtype}[1]{\texttt{#1}\xspace}
 \newcommand{\push}{\jobtype{push}}
 \newcommand{\pull}{\jobtype{pull}}
-\newcommand{\sync}{\component{sync}}
-\newcommand{\cache}{\component{cache}}
-\newcommand{\remote}{\component{remote}}
-\newcommand{\database}{\component{database}}
+\newcommand{\sync}{\keyword{sync}}
+\newcommand{\cache}{\keyword{cache}}
+\newcommand{\remote}{\keyword{remote}}
+\newcommand{\database}{\keyword{database}}
 
-\newcommand{\state}{\component{state}}
-\newcommand{\online}{\component{online}}
-\newcommand{\offline}{\component{offline}}
+\newcommand{\state}{\keyword{state}}
+\newcommand{\online}{\keyword{online}}
+\newcommand{\offline}{\keyword{offline}}
 
-\newcommand{\workerthread}{\hyperref[comp:workerthread]{\textsc{worker thread}}\xspace}
-\newcommand{\statecheckthread}{\hyperref[comp:statecheckthread]{\textsc{state check thread}}\xspace}
+\newcommand{\conflict}{\keyword{conflict}}
+
+\newcommand{\workerthread}{\hyperref[keyword:workerthread]{\textsc{worker thread}}\xspace}
+\newcommand{\statecheckthread}{\hyperref[keyword:statecheckthread]{\textsc{state check thread}}\xspace}
 
 
 \newcommand{\loglevel}[1]{\textit{#1}\xspace}
@@ -96,7 +105,7 @@ either when the user accesses the file or by periodic scanning.
 \newcommand{\sometown}{Atlantis}
 \newcommand{\anothertown}{Bikini Bottom}
 
-\somename works at \somecompany in \sometown. Sometimes she has to travel 
+\somename works at \somecompany in \sometown. Sometimes she has to travel
 to a subsidiary in \anothertown. The files for a project she works on are
 stored on a NFS share at the headquarters in \sometown.
 
@@ -115,23 +124,80 @@ her. Any changes she makes will be recorded by \discofs and applied to the NFS
 share once she is back in \sometown. If a file \somename modified was also
 changed on the NFS share, \discofs will resolve this by keeping one of the two
 versions of the file and deleting or renaming the other (see
-\sectionref{sec:conflicts} for details on conflict resolution).
+\sectionref{keyword:conflict} for details on conflict resolution).
+%)))
+
+\subsection{Installing and running \discofs} %(((
+
+To download, install and use \discofs, the following tools and libraries are
+needed:
+
+\begin{itemize}
+	\item A \git client to obtain the source code from \github (optional but
+		recommended).
+	\item A C compiler (preferably
+		\href{http://gnu.org/software/gcc}{\software{GCC}}
+		or
+		\href{http://clang.llvm.org/}{\software{clang}}).
+	\item \href{http://gnu.org/software/make}{\software{GNU Make}} or a
+		similar Make implementation.
+	\item The \fuse library and headers.
+	\item The \sqlite library and headers.
+\end{itemize}
+
+
+Installing \discofs is done by performing the following steps:
+
+\lstset{language=bash}
+\begin{lstlisting}[deletekeywords={cd},]
+# clone the git repository:
+git clone --recursive https://github.com/rmartinjak/discofs.git
+cd discofs
+
+# Run the configure script.
+# By default, the executable and manual will be installed
+# in /usr/local. To change this, use the --prefix
+# argument, e.g.:
+#./configure --prefix=/usr
+./configure
+
+# Run Make
+make
+
+# Install the executable and manual.
+# Depending on the prefix you might need to do this
+# using a privileged user acoount.
+make install
+\end{lstlisting}
+
+To mount \discofs, run the \lstinline|discofs| command. Assuming the networked
+file system you want to mirror is mounted at \lstinline|/home/alice/nfs| and
+your desired mount point is \lstinline|/home/alice/discofs|, run
+\begin{lstlisting}
+discofs /home/alice/nfs /home/alice/discofs
+\end{lstlisting}
+
+The available command line arguments and mount options are documented in the
+\discofs manual. To access it, type \lstinline|man discofs|.
+
+\lstset{language=C}
 %)))
 
 %)))
+
 
 \section{Components} %(((
 
 \subsection{Overview} %(((
-\discofs consists of the following components: 
+\discofs consists of the following components:
 
 \begin{itemize}
 	\item The functions which implement the file system operations (see
-		\hyperref[sec:fsops]{appendix~\ref{sec:fsops}}).
+		\hyperref[appendix:fsops]{appendix~\ref{appendix:fsops}}).
 	\item The \cache, a local copy of the remote file system.
 	\item The \sync table keeping track of the synchronisation time of the file
 		system objects.
-	\item The \job system to organize the replication of performed operations
+	\item The \job system to organise the replication of performed operations
 		onto the remote file system.
 	\item An \database for persistent storage of \job and \sync data.
 	\item A \statecheckthread that tests the availability of the remote file
@@ -142,67 +208,80 @@ versions of the file and deleting or renaming the other (see
 %)))
 
 \subsection{The \cache} %(((
-\label{comp:cache}
+\label{keyword:cache}
 The \cache contains a local copy of the \remote file system. Reading and writing
 data is always performed on the \cache. If a file is opened that doesn't exist
 in the \cache yet, it is instantly pulled from the \remote file system.
 %)))
 
 \subsection{The \sync table} %(((
-\label{comp:sync}
+\label{keyword:sync}
 \discofs needs to keep track of the time a file was last synchronised. Each time
 a file on \remote is changed or modified, the \texttt{mtime} and \texttt{ctime} on
 the \remote file are recorded. If the time stamps of a \remote file are newer than
-the last recorded ones, \discofs considers the file to be modified/changed. 
+the last recorded ones, \discofs considers the file to be modified/changed.
 
 The \sync table is implemented as an in-memory hash table to provide fast
-lookups. Changes made to it are periodically saved to the \database by the
-\workerthread (see \sectionref{comp:workerthread}) and on program termination
+lookups. The key used is the file path \emph{relative} to the mount point.
+Changes made to it are periodically saved to the \database by the
+\workerthread (see \sectionref{keyword:workerthread}) and on program termination
 (i.e. unmounting \discofs).
 %)))
 
 \subsection{The \job system} %(((
-\label{comp:job}
+\label{keyword:job}
 \discofs uses a \job system to manage the synchronisation between \cache and
-\remote. 
+\remote.
 Every operation performed in \online state is performed on the
 \remote side immediately, except for \fsopref{write}.
 
 Performing a \fsopref{write} while \online or any operation that
-\emph{modifies} the file sytem while \offline is recorded as a \job, along with
-their priority (see below) and time stamp. New \jobs are added to a queue and
+\emph{modifies} the file sytem while \offline is recorded as a job, along with
+their priority (see below) and time stamp. New jobs are added to a queue and
 occasionally saved to the \database.
 
-\subsubsection{High priority jobs}
-The following \jobs have \textbf{high} priority, because other \jobs might rely
-on the fact that a file or directory does or doesn't exist:
-\begin{itemize}
-	\item \fsopref{create} and \fsopref{mknod}
-	\item \fsopref{mkdir}
-	\item \fsopref{unlink}
-\end{itemize}
+\subsubsection{Job priorities}
+Below is an overview of all job types. A few jobs have \textbf{high}
+priority, because other jobs might rely on the fact that a file or directory
+does or doesn't exist. The
+\texttt{push}\footnote{transfer file from \cache to \remote. \push jobs are created if a
+	file was written to.}
+and
+\texttt{pull}\footnote{transfer file from \remote to \cache. \pull jobs are created by
+	the \workerthread when polling the \remote file system.}
+job types for transferring files have \textbf{low} priority because they can't be applied
+immediately.
 
-\subsubsection{Medium priority jobs}
-The following \jobs have \textbf{medium} priority:
-\begin{itemize}
-	\item \fsopref{rename}
-	\item \fsopref{symlink}
-	\item \fsopref{link}
-	\item \fsopref{rmdir}
-	\item \fsopref{chmod}
-	\item \fsopref{chown}
-	\item \fsopref{setxattr}
-\end{itemize}
+\begin{multicols}{3}
 
-\subsubsection{Low priority jobs}
-The \jobs for transferring files have \textbf{low} priority because they can't be applied
-immediately:
-\begin{itemize}
-	\item \push: transfer file from \cache to \remote. \push jobs are created if a
-			file was written to.
-	\item \pull: transfer file from \remote to \cache. \pull jobs are created by
-			the \workerthread when polling the \remote file system.
-\end{itemize}
+\begin{tabular}{l}
+	\textbf{High priority} \\
+	\fsopref{create} / \fsopref{mknod} \\
+	\fsopref{mkdir} \\
+	\fsopref{unlink} \\
+\end{tabular}
+
+\vfill
+\columnbreak
+\begin{tabular}{l}
+	\textbf{Medium priority} \\
+	\fsopref{rename} \\
+	\fsopref{symlink} \\
+	\fsopref{link} \\
+	\fsopref{rmdir} \\
+	\fsopref{chmod} \\
+	\fsopref{chown} \\
+	\fsopref{setxattr} \\
+\end{tabular}
+
+\vfill
+\columnbreak
+\begin{tabular}{l}
+\textbf{Low priority} \\
+	\push \\
+	\pull \\
+\end{tabular}
+\end{multicols}
 
 
 \subsubsection{Job selection}
@@ -211,7 +290,7 @@ Selecting which job has to be performed next is based on the following criteria:
 \begin{enumerate}
 		\item Select jobs whose time stamps are in the past.
 		\item From these, select jobs which have the highest priority in the queue.
-		\item from these, select the one with the time stamp furthest in the past.
+		\item From these, select the one with earliest time stamp.
 \end{enumerate}
 
 The first condition makes it possible to defer jobs to be retried after a
@@ -226,7 +305,7 @@ the future so they can be retried. The number of retries is limited.
 %)))
 
 \subsection{The \database} %(((
-\label{comp:database}
+\label{keyword:database}
 \discofs stores its metadata, consisting of
 \begin{itemize}
 	\item the \sync table
@@ -239,7 +318,8 @@ selecting which job to perform next can be done easily with just one SQL query.
 %)))
 
 \subsection{The \statecheckthread} %(((
-\label{comp:statecheckthread}
+\label{keyword:state}
+\label{keyword:statecheckthread}
 The \statecheckthread periodically tests whether the \remote file system is
 available. The \state can be either \online or \offline. The following criteria
 must be matched:
@@ -249,7 +329,7 @@ must be matched:
 		parent directory. See the \texttt{stat(2)} man page for details.
 
 	\item \emph{Optional}: If a hostname or IP address was specified with the
-		\texttt{host} mount option, the given host must be reachable via the 
+		\texttt{host} mount option, the given host must be reachable via the
 		\texttt{ping(8)} utility.
 
 	\item \emph{Optional}: If a ``PID file'' was specified with the \texttt{pid}
@@ -257,10 +337,14 @@ must be matched:
 		i.e. \texttt{kill(pid,~0)} returns zero (see \texttt{kill(2)} for
 		details).
 \end{itemize}
+
+If the \state changes from \offline to \online, the sleeping \workerthread is
+``woken up'' from sleeping.
 %)))
 
 \subsection{The \workerthread} %(((
-\label{comp:workerthread}
+\label{keyword:workerthread}
+%(((
 Under certain circumstances, other parts of \discofs will \emph{block} the
 \workerthread to prevent it from hogging the bandwidth by performing a
 \push or \pull job.
@@ -273,7 +357,7 @@ The \workerthread performs the following tasks:
 	\item If the \state is \online and the \workerthread is not blocked, do one
 			of the following tasks, whichever one can be applied.
 \end{itemize}
-
+%)))
 
 \subsubsection{Transferring files} %(((
 \label{sec:worker_transfer}
@@ -309,17 +393,129 @@ corresponding entries in the \sync table. Symbolic links will be synchronised
 instantly. If a regular file is new or modified, the \workerthread will
 schedule a \pull job.
 %)))
+%)))
+
+%)))
+
+
+\section{File system operations} %(((
+This section describes the ``work flow'' of \discofs when performing certain
+file system operations.
+
+\subsection{Trivial operations} %(((
+Many operations are trivial and need not be explained here. They are generally
+just ``handed down'' to the file in the \cache and/or on the \remote file
+system. \fuse makes sure that symbolic links are already dereferenced when
+needed, that means \discofs will never do so (e.g. use \texttt{lstat} instead of
+\texttt{stat}).
+
+For a list of all implemented operations, see
+\hyperref[appendix:fsops]{appendix~\ref{appendix:fsops}}.
+
+%)))
+
+\subsection{Get file attributes: \fsopref{getattr}} %(((
+This operation is similar to \texttt{stat(2)}. The implementation is quite
+trivial, but \fsopref{getattr} deserves mentioning because it is the most
+frequently called operation. \discofs implements \fsopref{getattr} by calling
+\texttt{lstat} on the file in the \cache. If this fails because the file does
+not yet exist and the status is \online, \discofs will try a \texttt{lstat} on the
+\remote file.
+%)))
+
+\subsection{Read directory contents: \fsopref{readdir}} %(((
+When reading directory contents while \online, \discofs will read both the
+\cache and \remote directory, and merge the contents (removing duplicates) into
+a single list.
+%)))
+
+\subsection{Rename a file: \fsopref{rename}} %(((
+Renaming is a quite expensive operation in \discofs, especially for directories.
+\discofs has to update the \sync table, \job queue and \database entries for the
+matching path. In case of a directory, the path for any object below it must be
+updated.
+
+During re-synchronisation, attempting a \fsopref{rename} on a modified
+\remote \emph{target} will result in a \conflict.
+%)))
+
+\subsection{Open a file: \fsopref{open} / \fsopref{create}} %(((
+Opening a file will always be performed in the \cache. If the target doesn't yet
+exist in the \cache or has been modified on the \remote file system, it is
+pulled \emph{instantly} before opening. This way the user will never work with
+an outdated version of the file.
+As long as a file is opened, there will be no attempts to transfer it (in
+either direction).
+%)))
+
+\subsection{Modify file content: \fsopref{write} / \fsopref{truncate}} %(((
+Performing a \fsopref{write} on a file will \emph{mark} it as ``dirty''. When
+all file descriptors of the file are closed (i.e. upon \fsopref{release}), a
+\texttt{push} job will be scheduled.
+The \fsopref{truncate} operation behaves similar when \offline. When \online,
+it will be applied to the \remote file immediately.
+
+Performing a \texttt{push} job on a file that has been modified on the \remote
+file system will result in a \conflict.
+%)))
+
+\subsection{Remove a file: \fsopref{unlink}} %(((
+When a file is removed, its entry in the \sync table and all outstanding jobs
+for the file are deleted. This includes \fsopref{rename} jobs with the file path
+as the target name. If the file is currently being transferred (either
+direction), this transfer will be aborted.
+If an \fsopref{unlink} job is attempted on a modified file, this will \emph{NOT}
+cause a \conflict but simply trigger scheduling of a \texttt{pull} job.
+%)))
+
+% hard links don't work properly yet
+% \subsection{Create a hard link: \fsopref{link}} %(((
+%)))
+
+\subsection{Conflicts} %(((
+\label{keyword:conflict}
+A \conflict is a situation in where a file has been modified both in the \cache
+and on the \remote file system independently. \discofs will not attempt to merge
+those modifications. Instead, it will decide which file to keep according to a
+user-specified (with the \texttt{conflict} mount option) rule:
+\begin{itemize}
+	\item \textbf{newer}: Keep the file with the latest time stamp.
+	\item \textbf{mine}: Always keep the file from the \cache.
+	\item \textbf{theirs}: Always keep the file from the \remote file system.
+\end{itemize}
+
+The other file will be \emph{deleted} or \emph{renamed} if at least one of the
+\texttt{bprefix} or \texttt{bsuffix} mount options is specified (see
+\lstinline|man discofs| for details).
 
 %)))
 
 %)))
+
 
 \section{Development} %(((
 
 \subsection{Status}
-Hard links are currently broken in multiple ways. See the
+Most features needed for everyday usage are implemented and seem to work pretty
+well. More extensive testing is needed to find corner cases that produce
+problematic behaviour. An exception to this are hard links, they are currently
+broken in multiple ways.
+
+For a list of what else is wrong, see the
 \href{https://github.com/rmartinjak/discofs/issues}{issues on GitHub}.
+
+\subsection{How to contribute}
+Use it! If something strange happens, try to reproduce it and submit a bug
+report, either as an issue on \github or to \myemail.
+Pull requests are of course also welcome!
+
+\subsection{Future plans}
+The ultimate goal is making \discofs reliable enough to mount a users
+\texttt{\$HOME} directory. If that is given, performance should be improved,
+especially renaming files is currently very expensive.
+Apart from that, no additional features are planned yet.
 %)))
+
 
 % APPENDIX
 
@@ -329,7 +525,7 @@ Hard links are currently broken in multiple ways. See the
 
 \begin{appendix} %(((
 \section{Supported file system operations} %(((
-\label{sec:fsops}
+\label{appendix:fsops}
 \fuse defines a set of operations (see the
 \href{http://fuse.sourceforge.net/doxygen/structfuse__operations.html}{\fuse
 API documentation}) of which \discofs implements the following:
