@@ -1,0 +1,40 @@
+\fsop{statfs}{statvfs}{Get file system statistics.}
+
+\fsop{getattr}{stat/lstat}{Get file status for a path.}
+\fsop{fgetattr}{fstat}{Get file status for an open file descriptor.}
+\fsop{access}{}{Determine accessibility of a file.}
+
+\fsop{create}{open}{Create and open a file.}
+\fsop{open}{}{Open an \emph{existing} file.}
+\fsop{truncate}{}{Truncate a file to a specified length.}
+\fsop{read}{}{Read data from a file decriptor.}
+\fsop{write}{}{Write data to a file descriptor.}
+\fsop{release}{-}{Called when \emph{all} references to an open file are closed. \fuse guarantees that there is exactly one \texttt{release()} for every \texttt{open()}.}
+
+\fsop{flush}{-}{Called on each \texttt{close()} of a file descriptor.
+There may be multiple \texttt{flush()} calls for an \texttt{open()} call.}
+
+\fsop{fsync}{fsync/fdatasync}{Synchronise file content to the underlying device.}
+
+\fsop{symlink}{}{Create a symbolic link.}
+\fsop{readlink}{}{Read the contents of a symbolic link.}
+
+\fsop{mknod}{}{Create a (special) file.}
+\fsop{unlink}{}{Delete a name from the file system.}
+\fsop{link}{}{Create a new link (hard link) to an existing file.}
+
+\fsop{rename}{}{Rename (and/or move) a file.}
+
+\fsop{chown}{}{Change ownership of a file.}
+\fsop{chmod}{}{Change access permission of a file.}
+\fsop{utimens}{utimensat}{Change file timestamps (nanosecond precision).}
+\fsop{mkdir}{}{Create directory.}
+\fsop{rmdir}{}{Remove directory.}
+\fsop{opendir}{}{Open directory stream.}
+\fsop{readdir}{}{Read from directory stream.}
+\fsop{releasedir}{}{Close directory stream.}
+\fsop{fsyncdir}{fsync/fdatasync}{Like \fsopref{fsync}, but for directories.}
+
+\fsop{setxattr}{lsetxattr}{Set extended attribute.}
+\fsop{getxattr}{lgetxattr}{Retrieve extended attribute.}
+\fsop{listxattr}{llistxattr}{List extended attributes.}
