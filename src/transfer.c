@@ -77,10 +77,10 @@ static int transfer_pull_dir(const char *path)
         {
             res2 = transfer_pull_dir(parent);
             free(parent);
-        }
 
-        if (!res2)
-            res = clone_dir(pr, pc);
+            if (!res2)
+                res = clone_dir(pr, pc);
+        }
     }
 
     free(pr);
