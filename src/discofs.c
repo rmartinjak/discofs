@@ -622,13 +622,10 @@ int main(int argc, char **argv)
     /* set (no) flags */
     sig.sa_flags = 0;
 
-    /* empty signal mask */
+    /* don't ignore any signal */
     sigemptyset(&sig.sa_mask);
 
-    /* add signals to catch */
-    sigaddset(&sig.sa_mask, SIGHUP);
-
-    /* finally install signal handler */
+    /* install signal handler for USR1 and USR2 */
     sigaction(SIGUSR1, &sig, NULL);
     sigaction(SIGUSR2, &sig, NULL);
 
