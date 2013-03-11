@@ -1,0 +1,549 @@
+% vim: foldmarker=(((,))) ts=2 sw=2
+
+\documentclass[a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[usenames,dvipsnames,svgnames]{xcolor}
+\usepackage[colorlinks=true, linkcolor=black, urlcolor=blue!80!black]{hyperref}
+\usepackage{ifthen}
+\usepackage{listings}
+\lstset{
+	language=C,
+	backgroundcolor=\color{white!90!black},
+	stringstyle=\color{purple},
+	commentstyle=\color{green!40!black},
+	numbers=none,
+	basicstyle=\small\ttfamily,
+	numbersep=5pt,
+	showstringspaces=false,
+	captionpos=b,
+	breaklines=true,
+}
+\usepackage{courier}
+\usepackage{underscore}
+\usepackage{xspace}
+\usepackage{multicol}
+
+% macro definitions (((
+\newcommand{\myemail}{\href{mailto:rob@rmartinjak.de}{rob@rmartinjak.de}\xspace}
+\newcommand{\software}[1]{\textsc{\textbf{#1}}\xspace}
+\newcommand{\discofs}{\software{DISCOFS}}
+\newcommand{\fuse}{\href{http://fuse.sourceforge.net/}{\software{FUSE}\xspace}}
+\newcommand{\git}{\href{http://git-scm.com/}{\software{Git}}\xspace}
+\newcommand{\sqlite}{\href{http://sqlite.org/}{\software{SQLite}}\xspace}
+
+\newcommand{\github}{\href{https://github.com}{GitHub}\xspace}
+
+\newcommand{\keyword}[1]{\hyperref[keyword:#1]{\textsc{#1}}\xspace}
+\newcommand{\job}{\keyword{job}}
+\newcommand{\jobs}{\job{}s\xspace}
+\newcommand{\jobtype}[1]{\texttt{#1}\xspace}
+\newcommand{\push}{\jobtype{push}}
+\newcommand{\pull}{\jobtype{pull}}
+\newcommand{\sync}{\keyword{sync}}
+\newcommand{\cache}{\keyword{cache}}
+\newcommand{\remote}{\keyword{remote}}
+\newcommand{\database}{\keyword{database}}
+
+\newcommand{\state}{\keyword{state}}
+\newcommand{\online}{\keyword{online}}
+\newcommand{\offline}{\keyword{offline}}
+
+\newcommand{\conflict}{\keyword{conflict}}
+
+\newcommand{\workerthread}{\hyperref[keyword:workerthread]{\textsc{worker thread}}\xspace}
+\newcommand{\statecheckthread}{\hyperref[keyword:statecheckthread]{\textsc{state check thread}}\xspace}
+
+
+\newcommand{\loglevel}[1]{\textit{#1}\xspace}
+\newcommand{\ERROR}{\loglevel{ERROR}}
+\newcommand{\INFO}{\loglevel{INFO}}
+\newcommand{\VERBOSE}{\loglevel{VERBOSE}}
+\newcommand{\DEBUG}{\loglevel{DEBUG}}
+\newcommand{\FSOP}{\loglevel{FSOP}}
+
+
+
+\newcommand{\fsopref}[1]{\hyperref[fsop:#1]{\texttt{#1}}}
+\newcommand{\sectionref}[1]{\hyperref[#1]{section~\ref{#1}}}
+%)))
+
+\title{\discofs \\ \textsc{\small \textbf{DISCO}nnected \textbf{F}ile \textbf{S}ystem} \\ Documentation}
+\author{Robin Martinjak}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\pagebreak
+
+\tableofcontents
+\pagebreak
+
+
+\section{Introduction} %(((
+
+\subsection{Purpose of \discofs} %(((
+The main goal of \discofs is to provide a transparent layer between the local
+file system of a computer and a networked file system residing on a remote
+server. \discofs is designed to be completely agnostic of the types of
+\emph{both} file systems and to work without the need of installing any
+additional software on the server side.
+
+The user is able to access all files and directories at all times, even if there
+is currently no connection to the server. To accomplish this, all operations are
+performed on a local copy of the file system and then replayed onto the remote
+side, immediately if the user is ``online'', else after the connection has been
+re-established. Changes on the remote file system are detected automatically,
+either when the user accesses the file or by periodic scanning.
+%)))
+
+\subsection{Example use case} %(((
+\newcommand{\somename}{Alice\xspace}
+\newcommand{\somecompany}{ACME~Inc.\ }
+\newcommand{\sometown}{Atlantis}
+\newcommand{\anothertown}{Bikini Bottom}
+
+\somename works at \somecompany in \sometown. Sometimes she has to travel
+to a subsidiary in \anothertown. The files for a project she works on are
+stored on a NFS share at the headquarters in \sometown.
+
+While on the train to or from \anothertown, \somename might want to do some work
+on the project. So before leaving, she copies the project directory to her
+laptops hard drive to have them available during the journey. When she returns
+to the \somecompany HQ in \sometown, she has to copy any files she changed back
+to the NFS share, of course after confirming that nobody else has touched them.
+
+With \discofs, these steps are performed automatically. \somename simply mounts
+a \discofs instance over the NFS share on her laptop. \discofs will constantly
+synchronise the data between NFS and her hard drive while she is at work in
+\sometown.
+When \somename takes her laptop away, she has all files for the project with
+her. Any changes she makes will be recorded by \discofs and applied to the NFS
+share once she is back in \sometown. If a file \somename modified was also
+changed on the NFS share, \discofs will resolve this by keeping one of the two
+versions of the file and deleting or renaming the other (see
+\sectionref{keyword:conflict} for details on conflict resolution).
+%)))
+
+\subsection{Installing and running \discofs} %(((
+
+To download, install and use \discofs, the following tools and libraries are
+needed:
+
+\begin{itemize}
+	\item A \git client to obtain the source code from \github (optional but
+		recommended).
+	\item A C compiler (preferably
+		\href{http://gnu.org/software/gcc}{\software{GCC}}
+		or
+		\href{http://clang.llvm.org/}{\software{clang}}).
+	\item \href{http://gnu.org/software/make}{\software{GNU Make}} or a
+		similar Make implementation.
+	\item The \fuse library and headers.
+	\item The \sqlite library and headers.
+\end{itemize}
+
+
+Installing \discofs is done by performing the following steps:
+
+\lstset{language=bash}
+\begin{lstlisting}[deletekeywords={cd},]
+# clone the git repository:
+git clone --recursive https://github.com/rmartinjak/discofs.git
+cd discofs
+
+# Run the configure script.
+# By default, the executable and manual will be installed
+# in /usr/local. To change this, use the --prefix
+# argument, e.g.:
+#./configure --prefix=/usr
+./configure
+
+# Run Make
+make
+
+# Install the executable and manual.
+# Depending on the prefix you might need to do this
+# using a privileged user acoount.
+make install
+\end{lstlisting}
+
+To mount \discofs, run the \lstinline|discofs| command. Assuming the networked
+file system you want to mirror is mounted at \lstinline|/home/alice/nfs| and
+your desired mount point is \lstinline|/home/alice/discofs|, run
+\begin{lstlisting}
+discofs /home/alice/nfs /home/alice/discofs
+\end{lstlisting}
+
+The available command line arguments and mount options are documented in the
+\discofs manual. To access it, type \lstinline|man discofs|.
+
+\lstset{language=C}
+%)))
+
+%)))
+
+
+\section{Components} %(((
+
+\subsection{Overview} %(((
+\discofs consists of the following components:
+
+\begin{itemize}
+	\item The functions which implement the file system operations (see
+		\hyperref[appendix:fsops]{appendix~\ref{appendix:fsops}}).
+	\item The \cache, a local copy of the remote file system.
+	\item The \sync table keeping track of the synchronisation time of the file
+		system objects.
+	\item The \job system to organise the replication of performed operations
+		onto the remote file system.
+	\item An \database for persistent storage of \job and \sync data.
+	\item A \statecheckthread that tests the availability of the remote file
+		system.
+	\item A \workerthread that performs \jobs or polls the remote file system
+		for changes.
+\end{itemize}
+%)))
+
+\subsection{The \cache} %(((
+\label{keyword:cache}
+The \cache contains a local copy of the \remote file system. Reading and writing
+data is always performed on the \cache. If a file is opened that doesn't exist
+in the \cache yet, it is instantly pulled from the \remote file system.
+%)))
+
+\subsection{The \sync table} %(((
+\label{keyword:sync}
+\discofs needs to keep track of the time a file was last synchronised. Each time
+a file on \remote is changed or modified, the \texttt{mtime} and \texttt{ctime} on
+the \remote file are recorded. If the time stamps of a \remote file are newer than
+the last recorded ones, \discofs considers the file to be modified/changed.
+
+The \sync table is implemented as an in-memory hash table to provide fast
+lookups. The key used is the file path \emph{relative} to the mount point.
+Changes made to it are periodically saved to the \database by the
+\workerthread (see \sectionref{keyword:workerthread}) and on program termination
+(i.e. unmounting \discofs).
+%)))
+
+\subsection{The \job system} %(((
+\label{keyword:job}
+\discofs uses a \job system to manage the synchronisation between \cache and
+\remote.
+Every operation performed in \online state is performed on the
+\remote side immediately, except for \fsopref{write}.
+
+Performing a \fsopref{write} while \online or any operation that
+\emph{modifies} the file sytem while \offline is recorded as a job, along with
+their priority (see below) and time stamp. New jobs are added to a queue and
+occasionally saved to the \database.
+
+\subsubsection{Job priorities}
+Below is an overview of all job types. A few jobs have \textbf{high}
+priority, because other jobs might rely on the fact that a file or directory
+does or doesn't exist. The
+\texttt{push}\footnote{transfer file from \cache to \remote. \push jobs are created if a
+	file was written to.}
+and
+\texttt{pull}\footnote{transfer file from \remote to \cache. \pull jobs are created by
+	the \workerthread when polling the \remote file system.}
+job types for transferring files have \textbf{low} priority because they can't be applied
+immediately.
+
+\begin{multicols}{3}
+
+\begin{tabular}{l}
+	\textbf{High priority} \\
+	\fsopref{create} / \fsopref{mknod} \\
+	\fsopref{mkdir} \\
+	\fsopref{unlink} \\
+\end{tabular}
+
+\vfill
+\columnbreak
+\begin{tabular}{l}
+	\textbf{Medium priority} \\
+	\fsopref{rename} \\
+	\fsopref{symlink} \\
+	\fsopref{link} \\
+	\fsopref{rmdir} \\
+	\fsopref{chmod} \\
+	\fsopref{chown} \\
+	\fsopref{setxattr} \\
+\end{tabular}
+
+\vfill
+\columnbreak
+\begin{tabular}{l}
+\textbf{Low priority} \\
+	\push \\
+	\pull \\
+\end{tabular}
+\end{multicols}
+
+
+\subsubsection{Job selection}
+Selecting which job has to be performed next is based on the following criteria:
+
+\begin{enumerate}
+		\item Select jobs whose time stamps are in the past.
+		\item From these, select jobs which have the highest priority in the queue.
+		\item From these, select the one with earliest time stamp.
+\end{enumerate}
+
+The first condition makes it possible to defer jobs to be retried after a
+certain amount of time.
+
+\subsubsection{Returning finished or failed jobs}
+\label{sec:job_return}
+Every job handed out to the \workerthread is returned, with success or failure
+indication. Successfully finished jobs are removed from the job queue (and
+\database). Failed jobs are requeued, with their time stamp set to a moment in
+the future so they can be retried. The number of retries is limited.
+%)))
+
+\subsection{The \database} %(((
+\label{keyword:database}
+\discofs stores its metadata, consisting of
+\begin{itemize}
+	\item the \sync table
+	\item the \job queue
+	\item information about hard links
+	\item a few configuration values
+\end{itemize}
+in an \sqlite database. This is especially handy for the \job queue because
+selecting which job to perform next can be done easily with just one SQL query.
+%)))
+
+\subsection{The \statecheckthread} %(((
+\label{keyword:state}
+\label{keyword:statecheckthread}
+The \statecheckthread periodically tests whether the \remote file system is
+available. The \state can be either \online or \offline. The following criteria
+must be matched:
+\begin{itemize}
+	\item The \remote file system must be mounted. This is currently checked by
+		comparing the \texttt{st_dev} entry of the \remote mount point an its
+		parent directory. See the \texttt{stat(2)} man page for details.
+
+	\item \emph{Optional}: If a hostname or IP address was specified with the
+		\texttt{host} mount option, the given host must be reachable via the
+		\texttt{ping(8)} utility.
+
+	\item \emph{Optional}: If a ``PID file'' was specified with the \texttt{pid}
+		mount option, a process with the PID contained in this file must exist,
+		i.e. \texttt{kill(pid,~0)} returns zero (see \texttt{kill(2)} for
+		details).
+\end{itemize}
+
+If the \state changes from \offline to \online, the sleeping \workerthread is
+``woken up'' from sleeping.
+%)))
+
+\subsection{The \workerthread} %(((
+\label{keyword:workerthread}
+%(((
+Under certain circumstances, other parts of \discofs will \emph{block} the
+\workerthread to prevent it from hogging the bandwidth by performing a
+\push or \pull job.
+The \workerthread performs the following tasks:
+
+\begin{itemize}
+	\item Store the \job queue and \sync table to the \database.
+	\item If the \state is \offline: sleep a few seconds (or until woken up by
+		the \statecheckthread).
+	\item If the \state is \online and the \workerthread is not blocked, do one
+			of the following tasks, whichever one can be applied.
+\end{itemize}
+%)))
+
+\subsubsection{Transferring files} %(((
+\label{sec:worker_transfer}
+If a file has to be transferred from or to the \remote file system, this is done
+in small parts per iteration of the \workerthread{}s main loop. If there is
+currently a transfer job (i.e. \push or \pull) in progress, the
+\workerthread will continue. If the transfer is finished or an error is
+encountered, the current job is returned to the \job system (see
+\sectionref{sec:job_return}).
+%)))
+
+\subsubsection{Performing jobs} %(((
+\label{sec:worker_perform_job}
+If no file transfer is in progress, the \workerthread gets a job from the \job
+system and tries to perform it. If it is a \push or \pull job, this will start a
+new transfer which will (probably) be resumed in the next iteration as described
+in \ref{sec:worker_transfer}. Else (or if the transfer was finished or failed
+instantly), the job will is returned to the \job system (see
+\sectionref{sec:job_return}).
+%)))
+
+\subsubsection{Scanning the \remote file system for changes} %(((
+\label{sec:worker_scan_remote}
+If there are no transfers to be resumed and no jobs to be performed, the
+\workerthread will scan the \remote file system for changes. This is done using
+a queue which contains directory names to scan. If the queue is empty, the
+\workerthread will sleep for an amount of time (configurable with the
+\texttt{scan} mount option) and then start from the root directory. When
+scanning a directory, entries that are subdirectories are added to the queue.
+
+For regular files and symbolic links the time stamps will be compared to the
+corresponding entries in the \sync table. Symbolic links will be synchronised
+instantly. If a regular file is new or modified, the \workerthread will
+schedule a \pull job.
+%)))
+%)))
+
+%)))
+
+
+\section{File system operations} %(((
+This section describes the ``work flow'' of \discofs when performing certain
+file system operations.
+
+\subsection{Trivial operations} %(((
+Many operations are trivial and need not be explained here. They are generally
+just ``handed down'' to the file in the \cache and/or on the \remote file
+system. \fuse makes sure that symbolic links are already dereferenced when
+needed, that means \discofs will never do so (e.g. use \texttt{lstat} instead of
+\texttt{stat}).
+
+For a list of all implemented operations, see
+\hyperref[appendix:fsops]{appendix~\ref{appendix:fsops}}.
+
+%)))
+
+\subsection{Get file attributes: \fsopref{getattr}} %(((
+This operation is similar to \texttt{stat(2)}. The implementation is quite
+trivial, but \fsopref{getattr} deserves mentioning because it is the most
+frequently called operation. \discofs implements \fsopref{getattr} by calling
+\texttt{lstat} on the file in the \cache. If this fails because the file does
+not yet exist and the status is \online, \discofs will try a \texttt{lstat} on the
+\remote file.
+%)))
+
+\subsection{Read directory contents: \fsopref{readdir}} %(((
+When reading directory contents while \online, \discofs will read both the
+\cache and \remote directory, and merge the contents (removing duplicates) into
+a single list.
+%)))
+
+\subsection{Rename a file: \fsopref{rename}} %(((
+Renaming is a quite expensive operation in \discofs, especially for directories.
+\discofs has to update the \sync table, \job queue and \database entries for the
+matching path. In case of a directory, the path for any object below it must be
+updated.
+
+During re-synchronisation, attempting a \fsopref{rename} on a modified
+\remote \emph{target} will result in a \conflict.
+%)))
+
+\subsection{Open a file: \fsopref{open} / \fsopref{create}} %(((
+Opening a file will always be performed in the \cache. If the target doesn't yet
+exist in the \cache or has been modified on the \remote file system, it is
+pulled \emph{instantly} before opening. This way the user will never work with
+an outdated version of the file.
+As long as a file is opened, there will be no attempts to transfer it (in
+either direction).
+%)))
+
+\subsection{Modify file content: \fsopref{write} / \fsopref{truncate}} %(((
+Performing a \fsopref{write} on a file will \emph{mark} it as ``dirty''. When
+all file descriptors of the file are closed (i.e. upon \fsopref{release}), a
+\texttt{push} job will be scheduled.
+The \fsopref{truncate} operation behaves similar when \offline. When \online,
+it will be applied to the \remote file immediately.
+
+Performing a \texttt{push} job on a file that has been modified on the \remote
+file system will result in a \conflict.
+%)))
+
+\subsection{Remove a file: \fsopref{unlink}} %(((
+When a file is removed, its entry in the \sync table and all outstanding jobs
+for the file are deleted. This includes \fsopref{rename} jobs with the file path
+as the target name. If the file is currently being transferred (either
+direction), this transfer will be aborted.
+If an \fsopref{unlink} job is attempted on a modified file, this will \emph{NOT}
+cause a \conflict but simply trigger scheduling of a \texttt{pull} job.
+%)))
+
+% hard links don't work properly yet
+% \subsection{Create a hard link: \fsopref{link}} %(((
+%)))
+
+\subsection{Conflicts} %(((
+\label{keyword:conflict}
+A \conflict is a situation in where a file has been modified both in the \cache
+and on the \remote file system independently. \discofs will not attempt to merge
+those modifications. Instead, it will decide which file to keep according to a
+user-specified (with the \texttt{conflict} mount option) rule:
+\begin{itemize}
+	\item \textbf{newer}: Keep the file with the latest time stamp.
+	\item \textbf{mine}: Always keep the file from the \cache.
+	\item \textbf{theirs}: Always keep the file from the \remote file system.
+\end{itemize}
+
+The other file will be \emph{deleted} or \emph{renamed} if at least one of the
+\texttt{bprefix} or \texttt{bsuffix} mount options is specified (see
+\lstinline|man discofs| for details).
+
+%)))
+
+%)))
+
+
+\section{Development} %(((
+
+\subsection{Status}
+Most features needed for everyday usage are implemented and seem to work pretty
+well. More extensive testing is needed to find corner cases that produce
+problematic behaviour. An exception to this are hard links, they are currently
+broken in multiple ways.
+
+For a list of what else is wrong, see the
+\href{https://github.com/rmartinjak/discofs/issues}{issues on GitHub}.
+
+\subsection{How to contribute}
+Use it! If something strange happens, try to reproduce it and submit a bug
+report, either as an issue on \github or to \myemail.
+Pull requests are of course also welcome!
+
+\subsection{Future plans}
+The ultimate goal is making \discofs reliable enough to mount a users
+\texttt{\$HOME} directory. If that is given, performance should be improved,
+especially renaming files is currently very expensive.
+Apart from that, no additional features are planned yet.
+%)))
+
+
+% APPENDIX
+
+\pagebreak
+\clearpage
+\pagenumbering{Roman}
+
+\begin{appendix} %(((
+\section{Supported file system operations} %(((
+\label{appendix:fsops}
+\fuse defines a set of operations (see the
+\href{http://fuse.sourceforge.net/doxygen/structfuse__operations.html}{\fuse
+API documentation}) of which \discofs implements the following:
+
+\newcommand{\fsop}[3]{ %(((
+\item \label{fsop:#1} \texttt{#1}
+	\ifthenelse{\equal{#2}{-}}
+		{(No corresponding \textsc{POSIX} function)}
+		{(\textsc{POSIX}: \texttt{\ifthenelse{\equal{#2}{}}{#1}{#2}})}
+		\\
+	#3 \\
+}
+%)))
+\begin{itemize}\itemsep0pt
+\input{fsops}
+\end{itemize}
+%)))
+
+\end{appendix}%)))
+
+\end{document}
