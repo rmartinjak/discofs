@@ -1,4 +1,6 @@
-/* discofs - disconnected file system
+/*! @file
+ * transfer functions.
+ * discofs - disconnected file system
  * Copyright (c) 2012 Robin Martinjak
  * see LICENSE for full license (BSD 2-Clause)
  */
@@ -23,6 +25,7 @@ pthread_mutex_t m_instant_pull = PTHREAD_MUTEX_INITIALIZER;
 
 static pthread_mutex_t m_transfer = PTHREAD_MUTEX_INITIALIZER;
 
+/*! state of the transfer */
 static struct transfer_state
 {
     struct job *job;

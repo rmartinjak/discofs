@@ -1,4 +1,6 @@
-/* discofs - disconnected file system
+/*! @file discofs.h
+ * main header file for discofs.
+ * discofs - disconnected file system
  * Copyright (c) 2012 Robin Martinjak
  * see LICENSE for full license (BSD 2-Clause)
  */
@@ -70,6 +72,9 @@ extern struct options discofs_options;
 
 enum opt_conflict { CONFLICT_NEWER, CONFLICT_THEIRS, CONFLICT_MINE };
 
+/*! @struct options
+ * mount options. 
+ * specified e.g. with "-o name,name=value...". */
 struct options
 {
     char *discofs_mp;             /* discofs mount point */
@@ -94,7 +99,7 @@ struct options
     char *logfile;              /* log file name */
 };
 
-/* options initializer */
+/*! options initializer */
 #define OPTIONS_INIT \
 {   .discofs_mp = NULL,\
     .remote_root = NULL,\
@@ -116,7 +121,7 @@ struct options
     .logfile = NULL }
 
 
-/* option keys for discofs_opt_proc */
+/*! option keys for discofs_opt_proc */
 enum discofs_opt_keys
 {
     DISCOFS_OPT_HELP,

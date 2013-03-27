@@ -1,4 +1,6 @@
-/* discofs - disconnected file system
+/*! @file
+ * worker functions.
+ * discofs - disconnected file system
  * Copyright (c) 2012 Robin Martinjak
  * see LICENSE for full license (BSD 2-Clause)
  */
@@ -44,7 +46,7 @@ static void worker_scan_dir(queue *scan_q, queue *new_hardlink_q);
 
 static int worker_cancel_scan_dir = 0;
 
-/* ====== SLEEP ====== */
+/*! SLEEP */
 void worker_wakeup(void)
 {
     pthread_mutex_lock(&m_worker_wakeup);
@@ -65,7 +67,7 @@ void worker_sleep(unsigned int seconds)
 }
 
 
-/* ====== BLOCK ====== */
+/*! BLOCK */
 void worker_block(void)
 {
     pthread_mutex_lock(&m_worker_block);
@@ -88,7 +90,7 @@ int worker_blocked(void)
     return (worker_block_n != 0);
 }
 
-/* ====== SCAN REMOTE FS ====== */
+/*! SCAN REMOTE FS */
 static void worker_scan_remote(void)
 {
     static queue *scan_q = NULL;
@@ -337,7 +339,7 @@ static int worker_perform(struct job *j)
     return -1;
 }
 
-/* ====== WORKER THREAD ====== */
+/*! WORKER THREAD */
 void *worker_main(void *arg)
 {
     int res;
