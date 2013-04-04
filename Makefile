@@ -2,6 +2,7 @@ include config.mk
 
 SRCDIR = src
 OBJDIR = obj
+DOXY = Doxyfile
 
 OBJNAMES = discofs state funcs paths sync job hardlink conflict worker transfer db log lock fsops debugops remoteops
 OBJ = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(OBJNAMES)))
@@ -16,7 +17,7 @@ export CC CPPFLAGS CFLAGS LDFLAGS LIBS
 
 default : all
 
-all : options $(OBJDIR) discofs
+all : options $(OBJDIR) discofs doc
 
 $(OBJDIR) :
 	@mkdir $@ || true
@@ -30,6 +31,8 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.c
 	@echo CC -c $<
 	@$(CC) $(FUSE_VERSION) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) -c -o $@ $<
 
+doc : $(DOXY) $(SRCDIR)/*.c
+	@doxygen Doxyfile
 
 discofs : $(OBJ) $(SUBOBJ)
 	@echo CC -o $@
@@ -40,6 +43,7 @@ clean :
 	@echo cleaning
 	@rm -f discofs
 	@rm -rf $(OBJDIR)
+	@rm -rf doc/html doc/latex 
 
 
 options :
@@ -70,4 +74,4 @@ uninstall :
 	@rm -f ${DESTDIR}${MANPREFIX}/man1/discofs.1
 
 
-.PHONY: clean install uninstall options recurse
+.PHONY: clean install uninstall options recurse doc

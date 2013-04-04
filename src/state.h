@@ -1,4 +1,6 @@
-/* discofs - disconnected file system
+/*! @file state.h
+ * states.
+ * discofs - disconnected file system
  * Copyright (c) 2012 Robin Martinjak
  * see LICENSE for full license (BSD 2-Clause)
  */
@@ -13,16 +15,16 @@ enum states { STATE_ONLINE, STATE_OFFLINE, STATE_EXITING };
 #define EXITING (state_get() == STATE_EXITING)
 
 
-/* returns the current state */
+/*! returns the current state */
 int state_get();
 
-/* set the state; this has no effect when current state is STATE_EXITING */
+/*! set the state; this has no effect when current state is STATE_EXITING */
 void state_set(int state, int *oldstate);
 
-/* turn "force offline" on/off */
+/*! turn "force offline" on/off */
 void state_toggle_force_offline(void);
 
-/* state checking thread */
+/*! state checking thread */
 void *state_check_main(void *arg);
 
 #endif

@@ -1,4 +1,6 @@
-/* discofs - disconnected file system
+/*! @file
+ * main file of discofs.
+ * discofs - disconnected file system
  * Copyright (c) 2012 Robin Martinjak
  * see LICENSE for full license (BSD 2-Clause)
  */
@@ -41,7 +43,6 @@
 #include <attr/xattr.h>
 #endif
 
-/* mount options (specified e.g. with "-o name,name=value..." */
 struct options discofs_options = OPTIONS_INIT;
 
 
@@ -53,6 +54,8 @@ static int discofs_opt_proc(void *data, const char *arg, int key, struct fuse_ar
 static int test_fs_features(int *f);
 static void sig_handler(int signo);
 
+/*! prints usage of discofs
+ */ 
 static void print_usage()
 {
     char *s = "usage: " PROG_NAME " [ -hvdf ] [ -o option[,option]...] remote_fs mountpoint\n"
@@ -110,13 +113,16 @@ static void print_usage()
     fprintf(stderr, "%s", s);
 }
 
+/*! print version. */
 static void print_version()
 {
     printf("%s Version %s\n", PROG_NAME, PROG_VERSION);
 }
 
 
-/* log the options with which discofs will be run */
+/*! log the options with which discofs will be run 
+ * @param loglevel logging level
+ * @param opt  options */
 static void log_options(int loglevel, struct options opt)
 {
     const char *tmp;
@@ -164,10 +170,12 @@ static void log_options(int loglevel, struct options opt)
 #endif
 }
 
-/* macro to define simple options */
+/*! macro to define simple options */
 #define OPT_KEY(t, p, v) { t, offsetof(struct options, p), v }
 
-/* options recognized, anything else will be passed to FUSE */
+/*! @struct discofs_opts 
+ * options recognized.
+ * anything else will be passed to FUSE */
 static struct fuse_opt discofs_opts[] =
 {
     /* user or group ID to change to before mounting */
@@ -224,6 +232,7 @@ static struct fuse_opt discofs_opts[] =
 };
 #undef OPT_KEY
 
+/*! processing options */
 static int discofs_opt_proc(void *data, const char *arg, int key, struct fuse_args *outargs)
 {
     const char *val = NULL;
@@ -461,6 +470,7 @@ static int discofs_opt_proc(void *data, const char *arg, int key, struct fuse_ar
     return 1;
 }
 
+/*! test the file system features */
 static int test_fs_features(int *f)
 {
 #define TESTFILE1 ".__discofs_test_1__"
@@ -533,7 +543,7 @@ static int test_fs_features(int *f)
 #undef TESTFILE2
 }
 
-/* signal handler */
+/*! signal handler */
 static void sig_handler(int signo)
 {
     switch (signo) {
@@ -552,8 +562,7 @@ static void sig_handler(int signo)
     }
 }
 
-/* operations struct which will be passed to fuse_main() */
-
+/*! @struct discofs_oper operations struct which will be passed to fuse_main() */
 #if DEBUG_FSOPS
 #define OPER(n) .n = debug_op_ ## n
 #else
@@ -597,6 +606,27 @@ static struct fuse_operations discofs_oper =
 #endif
 };
 
+
+/*! \mainpage
+ * The main goal of \discofs is to provide a transparent layer between the local
+ * file system of a computer and a networked file system residing on a remote
+ * server. \discofs is designed to be completely agnostic of the types of
+ * **both** file systems and to work without the need of installing any
+ * additional software on the server side.
+ * 
+ * The user is able to access all files and directories at all times, even if there
+ * is currently no connection to the server. To accomplish this, all operations are
+ * performed on a local copy of the file system and then replayed onto the remote
+ * side, immediately if the user is *online*, else after the connection has been
+ * re-established. Changes on the remote file system are detected automatically,
+ * either when the user accesses the file or by periodic scanning.
+ */
+
+/*! Main
+@param argc number of arguments
+@param argv arguments
+ @return fuse_main()s return value
+*/
 int main(int argc, char **argv)
 {
     /* return value of fuse_main() */

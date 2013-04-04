@@ -1,4 +1,6 @@
-/* discofs - disconnected file system
+/*! @file job.c
+ * job handling.
+ * discofs - disconnected file system
  * Copyright (c) 2012 Robin Martinjak
  * see LICENSE for full license (BSD 2-Clause)
  */
@@ -20,7 +22,7 @@
 #define JOB_STR_BUF_N   5
 #define JOB_STR_BUF_SZ  1024
 
-/* job queue */
+/*! job queue */
 static queue *job_q = NULL;
 static pthread_mutex_t m_job_q = PTHREAD_MUTEX_INITIALIZER;
 
@@ -69,7 +71,7 @@ void job_destroy(void)
     q_free(job_q, NULL);
 }
 
-/* store jobs in db */
+/*! store jobs in db */
 int job_store(void)
 {
     int res = DB_OK;
