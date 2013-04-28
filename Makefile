@@ -17,7 +17,7 @@ export CC CPPFLAGS CFLAGS LDFLAGS LIBS
 
 default : all
 
-all : options $(OBJDIR) discofs doc
+all : options $(OBJDIR) discofs
 
 $(OBJDIR) :
 	@mkdir $@ || true
