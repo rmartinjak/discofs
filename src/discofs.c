@@ -127,18 +127,18 @@ static void log_options(int loglevel, struct options opt)
 {
     const char *tmp;
 #define YESNO(x) (x) ? "yes" : "no"
-    LOG_PRINT(loglevel, "discofs options:\n");
-    LOG_PRINT(loglevel, "mount point: %s\n", opt.discofs_mp);
-    LOG_PRINT(loglevel, "remote fs: %s\n", opt.remote_root);
-    LOG_PRINT(loglevel, "cache root: %s\n", opt.cache_root);
-    LOG_PRINT(loglevel, "debug: %s\n", YESNO(opt.clear));
-    LOG_PRINT(loglevel, "remote host: %s\n", opt.host);
-    LOG_PRINT(loglevel, "uid: %d\n", opt.uid);
-    LOG_PRINT(loglevel, "gid: %d\n", opt.gid);
-    LOG_PRINT(loglevel, "pid file: %s\n", opt.pid_file);
-    LOG_PRINT(loglevel, "backup prefix: %s\n", opt.backup_prefix);
-    LOG_PRINT(loglevel, "backup suffix: %s\n", opt.backup_suffix);
-    LOG_PRINT(loglevel, "clear: %s\n", YESNO(opt.clear));
+    LOG_PRINT(loglevel, "discofs options:");
+    LOG_PRINT(loglevel, "mount point: %s", opt.discofs_mp);
+    LOG_PRINT(loglevel, "remote fs: %s", opt.remote_root);
+    LOG_PRINT(loglevel, "cache root: %s", opt.cache_root);
+    LOG_PRINT(loglevel, "debug: %s", YESNO(opt.clear));
+    LOG_PRINT(loglevel, "remote host: %s", opt.host);
+    LOG_PRINT(loglevel, "uid: %d", opt.uid);
+    LOG_PRINT(loglevel, "gid: %d", opt.gid);
+    LOG_PRINT(loglevel, "pid file: %s", opt.pid_file);
+    LOG_PRINT(loglevel, "backup prefix: %s", opt.backup_prefix);
+    LOG_PRINT(loglevel, "backup suffix: %s", opt.backup_suffix);
+    LOG_PRINT(loglevel, "clear: %s", YESNO(opt.clear));
 
     switch (opt.conflict) {
         case CONFLICT_NEWER:
@@ -153,20 +153,20 @@ static void log_options(int loglevel, struct options opt)
         default:
             FATAL("invalid \"conflict\" option!\n");
     }
-    LOG_PRINT(loglevel, "conflict: %s\n", tmp);
+    LOG_PRINT(loglevel, "conflict: %s", tmp);
 
-    LOG_PRINT(loglevel, "no-mode: %s\n", YESNO((opt.copyattr & COPYATTR_NO_MODE)));
-    LOG_PRINT(loglevel, "no-owner: %s\n", YESNO((opt.copyattr & COPYATTR_NO_OWNER)));
-    LOG_PRINT(loglevel, "no-group: %s\n", YESNO((opt.copyattr & COPYATTR_NO_GROUP)));
+    LOG_PRINT(loglevel, "no-mode: %s", YESNO((opt.copyattr & COPYATTR_NO_MODE)));
+    LOG_PRINT(loglevel, "no-owner: %s", YESNO((opt.copyattr & COPYATTR_NO_OWNER)));
+    LOG_PRINT(loglevel, "no-group: %s", YESNO((opt.copyattr & COPYATTR_NO_GROUP)));
 #if HAVE_SETXATTR
-    LOG_PRINT(loglevel, "no-xattr: %s\n", YESNO((opt.copyattr & COPYATTR_NO_XATTR)));
+    LOG_PRINT(loglevel, "no-xattr: %s", YESNO((opt.copyattr & COPYATTR_NO_XATTR)));
 #endif
 
-    LOG_PRINT(loglevel, "remote fs features:\n");
-    LOG_PRINT(loglevel, "nanosecond timestamps: %s\n", YESNO((discofs_options.fs_features & FEAT_NS)));
-    LOG_PRINT(loglevel, "hardlinks: %s\n", YESNO((discofs_options.fs_features & FEAT_HARDLINKS)));
+    LOG_PRINT(loglevel, "remote fs features:");
+    LOG_PRINT(loglevel, "nanosecond timestamps: %s", YESNO((discofs_options.fs_features & FEAT_NS)));
+    LOG_PRINT(loglevel, "hardlinks: %s", YESNO((discofs_options.fs_features & FEAT_HARDLINKS)));
 #if HAVE_SETXATTR
-    LOG_PRINT(loglevel, "extended attributes: %s\n", YESNO((discofs_options.fs_features & FEAT_XATTR)));
+    LOG_PRINT(loglevel, "extended attributes: %s", YESNO((discofs_options.fs_features & FEAT_XATTR)));
 #endif
 }
 
@@ -479,7 +479,7 @@ static int test_fs_features(int *f)
     struct stat st, st2;
     struct timespec times[2];
 
-    VERBOSE("testing remote fs features\n");
+    VERBOSE("testing remote fs features");
 
     /* create test file */
     p = remote_path(TESTFILE1);
@@ -550,13 +550,13 @@ static void sig_handler(int signo)
         /* sighup blocks the working thread for 10 seconds. this gives the
            user the opportunity to unmount the remote fs */
         case SIGUSR1:
-            INFO("received SIGUSR1, blocking worker for 10 seconds\n");
+            INFO("received SIGUSR1, blocking worker for 10 seconds");
             worker_block();
             sleep(10);
             worker_unblock();
             break;
         case SIGUSR2:
-            INFO("received SIGUSR2\n");
+            INFO("received SIGUSR2");
             state_toggle_force_offline();
             break;
     }
@@ -693,7 +693,7 @@ int main(int argc, char **argv)
        sufficient if UID was set beforehand */
     if (discofs_options.gid)
     {
-        VERBOSE("setting gid to %d\n", discofs_options.gid);
+        VERBOSE("setting gid to %d", discofs_options.gid);
         if (setgid(discofs_options.gid))
         {
             perror("setting gid");
@@ -702,7 +702,7 @@ int main(int argc, char **argv)
     }
     if (discofs_options.uid)
     {
-        VERBOSE("setting uid to %d\n", discofs_options.uid);
+        VERBOSE("setting uid to %d", discofs_options.uid);
         if (setuid(discofs_options.uid))
         {
             perror("setting uid");
@@ -751,7 +751,7 @@ int main(int argc, char **argv)
     /* delete cache if "clear" specified */
     if (discofs_options.clear)
     {
-        VERBOSE("deleting cache\n");
+        VERBOSE("deleting cache");
         rmdir_rec(CACHE_ROOT);
     }
 
@@ -791,7 +791,7 @@ int main(int argc, char **argv)
         {
             if (test_fs_features(&discofs_options.fs_features))
             {
-                ERROR("failed to test remote fs features\n");
+                ERROR("failed to test remote fs features");
                 discofs_options.fs_features = 0;
             }
             /* test succeeded, store value for next time */
@@ -847,7 +847,7 @@ int main(int argc, char **argv)
 
 
     /* end logging */
-    INFO("exiting\n");
+    INFO("exiting");
     log_destroy();
 
 

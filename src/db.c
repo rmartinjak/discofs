@@ -64,7 +64,7 @@
  * convenience macros *
  *--------------------*/
 
-#define ERRMSG(msg) ERROR(msg ": %s\n", sqlite3_errmsg(db))
+#define ERRMSG(msg) ERROR(msg ": %s", sqlite3_errmsg(db))
 
 #define PREPARE(sql, stmt)                                                  \
 do {                                                                        \
@@ -124,11 +124,11 @@ static void db_close(void)
 
 int db_init(const char *path, int clear)
 {
-    VERBOSE("initializing db in %s\n", path);
+    VERBOSE("initializing db in %s", path);
 
     if (sqlite3_open(path, &db) != SQLITE_OK)
     {
-        ERROR("error initializing db: %s\n", sqlite3_errmsg(db));
+        ERROR("error initializing db: %s", sqlite3_errmsg(db));
         return -1;
     }
 
@@ -140,7 +140,7 @@ int db_init(const char *path, int clear)
                     NULL, NULL, NULL))                                      \
         {                                                                   \
             db_close();                                                     \
-            ERROR("couldn't create table " t "\n");                         \
+            ERROR("couldn't create table " t "");                           \
             return -1;                                                      \
         }                                                                   \
     }
@@ -166,14 +166,14 @@ int db_init(const char *path, int clear)
 #undef NEW_TABLE
 #undef CREATE_TABLE
 
-    DEBUG("db initialization finished\n");
+    DEBUG("db initialization finished");
     db_close();
     return 0;
 }
 
 int db_destroy(void)
 {
-    VERBOSE("closing database connection\n");
+    VERBOSE("closing database connection");
     sqlite3_close(db);
     return 0;
 }
@@ -323,7 +323,7 @@ int db_job_store(const struct job *j)
         return DB_ERROR;
     }
 
-    DEBUG("storing %s on %s in db\n", job_opstr(j->op), j->path);
+    DEBUG("storing %s on %s in db", job_opstr(j->op), j->path);
 
     db_open();
 

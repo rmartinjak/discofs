@@ -107,7 +107,7 @@ int is_running(const char *pidfile)
     pid = strtol(line, &endptr, 10);
     if (*line == '\0' || (*endptr != '\0' && *endptr != '\n'))
     {
-        ERROR("failed getting pid from file %s\n", pidfile);
+        ERROR("failed getting pid from file %s", pidfile);
         return 0;
     }
 
@@ -198,7 +198,7 @@ int copy_rec(const char *from, const char *to)
     from_len = strlen(from);
     to_len = strlen(to);
 
-    DEBUG("calling readdir_r()\n");
+    DEBUG("calling readdir_r()");
     while((res = readdir_r(dirp, buf, &ent)) == 0 && ent)
     {
         if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0)

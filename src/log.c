@@ -38,7 +38,7 @@ void log_init(int level, const char *file)
         }
     }
 
-    log_print(LOG_VERBOSE, "", "", "Logging initialized with level %s\n", log_lvlstr[level]);
+    log_print(LOG_VERBOSE, "", "", "Logging initialized with level %s", log_lvlstr[level]);
 }
 
 void log_destroy(void)
@@ -52,7 +52,7 @@ void log_destroy(void)
 void log_error(const char *where, const char *func, const char *s)
 {
     pthread_mutex_lock(&m_log_error);
-    log_print(LOG_ERROR, where, func, "%s: %s\n", s, strerror(errno));
+    log_print(LOG_ERROR, where, func, "%s: %s", s, strerror(errno));
     pthread_mutex_unlock(&m_log_error);
 }
 
@@ -83,6 +83,7 @@ void log_print(int level, const char *where, const char *func, const char *fmt, 
         fprintf(logf, "%s %s: %s %s\t", ctim, log_lvlstr[level], where, func);
 
         vfprintf(logf, fmt, ap);
+        fprintf(logf, "\n");
 
         fflush(logf);
 

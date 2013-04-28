@@ -50,7 +50,7 @@ static int worker_cancel_scan_dir = 0;
 void worker_wakeup(void)
 {
     pthread_mutex_lock(&m_worker_wakeup);
-    DEBUG("waking up worker thread\n");
+    DEBUG("waking up worker thread");
     worker_wkup = true;
     pthread_mutex_unlock(&m_worker_wakeup);
 }
@@ -123,14 +123,14 @@ static void worker_scan_remote(void)
         while ((hl = q_dequeue(new_hardlink_q)))
         {
             if (hardlink_create(hl->path, hl->inode))
-                ERROR("can't create hardlink %s\n", hl->path);
+                ERROR("can't create hardlink %s", hl->path);
             free(hl->path);
             free(hl);
         }
 
         /* sleep and begin new scan */
         worker_sleep(discofs_options.scan_interval);
-        VERBOSE("beginning remote scan\n");
+        VERBOSE("beginning remote scan");
         q_enqueue(scan_q, strdup("/"));
     }
 
@@ -199,7 +199,7 @@ static void worker_scan_dir(queue *scan_q, queue *new_hardlink_q)
         free(p);
         if (res == -1)
         {
-            DEBUG("lstat in scan_remote failed\n");
+            DEBUG("lstat in scan_remote failed");
             break;
         }
 
@@ -220,7 +220,7 @@ static void worker_scan_dir(queue *scan_q, queue *new_hardlink_q)
                 if (!hl || !(hl->path = strdup(p)))
                 {
                     free(hl);
-                    ERROR("memory allocation failed\n");
+                    ERROR("memory allocation failed");
                 }
                 else
                 {
@@ -234,7 +234,7 @@ static void worker_scan_dir(queue *scan_q, queue *new_hardlink_q)
                     job_schedule_pull(p);
                 else
                 {
-                    DEBUG("conflict: sync of target is %s\n",
+                    DEBUG("conflict: sync of target is %s",
                         (sync == SYNC_MOD) ? "SYNC_MOD" : "SYNC_NEW");
                     conflict_handle(p, JOB_PUSH, NULL);
                 }
@@ -247,7 +247,7 @@ static void worker_scan_dir(queue *scan_q, queue *new_hardlink_q)
         closedir(dirp);
     else
     {
-        DEBUG("open dir %s was closed while reading it\n", srch_r);
+        DEBUG("open dir %s was closed while reading it", srch_r);
         state_set(STATE_OFFLINE, NULL);
     }
     free(dbuf);
@@ -283,7 +283,7 @@ static void worker_scan_dir(queue *scan_q, queue *new_hardlink_q)
 
             if (!job_exists(p, LOCK_OPEN) && !job_exists(p, JOB_PUSH))
             {
-                VERBOSE("removing missing file %s/%s from cache\n", (strcmp(srch, "/")) ? srch : "", ent->d_name);
+                VERBOSE("removing missing file %s/%s from cache", (strcmp(srch, "/")) ? srch : "", ent->d_name);
                 delete_or_backup(p, CONFLICT_KEEP_REMOTE);
             }
             free(p);
@@ -387,7 +387,7 @@ void *worker_main(void *arg)
             /* skip locked files */
             while (j && (j->op & (JOB_PUSH|JOB_PULL)) && lock_has(j->path, LOCK_OPEN))
             {
-                DEBUG("%s is locked, NEXT\n", j->path);
+                DEBUG("%s is locked, NEXT", j->path);
                 job_return(j, JOB_LOCKED);
                 j = job_get();
             }
@@ -407,7 +407,7 @@ void *worker_main(void *arg)
                     int sync = sync_get(j->path);
                     if (sync == SYNC_MOD || sync == SYNC_NEW)
                     {
-                        DEBUG("conflict: sync of target is %s\n",
+                        DEBUG("conflict: sync of target is %s",
                             (sync == SYNC_MOD) ? "SYNC_MOD" : "SYNC_NEW");
                         conflict_handle(j->path, j->op, NULL);
                         job_return(j, JOB_DONE);
@@ -416,7 +416,7 @@ void *worker_main(void *arg)
                     }
                 }
 
-                VERBOSE("beginning %s on %s\n", job_opstr(j->op), j->path);
+                VERBOSE("beginning %s on %s", job_opstr(j->op), j->path);
                 res = transfer_begin(j);
 
                 if (res == TRANSFER_FINISH)
@@ -426,7 +426,7 @@ void *worker_main(void *arg)
                 }
                 else if (res == TRANSFER_FAIL)
                 {
-                    ERROR("transfering '%s' failed\n", j->path);
+                    ERROR("transfering '%s' failed", j->path);
                     job_return(j, JOB_FAILED);
                     j = NULL;
                 }
@@ -436,7 +436,7 @@ void *worker_main(void *arg)
             /* neither PUSH nor PULL */
             else
             {
-                VERBOSE("performing %s on %s\n", job_opstr(j->op), j->path);
+                VERBOSE("performing %s on %s", job_opstr(j->op), j->path);
                 res = worker_perform(j);
                 job_return(j, (!res) ? JOB_DONE : JOB_FAILED);
                 j = NULL;
@@ -451,7 +451,7 @@ void *worker_main(void *arg)
 
     }
 
-    VERBOSE("exiting job thread\n");
+    VERBOSE("exiting job thread");
     if (j)
     {
         lock_remove(j->path, LOCK_TRANSFER);

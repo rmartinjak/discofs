@@ -105,7 +105,7 @@ int transfer(const char *from, const char *to)
     if (from && to)
     {
         lock_set(t_state.job->path, LOCK_TRANSFER);
-        VERBOSE("beginning transfer: '%s' -> '%s'\n", from, to);
+        VERBOSE("beginning transfer: '%s' -> '%s'", from, to);
         t_state.read_path = strdup(from);
         t_state.write_path = strdup(to);
 
@@ -118,7 +118,7 @@ int transfer(const char *from, const char *to)
     }
     else
     {
-        VERBOSE("resuming transfer: '%s' -> '%s' at %ld\n",
+        VERBOSE("resuming transfer: '%s' -> '%s' at %ld",
                 t_state.read_path, t_state.write_path, t_state.offset);
 
         w_flags = O_WRONLY | O_APPEND;
@@ -127,7 +127,7 @@ int transfer(const char *from, const char *to)
 
     if (!t_state.read_path || !t_state.write_path)
     {
-        ERROR("t_state.read_path or t_state.write_path is NULL\n");
+        ERROR("t_state.read_path or t_state.write_path is NULL");
         lock_remove(t_state.job->path, LOCK_TRANSFER);
         goto failure;
     }
@@ -152,9 +152,9 @@ int transfer(const char *from, const char *to)
         {
 
             if (readbytes < 0)
-                ERROR("failed to read from file\n");
+                ERROR("failed to read from file");
             else
-                ERROR("failed or incomplete write\n");
+                ERROR("failed or incomplete write");
 
             goto failure;
         }
@@ -167,7 +167,7 @@ int transfer(const char *from, const char *to)
 
             copy_attrs(t_state.read_path, t_state.write_path);
 
-            VERBOSE("transfer finished: '%s' -> '%s'\n", t_state.read_path, t_state.write_path);
+            VERBOSE("transfer finished: '%s' -> '%s'", t_state.read_path, t_state.write_path);
 
             lock_remove(t_state.job->path, LOCK_TRANSFER);
             pthread_mutex_unlock(&m_transfer);
@@ -202,7 +202,7 @@ int transfer_begin(struct job *j)
 
     if (t_state.active)
     {
-        DEBUG("called transfer_begin while a transfer is active!\n");
+        DEBUG("called transfer_begin while a transfer is active!");
         pthread_mutex_unlock(&m_transfer);
         return TRANSFER_FAIL;
     }
@@ -233,7 +233,7 @@ int transfer_begin(struct job *j)
     {
         if (!is_reg(pwrite) && !is_nonexist(pwrite))
         {
-            DEBUG("write target is non-regular file: %s\n", pwrite);
+            DEBUG("write target is non-regular file: %s", pwrite);
             free(pread);
             free(pwrite);
             return TRANSFER_FAIL;
@@ -253,7 +253,7 @@ int transfer_begin(struct job *j)
     /* if symlink, copy instantly */
     else if (is_lnk(pread))
     {
-        DEBUG("push/pull on symlink\n");
+        DEBUG("push/pull on symlink");
         copy_symlink(pread, pwrite);
         copy_attrs(pread, pwrite);
         free(pread);
@@ -262,7 +262,7 @@ int transfer_begin(struct job *j)
     }
     else if (is_dir(pread))
     {
-        DEBUG("push/pull on DIR\n");
+        DEBUG("push/pull on DIR");
         clone_dir(pread, pwrite);
         copy_attrs(pread, pwrite);
         free(pread);
@@ -271,13 +271,13 @@ int transfer_begin(struct job *j)
     }
     else
     {
-        ERROR("cannot read file %s\n", pread);
+        ERROR("cannot read file %s", pread);
         free(pread);
         free(pwrite);
         return TRANSFER_FAIL;
     }
 
-    DEBUG("wtf\n");
+    DEBUG("wtf");
     return TRANSFER_FAIL;
 }
 
@@ -317,7 +317,7 @@ void transfer_rename(const char *to)
         return;
     }
 
-    DEBUG("transfer_rename to %s\n", to);
+    DEBUG("transfer_rename to %s", to);
 
     to_len = strlen(to);
 
@@ -370,7 +370,7 @@ int transfer_instant_pull(const char *path)
     size_t p_len = strlen(path);
     bool path_equal = false;
 
-    VERBOSE("instant_pulling %s\n", path);
+    VERBOSE("instant_pulling %s", path);
 
     pthread_mutex_lock(&m_instant_pull);
 
@@ -427,7 +427,7 @@ int transfer_instant_pull(const char *path)
     /* if copying failed, return error and dont set sync */
     if (res)
     {
-        ERROR("instant_pull on %s FAILED\n", path);
+        ERROR("instant_pull on %s FAILED", path);
         pthread_mutex_unlock(&m_instant_pull);
         return -1;
     }

@@ -60,7 +60,7 @@ int conflict_handle(const char *path, job_op op, int *keep_which)
     else /* CONFLICT_MINE */
         keep = CONFLICT_KEEP_CACHE;
 
-    VERBOSE("CONFLICT during %s on %s, keeping %s\n",
+    VERBOSE("CONFLICT during %s on %s, keeping %s",
         job_opstr(op), path, (keep == CONFLICT_KEEP_REMOTE) ? "remote" : "local");
 
     /* save which file to keep in caller-provided pointer */

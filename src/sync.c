@@ -154,7 +154,7 @@ static struct sync *sync_ht_set(const char *path, sync_xtime_t mtime, sync_xtime
 
         if (ht_insert(sync_ht, dir, ht) == HT_ERROR)
         {
-            ERROR("inserting into sync_ht\n");
+            ERROR("inserting into sync_ht");
             free(dir);
             return NULL;
         }
@@ -181,7 +181,7 @@ static struct sync *sync_ht_set(const char *path, sync_xtime_t mtime, sync_xtime
 
         if (ht_insert(ht, base, s) != HT_OK)
         {
-            ERROR("error inserting into sync_ht\n");
+            ERROR("error inserting into sync_ht");
             sync_free(s);
             return NULL;
         }
@@ -364,7 +364,7 @@ int sync_set(const char *path, int flags)
     /* insert in sync ht */
     pthread_mutex_lock(&m_sync_ht);
 
-    VERBOSE("setting sync for %s\n", path);
+    VERBOSE("setting sync for %s", path);
     s = sync_ht_set(path, mtime, ctime);
 
     pthread_mutex_unlock(&m_sync_ht);
@@ -381,7 +381,7 @@ int sync_set(const char *path, int flags)
     /* or log error and return -1 */
     else
     {
-        ERROR("sync_set failed\n");
+        ERROR("sync_set failed");
         return -1;
     }
 
@@ -594,7 +594,7 @@ int sync_delete_dir(const char *path)
        if it isn't, nag a little and free it's content */
     if (!ht_empty(ht))
     {
-        ERROR("deleting non-empty dir hashtable\n");
+        ERROR("deleting non-empty dir hashtable");
         ht_free_f(ht, NULL, sync_free);
     }
 

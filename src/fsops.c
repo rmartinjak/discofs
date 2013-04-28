@@ -39,11 +39,11 @@ static pthread_t t_worker, t_state;
 /* called when fs is initialized.  starts worker and state checking thread */
 void *op_init(struct fuse_conn_info *conn)
 {
-    VERBOSE("starting state check thread\n");
+    VERBOSE("starting state check thread");
     if (pthread_create(&t_state, NULL, state_check_main, NULL))
         FATAL("failed to create thread\n");
 
-    VERBOSE("starting worker thread\n");
+    VERBOSE("starting worker thread");
     if (pthread_create(&t_worker, NULL, worker_main, NULL))
         FATAL("failed to create thread\n");
 
@@ -54,10 +54,10 @@ void op_destroy(void *p)
 {
     state_set(STATE_EXITING, NULL);
 
-    DEBUG("joining state check thread\n");
+    DEBUG("joining state check thread");
     pthread_join(t_state, NULL);
 
-    DEBUG("joining worker thread\n");
+    DEBUG("joining worker thread");
     pthread_join(t_worker, NULL);
 }
 

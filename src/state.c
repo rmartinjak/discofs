@@ -36,11 +36,11 @@ void state_set(int s, int *oldstate)
 
     /* log new state if it differs from old state */
     if (s == STATE_ONLINE && s != state)
-        VERBOSE("changing state to ONLINE\n");
+        VERBOSE("changing state to ONLINE");
     else if (s == STATE_OFFLINE && s != state)
-        VERBOSE("changing state to OFFLINE\n");
+        VERBOSE("changing state to OFFLINE");
     else if (s == STATE_EXITING && s != state)
-        VERBOSE("changing state to EXITING\n");
+        VERBOSE("changing state to EXITING");
 
     state = s;
 
@@ -50,7 +50,7 @@ void state_set(int s, int *oldstate)
 void state_toggle_force_offline(void)
 {
     state_force_offline = !state_force_offline;
-    INFO("force offline: %s\n", state_force_offline ? "on" : "off");
+    INFO("force offline: %s", state_force_offline ? "on" : "off");
 }
 
 void *state_check_main(void *arg)

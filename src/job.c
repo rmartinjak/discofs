@@ -212,7 +212,7 @@ void job_return(struct job *j, int reason)
     if (!j)
         return;
 
-    VERBOSE("job %s on %s returned: %s\n", job_opstr(j->op), j->path,
+    VERBOSE("job %s on %s returned: %s", job_opstr(j->op), j->path,
             (reason == JOB_DONE) ? "done" :
             ((reason == JOB_FAILED) ? "failed" : "file is locked")
          );
@@ -236,7 +236,7 @@ void job_return(struct job *j, int reason)
         j->attempts++;
         if (j->attempts > JOB_MAX_ATTEMPTS)
         {
-            ERROR("number of retries exhausted, giving up\n");
+            ERROR("number of retries exhausted, giving up");
             db_job_delete_id(j->id);
             job_free(j);
             return;
