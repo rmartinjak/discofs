@@ -53,13 +53,6 @@
     "ctime_ns INTEGER"              \
     " "
 
-#define TABLE_HARDLINK " hardlink "
-#define SCHEMA_HARDLINK " "         \
-    "path TEXT UNIQUE NOT NULL,"    \
-    "inode INTEGER"                 \
-    " "
-
-
 /*--------------------*
  * convenience macros *
  *--------------------*/
@@ -161,7 +154,6 @@ int db_init(const char *path, int clear)
     CREATE_TABLE(TABLE_CFG, SCHEMA_CFG);
     CREATE_TABLE(TABLE_JOB, SCHEMA_JOB);
     CREATE_TABLE(TABLE_SYNC, SCHEMA_SYNC);
-    CREATE_TABLE(TABLE_HARDLINK, SCHEMA_HARDLINK);
 
 #undef NEW_TABLE
 #undef CREATE_TABLE
@@ -621,83 +613,6 @@ int db_sync_delete_path(const char *path)
 }
 
 
-/*----------*
- * hardlink *
- *----------*/
-
-int db_hardlink_get(ino_t inode, queue *q)
-{
-    int res = DB_OK, sql_res;
-    sqlite3_stmt *stmt;
-    char *path;
-
-    db_open();
-
-    PREPARE("SELECT path FROM " TABLE_HARDLINK " WHERE inode=?;", &stmt);
-    sqlite3_bind_int64(stmt, 1, inode);
-
-    while ((sql_res = sqlite3_step(stmt)) == SQLITE_ROW)
-    {
-        path = column_text(stmt, 0);
-        if (path)
-            q_enqueue(q, path);
-    }
-
-    if (sql_res != SQLITE_DONE)
-    {
-        ERRMSG("db_hardlink_get");
-        res = DB_ERROR;
-    }
-
-    sqlite3_finalize(stmt);
-    db_close();
-    return res;
-}
-
-int db_hardlink_add(const char *path, ino_t inode)
-{
-    int res = DB_OK;
-    sqlite3_stmt *stmt;
-
-    db_open();
-
-    PREPARE("INSERT OR REPLACE INTO " TABLE_HARDLINK " (path, inode) VALUES (?, ?);", &stmt);
-    sqlite3_bind_text (stmt, 1, path, -1, SQLITE_STATIC);
-    sqlite3_bind_int64(stmt, 2, inode);
-
-    if (sqlite3_step(stmt) != SQLITE_DONE)
-    {
-        ERRMSG("db_hardlink_add");
-        res = DB_ERROR;
-    }
-
-    sqlite3_finalize(stmt);
-    db_close();
-    return res;
-}
-
-int db_hardlink_remove(const char *path)
-{
-    int res = DB_OK;
-    sqlite3_stmt *stmt;
-
-    db_open();
-
-    PREPARE("DELETE FROM " TABLE_HARDLINK " WHERE path=?;", &stmt);
-    sqlite3_bind_text (stmt, 1, path, -1, SQLITE_STATIC);
-
-    if (sqlite3_step(stmt) != SQLITE_DONE)
-    {
-        ERRMSG("db_hardlink_remove");
-        res = DB_ERROR;
-    }
-
-    sqlite3_finalize(stmt);
-    db_close();
-    return res;
-}
-
-
 /*--------------*
  * rename paths *
  *--------------*/
@@ -789,4 +704,3 @@ DB_x_RENAME_DIR (n, t, c)
 
 DB_x_(job, TABLE_JOB, "path")
 DB_x_(sync, TABLE_SYNC, "path")
-DB_x_(hardlink, TABLE_HARDLINK, "path")

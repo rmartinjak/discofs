@@ -110,22 +110,4 @@ int db_sync_rename_file(const char *from, const char *to);
 /*! rename sync directories */
 int db_sync_rename_dir(const char *from, const char *to);
 
-
-/*-----------*
- * hardlinks *
- *-----------*/
-
-/*! stores all hardlinks that poit to _inode_ in _q_ */
-int db_hardlink_get(ino_t inode, queue *q);
-
-/*! add hardlinks */
-int db_hardlink_add(const char *path, ino_t inode);
-/*! remove hardlinks */
-int db_hardlink_remove(const char *path);
-
-/*! rename hardlink files */
-int db_hardlink_rename_file(const char *from, const char *to);
-/*! rename hardlink directories */
-int db_hardlink_rename_dir(const char *from, const char *to);
-
 #endif

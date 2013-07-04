@@ -10,7 +10,6 @@
 
 #include "discofs.h"
 #include "sync.h"
-#include "hardlink.h"
 #include "lock.h"
 #include "conflict.h"
 #include "transfer.h"
@@ -176,8 +175,6 @@ int remoteop_unlink(const char *path)
     if (res)
         return -errno;
 
-    hardlink_remove(path);
-
     return 0;
 }
 
@@ -201,32 +198,7 @@ int remoteop_symlink(const char *to, const char *path)
 
 int remoteop_link(const char *to, const char *path)
 {
-    int res;
-    char *pp, *pt;
-    struct stat st;
-
-    pp = remote_path(path);
-    pt = remote_path(to);
-    if (!pp || !pt)
-    {
-        free(pp);
-        free(pt);
-        return -EIO;
-    }
-
-    res = link(pt, pp);
-    lstat(pp, &st);
-
-    free(pp);
-    free(pt);
-
-    if (res)
-        return -errno;
-
-    hardlink_add(path, st.st_ino);
-    hardlink_add(to, st.st_ino);
-
-    return 0;
+    return -ENOTSUP;
 }
 
 int remoteop_mkdir(const char *path, mode_t mode)

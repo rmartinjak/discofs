@@ -1,4 +1,4 @@
-/*! @file conflict.c 
+/*! @file conflict.c
  * conflict handling.
  * discofs - disconnected file system
  * Copyright (c) 2012 Robin Martinjak
@@ -10,7 +10,6 @@
 #include "discofs.h"
 #include "job.h"
 #include "sync.h"
-#include "hardlink.h"
 #include "db.h"
 #include "funcs.h"
 
@@ -84,7 +83,6 @@ int conflict_handle(const char *path, job_op op, int *keep_which)
             if (!newpath)
             {
                 job_delete(path, JOB_ANY);
-                hardlink_remove(path);
 
                 if (is_dir(p))
                     sync_delete_dir(path);
@@ -98,13 +96,11 @@ int conflict_handle(const char *path, job_op op, int *keep_which)
                 {
                     sync_rename_dir(path, newpath);
                     job_rename_dir(path, newpath);
-                    hardlink_rename_dir(path, newpath);
                 }
                 else
                 {
                     sync_rename_file(path, newpath);
                     job_rename_file(path, newpath);
-                    hardlink_rename_file(path, newpath);
                 }
             }
             free(newpath);

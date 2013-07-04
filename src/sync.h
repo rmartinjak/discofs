@@ -47,10 +47,6 @@ struct sync
 typedef struct sync * (*sync_load_cb_t) (const char*, sync_xtime_t, sync_xtime_t);
 
 
-/*! flags for set_sync() */
-#define SYNC_NOHARDLINKS    (1 << 0)
-
-
 /*-----------------------------*
  * return values of get_sync() *
  *-----------------------------*/

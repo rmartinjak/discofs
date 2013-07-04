@@ -13,7 +13,6 @@
 #include "funcs.h"
 #include "sync.h"
 #include "job.h"
-#include "hardlink.h"
 #include "lock.h"
 #include "worker.h"
 #include "transfer.h"
@@ -415,35 +414,7 @@ int op_symlink(const char *to, const char *path)
 
 int op_link(const char *to, const char *path)
 {
-    int res;
-    char *pp, *pt;
-
-    if (!(discofs_options.fs_features & FEAT_HARDLINKS))
-        return -ENOTSUP;
-
-    pp = cache_path(path);
-    pt = cache_path(to);
-
-    res = link(pt, pp);
-    free(pp);
-    free(pt);
-
-    if (res)
-        return -errno;
-
-    if (ONLINE)
-    {
-        res = remoteop_link(to, path);
-        if (!res)
-        {
-            sync_set(path, 0);
-            return 0;
-        }
-    }
-
-    job_schedule(JOB_LINK, path, 0, 0, to, NULL);
-
-    return 0;
+    return -ENOTSUP;
 }
 
 int op_rename(const char *from, const char *to)
@@ -479,21 +450,19 @@ int op_rename(const char *from, const char *to)
         return -errno;
     }
 
-    /*-------------------------------*/
-    /* delete/rename hardlink & jobs */
-    /*-------------------------------*/
+    /*--------------------*/
+    /* delete/rename jobs */
+    /*--------------------*/
 
     job_delete(to, JOB_ANY);
 
     if (from_is_dir)
     {
         job_rename_dir(from, to);
-        hardlink_rename_dir(from, to);
     }
     else
     {
         job_rename_file(from, to);
-        hardlink_rename_file(from, to);
     }
 
 

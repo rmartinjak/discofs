@@ -11,7 +11,6 @@
 #include "log.h"
 #include "funcs.h"
 #include "hashtable.h"
-#include "hardlink.h"
 #include "db.h"
 
 #include <stdint.h>
@@ -349,13 +348,6 @@ int sync_set(const char *path, int flags)
     {
         PERROR("lstat() in sync_set");
         return -1;
-    }
-
-    if (st.st_nlink > 1 && !(flags & SYNC_NOHARDLINKS) && (discofs_options.fs_features & FEAT_HARDLINKS))
-    {
-        /* hardlink_sync_set will set sync for all paths sharing the same
-           inode, including "path" */
-        return hardlink_sync_set(st.st_ino);
     }
 
     mtime = ST_MTIME(st);

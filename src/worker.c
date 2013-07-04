@@ -18,7 +18,6 @@
 #include "lock.h"
 #include "job.h"
 #include "conflict.h"
-#include "hardlink.h"
 #include "bst.h"
 
 #include <stdbool.h>
@@ -28,12 +27,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-struct new_hardlink
-{
-    ino_t inode;
-    char *path;
-};
-
 
 static unsigned long long worker_block_n = 0;
 static pthread_mutex_t m_worker_block = PTHREAD_MUTEX_INITIALIZER;
@@ -42,7 +35,7 @@ static bool worker_wkup = false;
 static pthread_mutex_t m_worker_wakeup = PTHREAD_MUTEX_INITIALIZER;
 
 static void worker_scan_remote(void);
-static void worker_scan_dir(queue *scan_q, queue *new_hardlink_q);
+static void worker_scan_dir(queue *scan_q);
 
 static int worker_cancel_scan_dir = 0;
 
@@ -94,50 +87,30 @@ int worker_blocked(void)
 static void worker_scan_remote(void)
 {
     static queue *scan_q = NULL;
-    static queue *new_hardlink_q = NULL;
-    struct new_hardlink *hl;
 
     if (!scan_q)
         scan_q = q_init();
-    if (!new_hardlink_q)
-        new_hardlink_q = q_init();
 
     /* scan was cancelled -> begin a new scan from root */
     if (worker_cancel_scan_dir)
     {
-        /* clear both queues */
         q_clear(scan_q, free);
-
-        while ((hl = q_dequeue(new_hardlink_q)))
-        {
-            free(hl->path);
-            free(hl);
-        }
         worker_cancel_scan_dir = 0;
     }
 
     /* if scan_q is empty, the whole remote directory tree was scanned */
     if (q_empty(scan_q))
     {
-        /* create collected new hardlinks */
-        while ((hl = q_dequeue(new_hardlink_q)))
-        {
-            if (hardlink_create(hl->path, hl->inode))
-                ERROR("can't create hardlink %s", hl->path);
-            free(hl->path);
-            free(hl);
-        }
-
         /* sleep and begin new scan */
         worker_sleep(discofs_options.scan_interval);
         VERBOSE("beginning remote scan");
         q_enqueue(scan_q, strdup("/"));
     }
 
-    worker_scan_dir(scan_q, new_hardlink_q);
+    worker_scan_dir(scan_q);
 }
 
-static void worker_scan_dir(queue *scan_q, queue *new_hardlink_q)
+static void worker_scan_dir(queue *scan_q)
 {
     int res, sync;
     char *srch;
@@ -213,22 +186,7 @@ static void worker_scan_dir(queue *scan_q, queue *new_hardlink_q)
         else
         {
             sync = sync_get(p);
-
-            if (sync == SYNC_NEW && st.st_nlink >= 2)
-            {
-                struct new_hardlink *hl = malloc(sizeof *hl);
-                if (!hl || !(hl->path = strdup(p)))
-                {
-                    free(hl);
-                    ERROR("memory allocation failed");
-                }
-                else
-                {
-                    hl->inode = st.st_ino;
-                    q_enqueue(new_hardlink_q, hl);
-                }
-            }
-            else if (sync == SYNC_MOD || sync == SYNC_NEW)
+            if (sync == SYNC_MOD || sync == SYNC_NEW)
             {
                 if (!job_exists(p, JOB_PUSH))
                     job_schedule_pull(p);
@@ -239,7 +197,6 @@ static void worker_scan_dir(queue *scan_q, queue *new_hardlink_q)
                     conflict_handle(p, JOB_PUSH, NULL);
                 }
             }
-
             free(p);
         }
     }

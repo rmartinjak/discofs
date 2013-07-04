@@ -4,7 +4,7 @@ SRCDIR = src
 OBJDIR = obj
 DOXY = Doxyfile
 
-OBJNAMES = discofs state funcs paths sync job hardlink conflict worker transfer db log lock fsops debugops remoteops
+OBJNAMES = discofs state funcs paths sync job conflict worker transfer db log lock fsops debugops remoteops
 OBJ = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(OBJNAMES)))
 
 SUBMODULES = datastructs
@@ -43,7 +43,7 @@ clean :
 	@echo cleaning
 	@rm -f discofs
 	@rm -rf $(OBJDIR)
-	@rm -rf doc/html doc/latex 
+	@rm -rf doc/html doc/latex
 
 
 options :
